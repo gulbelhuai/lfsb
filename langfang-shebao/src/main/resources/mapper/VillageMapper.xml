@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.VillageMapper">
+    
+    <resultMap type="com.ruoyi.shebao.domain.Village" id="VillageResult">
+        <result property="id"            column="id"            />
+        <result property="villageCode"   column="village_code"  />
+        <result property="villageName"   column="village_name"  />
+        <result property="parentCode"    column="parent_code"   />
+        <result property="fullCode"      column="full_code"     />
+        <result property="fullName"      column="full_name"     />
+        <result property="contactPerson" column="contact_person"/>
+        <result property="contactPhone"  column="contact_phone" />
+        <result property="address"       column="address"       />
+        <result property="sortOrder"     column="sort_order"    />
+        <result property="status"        column="status"        />
+        <result property="delFlag"       column="del_flag"      />
+        <result property="createBy"      column="create_by"     />
+        <result property="createTime"    column="create_time"   />
+        <result property="updateBy"      column="update_by"     />
+        <result property="updateTime"    column="update_time"   />
+        <result property="remark"        column="remark"        />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.VillageListResp" id="VillageListRespResult">
+        <result property="id"            column="id"            />
+        <result property="villageCode"   column="village_code"  />
+        <result property="villageName"   column="village_name"  />
+        <result property="parentCode"    column="parent_code"   />
+        <result property="fullCode"      column="full_code"     />
+        <result property="fullName"      column="full_name"     />
+        <result property="contactPerson" column="contact_person"/>
+        <result property="contactPhone"  column="contact_phone" />
+        <result property="address"       column="address"       />
+        <result property="sortOrder"     column="sort_order"    />
+        <result property="status"        column="status"        />
+        <result property="createTime"    column="create_time"   />
+        <result property="updateTime"    column="update_time"   />
+        <result property="remark"        column="remark"        />
+    </resultMap>
+
+    <sql id="selectVillageVo">
+        select id, village_code, village_name, parent_code, full_code, full_name, 
+               contact_person, contact_phone, address, sort_order, status, del_flag, 
+               create_by, create_time, update_by, update_time, remark 
+        from shebao_village
+    </sql>
+
+    <select id="selectVillageList" parameterType="com.ruoyi.shebao.dto.VillageListReq" resultMap="VillageListRespResult">
+        <include refid="selectVillageVo"/>
+        <where>
+            del_flag = '0'
+            <if test="req.villageName != null and req.villageName != ''">
+                AND village_name like concat('%', #{req.villageName}, '%')
+            </if>
+            <if test="req.villageCode != null and req.villageCode != ''">
+                AND village_code like concat('%', #{req.villageCode}, '%')
+            </if>
+            <if test="req.parentCode != null and req.parentCode != ''">
+                AND parent_code = #{req.parentCode}
+            </if>
+            <if test="req.fullName != null and req.fullName != ''">
+                AND full_name like concat('%', #{req.fullName}, '%')
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND status = #{req.status}
+            </if>
+        </where>
+        order by sort_order asc, create_time desc
+    </select>
+
+    <select id="selectVillageByCode" parameterType="String" resultMap="VillageResult">
+        <include refid="selectVillageVo"/>
+        where village_code = #{villageCode} and del_flag = '0'
+    </select>
+
+    <select id="checkVillageRelatedData" parameterType="Long" resultType="int">
+        select count(1) from (
+            select 1 from shebao_demo where remark like concat('%村级单位ID:', #{villageId}, '%') and del_flag = '0' limit 1
+        ) t
+    </select>
+
+    <insert id="batchInsertVillage" parameterType="java.util.List">
+        insert into shebao_village
+        (village_code, village_name, parent_code, full_code, full_name, 
+         contact_person, contact_phone, address, sort_order, status, 
+         create_by, create_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.villageCode}, #{item.villageName}, #{item.parentCode}, 
+             #{item.fullCode}, #{item.fullName}, #{item.contactPerson}, #{item.contactPhone}, 
+             #{item.address}, #{item.sortOrder}, #{item.status}, #{item.createBy}, 
+             #{item.createTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+</mapper>

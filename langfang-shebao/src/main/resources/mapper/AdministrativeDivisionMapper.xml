@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.AdministrativeDivisionMapper">
+    
+    <resultMap type="com.ruoyi.shebao.domain.AdministrativeDivision" id="AdministrativeDivisionResult">
+        <result property="id"              column="id"              />
+        <result property="divisionCode"    column="division_code"   />
+        <result property="divisionName"    column="division_name"   />
+        <result property="parentCode"      column="parent_code"     />
+        <result property="divisionLevel"   column="division_level"  />
+        <result property="fullCode"        column="full_code"       />
+        <result property="fullName"        column="full_name"       />
+        <result property="contactPerson"   column="contact_person"  />
+        <result property="contactPhone"    column="contact_phone"   />
+        <result property="address"         column="address"         />
+        <result property="sortOrder"       column="sort_order"      />
+        <result property="status"          column="status"          />
+        <result property="delFlag"         column="del_flag"        />
+        <result property="createBy"        column="create_by"       />
+        <result property="createTime"      column="create_time"     />
+        <result property="updateBy"        column="update_by"       />
+        <result property="updateTime"      column="update_time"     />
+        <result property="remark"          column="remark"          />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.AdministrativeDivisionListResp" id="AdministrativeDivisionListRespResult">
+        <result property="id"              column="id"              />
+        <result property="divisionCode"    column="division_code"   />
+        <result property="divisionName"    column="division_name"   />
+        <result property="parentCode"      column="parent_code"     />
+        <result property="divisionLevel"   column="division_level"  />
+        <result property="fullCode"        column="full_code"       />
+        <result property="fullName"        column="full_name"       />
+        <result property="contactPerson"   column="contact_person"  />
+        <result property="contactPhone"    column="contact_phone"   />
+        <result property="address"         column="address"         />
+        <result property="sortOrder"       column="sort_order"      />
+        <result property="status"          column="status"          />
+        <result property="createTime"      column="create_time"     />
+        <result property="updateTime"      column="update_time"     />
+        <result property="remark"          column="remark"          />
+    </resultMap>
+
+    <sql id="selectAdministrativeDivisionVo">
+        select id, division_code, division_name, parent_code, division_level, 
+               full_code, full_name, contact_person, contact_phone, address, 
+               sort_order, status, del_flag, create_by, create_time, 
+               update_by, update_time, remark 
+        from shebao_administrative_division
+    </sql>
+
+    <select id="selectByParentCode" parameterType="String" resultMap="AdministrativeDivisionResult">
+        <include refid="selectAdministrativeDivisionVo"/>
+        <where>
+            del_flag = '0' and status = '0'
+            <if test="parentCode != null and parentCode != ''">
+                AND parent_code = #{parentCode}
+            </if>
+            <if test="parentCode == null or parentCode == ''">
+                AND parent_code IS NULL
+            </if>
+        </where>
+        order by sort_order asc, division_code asc
+    </select>
+
+    <select id="selectByDivisionLevel" parameterType="Integer" resultMap="AdministrativeDivisionResult">
+        <include refid="selectAdministrativeDivisionVo"/>
+        <where>
+            del_flag = '0' and status = '0'
+            <if test="divisionLevel != null">
+                AND division_level = #{divisionLevel}
+            </if>
+        </where>
+        order by sort_order asc, division_code asc
+    </select>
+
+    <select id="selectByDivisionCode" parameterType="String" resultMap="AdministrativeDivisionResult">
+        <include refid="selectAdministrativeDivisionVo"/>
+        where division_code = #{divisionCode} and del_flag = '0'
+    </select>
+
+    <select id="buildFullPath" parameterType="String" resultMap="AdministrativeDivisionResult">
+        WITH RECURSIVE division_tree AS (
+            -- 起始节点
+            SELECT division_code, division_name, parent_code, division_level,
+                   division_code as full_code, division_name as full_name
+            FROM shebao_administrative_division 
+            WHERE division_code = #{divisionCode} AND del_flag = '0'
+            
+            UNION ALL
+            
+            -- 递归查找父级
+            SELECT p.division_code, p.division_name, p.parent_code, p.division_level,
+                   CONCAT(p.division_code, '/', dt.full_code) as full_code,
+                   CONCAT(p.division_name, '/', dt.full_name) as full_name
+            FROM shebao_administrative_division p
+            INNER JOIN division_tree dt ON p.division_code = dt.parent_code
+            WHERE p.del_flag = '0'
+        )
+        SELECT division_code, division_name, parent_code, division_level, full_code, full_name
+        FROM division_tree 
+        WHERE parent_code IS NULL
+        ORDER BY division_level DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectAdministrativeDivisionList" parameterType="com.ruoyi.shebao.dto.AdministrativeDivisionListReq" resultMap="AdministrativeDivisionListRespResult">
+        <include refid="selectAdministrativeDivisionVo"/>
+        <where>
+            del_flag = '0'
+            <if test="req.divisionCode != null and req.divisionCode != ''">
+                AND division_code like concat('%', #{req.divisionCode}, '%')
+            </if>
+            <if test="req.divisionName != null and req.divisionName != ''">
+                AND division_name like concat('%', #{req.divisionName}, '%')
+            </if>
+            <if test="req.parentCode != null and req.parentCode != ''">
+                AND parent_code = #{req.parentCode}
+            </if>
+            <if test="req.divisionLevel != null">
+                AND division_level = #{req.divisionLevel}
+            </if>
+            <if test="req.fullName != null and req.fullName != ''">
+                AND full_name like concat('%', #{req.fullName}, '%')
+            </if>
+            <if test="req.status != null and req.status != ''">
+                AND status = #{req.status}
+            </if>
+        </where>
+        order by division_level asc, sort_order asc, create_time desc
+    </select>
+
+    <select id="checkHasChildren" parameterType="String" resultType="int">
+        select count(1) from shebao_administrative_division 
+        where parent_code = #{divisionCode} and del_flag = '0'
+    </select>
+
+    <select id="checkHasVillageRelated" parameterType="String" resultType="int">
+        select count(1) from shebao_village 
+        where parent_code = #{divisionCode} and del_flag = '0'
+    </select>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into shebao_administrative_division
+        (division_code, division_name, parent_code, division_level, full_code, full_name, 
+         contact_person, contact_phone, address, sort_order, status, create_by, create_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.divisionCode}, #{item.divisionName}, #{item.parentCode}, #{item.divisionLevel}, 
+             #{item.fullCode}, #{item.fullName}, #{item.contactPerson}, #{item.contactPhone}, 
+             #{item.address}, #{item.sortOrder}, #{item.status}, #{item.createBy}, 
+             #{item.createTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <select id="selectAllChildren" parameterType="String" resultMap="AdministrativeDivisionResult">
+        WITH RECURSIVE children_tree AS (
+            -- 直接子级
+            SELECT id, division_code, division_name, parent_code, division_level,
+                   full_code, full_name, contact_person, contact_phone, address, 
+                   sort_order, status, del_flag, create_by, create_time, 
+                   update_by, update_time, remark
+            FROM shebao_administrative_division 
+            WHERE parent_code = #{divisionCode} AND del_flag = '0'
+            
+            UNION ALL
+            
+            -- 递归查找所有子级
+            SELECT c.id, c.division_code, c.division_name, c.parent_code, c.division_level,
+                   c.full_code, c.full_name, c.contact_person, c.contact_phone, c.address,
+                   c.sort_order, c.status, c.del_flag, c.create_by, c.create_time,
+                   c.update_by, c.update_time, c.remark
+            FROM shebao_administrative_division c
+            INNER JOIN children_tree ct ON c.parent_code = ct.division_code
+            WHERE c.del_flag = '0'
+        )
+        SELECT * FROM children_tree
+        ORDER BY division_level ASC, sort_order ASC
+    </select>
+
+    <update id="batchUpdateFullPath" parameterType="java.util.List">
+        <if test="list != null and list.size() > 0">
+            UPDATE shebao_administrative_division 
+            SET 
+                full_code = CASE id
+                    <foreach collection="list" item="item">
+                        WHEN #{item.id} THEN #{item.fullCode}
+                    </foreach>
+                END,
+                full_name = CASE id
+                    <foreach collection="list" item="item">
+                        WHEN #{item.id} THEN #{item.fullName}
+                    </foreach>
+                END,
+                update_time = CASE id
+                    <foreach collection="list" item="item">
+                        WHEN #{item.id} THEN #{item.updateTime}
+                    </foreach>
+                END,
+                update_by = CASE id
+                    <foreach collection="list" item="item">
+                        WHEN #{item.id} THEN #{item.updateBy}
+                    </foreach>
+                END
+            WHERE id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")">
+                #{item.id}
+            </foreach>
+        </if>
+    </update>
+
+    <update id="batchUpdateChildrenFullPath">
+        UPDATE shebao_administrative_division 
+        SET 
+            full_code = REPLACE(full_code, #{oldFullCode}, #{newFullCode}),
+            full_name = REPLACE(full_name, #{oldFullName}, #{newFullName}),
+            update_time = #{updateTime},
+            update_by = #{updateBy}
+        WHERE 
+            del_flag = '0'
+            AND (full_code LIKE CONCAT(#{oldFullCode}, '/%') OR full_name LIKE CONCAT(#{oldFullName}, '/%'))
+    </update>
+
+</mapper>

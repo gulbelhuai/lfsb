@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.DistributionReviewMapper">
+    
+    <resultMap type="com.ruoyi.shebao.domain.DistributionReview" id="DistributionReviewResult">
+        <result property="id"                      column="id"                      />
+        <result property="distributionId"          column="distribution_id"         />
+        <result property="operationType"           column="operation_type"          />
+        <result property="operationRemark"         column="operation_remark"        />
+        <result property="operatorName"            column="operator_name"           />
+        <result property="operationTime"           column="operation_time"          />
+        <result property="status"                  column="status"                  />
+        <result property="delFlag"                 column="del_flag"                />
+        <result property="createBy"                column="create_by"               />
+        <result property="createTime"              column="create_time"             />
+        <result property="updateBy"                column="update_by"               />
+        <result property="updateTime"              column="update_time"             />
+        <result property="remark"                  column="remark"                  />
+    </resultMap>
+
+    <sql id="selectDistributionReviewVo">
+        select dr.id, dr.distribution_id, dr.operation_type, dr.operation_remark,
+               dr.operator_name, dr.operation_time, dr.status, dr.del_flag,
+               dr.create_by, dr.create_time, dr.update_by, dr.update_time, dr.remark
+        from shebao_distribution_review dr
+    </sql>
+
+    <select id="selectByDistributionId" parameterType="Long" resultMap="DistributionReviewResult">
+        <include refid="selectDistributionReviewVo"/>
+        where dr.distribution_id = #{distributionId}
+          and dr.del_flag = '0'
+        order by dr.operation_time asc
+    </select>
+
+</mapper>
+

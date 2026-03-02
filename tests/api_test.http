@@ -1,0 +1,324 @@
+### 廊坊社保管理系统 - API测试脚本
+### 使用方法：在VS Code中安装REST Client插件，点击"Send Request"即可测试
+
+### 变量定义
+@baseUrl = http://localhost:8080
+@token = your_jwt_token_here
+
+### ==================== 登录 ====================
+
+### 1. 登录获取token
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "username": "jingbanren",
+  "password": "admin123"
+}
+
+### ==================== 人员信息管理 ====================
+
+### 2. 查询人员登记列表
+GET {{baseUrl}}/shebao/person/registration/list?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 3. 新增人员登记
+POST {{baseUrl}}/shebao/person/registration
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "测试人员",
+  "idCardNo": "130102199001011234",
+  "gender": "1",
+  "birthDate": "1990-01-01",
+  "streetOfficeId": 1,
+  "villageCommitteeId": 1,
+  "contactPhone": "13800138000",
+  "householdAddress": "河北省廊坊市某街道某村",
+  "subsidyType": "land_loss_resident",
+  "remark": "测试数据"
+}
+
+### 4. 查询人员详情
+GET {{baseUrl}}/shebao/person/registration/1
+Authorization: Bearer {{token}}
+
+### 5. 提交审核
+POST {{baseUrl}}/shebao/person/registration/submit/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "remark": "请审核"
+}
+
+### 6. 查询待复核列表（复核人）
+GET {{baseUrl}}/shebao/person/review/list?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 7. 复核通过
+POST {{baseUrl}}/shebao/person/review/1/pass
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "remark": "复核通过"
+}
+
+### 8. 复核驳回
+POST {{baseUrl}}/shebao/person/review/1/reject
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "remark": "身份证号格式错误，请修改"
+}
+
+### ==================== 待遇核定管理 ====================
+
+### 9. 生成预到龄通知
+POST {{baseUrl}}/shebao/benefit/notice/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "noticeMonth": "2026-04",
+  "ageThreshold": 60
+}
+
+### 10. 查询预到龄通知列表
+GET {{baseUrl}}/shebao/benefit/notice/list?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 11. 单个待遇核定
+POST {{baseUrl}}/shebao/benefit/determination
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": 1,
+  "subsidyType": "land_loss_resident",
+  "monthlyAmount": 500.00,
+  "startMonth": "2026-01",
+  "bankName": "中国工商银行",
+  "bankAccountNo": "6222021234567890123",
+  "bankAccountName": "测试人员",
+  "remark": "待遇核定"
+}
+
+### 12. 批量待遇核定（Excel导入）
+POST {{baseUrl}}/shebao/benefit/determination/batch
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="benefit_batch.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./benefit_batch.xlsx
+------WebKitFormBoundary--
+
+### 13. 查询待遇核定列表
+GET {{baseUrl}}/shebao/benefit/determination/list?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### ==================== 待遇管理 ====================
+
+### 14. 修改发放信息
+PUT {{baseUrl}}/shebao/benefit/modify
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": 1,
+  "subsidyType": "land_loss_resident",
+  "monthlyAmount": 550.00,
+  "bankName": "中国农业银行",
+  "bankAccountNo": "6228451234567890123",
+  "reason": "更换银行卡"
+}
+
+### 15. 待遇暂停
+POST {{baseUrl}}/shebao/benefit/suspension
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": 1,
+  "subsidyType": "land_loss_resident",
+  "suspensionReason": "death",
+  "suspensionDate": "2026-01-15",
+  "remark": "人员死亡，暂停发放"
+}
+
+### 16. 待遇恢复
+POST {{baseUrl}}/shebao/benefit/suspension/resume
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": 1,
+  "subsidyType": "land_loss_resident",
+  "resumeDate": "2026-02-01",
+  "remark": "已认证，恢复发放"
+}
+
+### 17. 待遇认证
+POST {{baseUrl}}/shebao/benefit/certification
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "personId": 1,
+  "subsidyType": "land_loss_resident",
+  "certificationType": "april",
+  "certificationDate": "2026-04-15",
+  "remark": "4月认证"
+}
+
+### ==================== 支付结算 ====================
+
+### 18. 生成支付计划
+POST {{baseUrl}}/shebao/payment/plan/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "subsidyType": "land_loss_resident",
+  "startMonth": "2026-01",
+  "endMonth": "2026-12",
+  "streetOfficeId": 1,
+  "villageCommitteeId": 1
+}
+
+### 19. 查询支付计划列表
+GET {{baseUrl}}/shebao/payment/plan/list?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 20. 创建发放批次
+POST {{baseUrl}}/shebao/payment/batch/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "subsidyType": "land_loss_resident",
+  "paymentMonth": "2026-01",
+  "planIds": [1, 2, 3]
+}
+
+### 21. 批次复核（复核人）
+POST {{baseUrl}}/shebao/payment/batch/1/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "approved": true,
+  "remark": "复核通过"
+}
+
+### 22. 批次审批（审批人）
+POST {{baseUrl}}/shebao/payment/batch/1/approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "approved": true,
+  "remark": "审批通过"
+}
+
+### 23. 上传财务系统（审批人）
+POST {{baseUrl}}/shebao/payment/batch/1/upload
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "remark": "已上传财务系统"
+}
+
+### ==================== 财务管理 ====================
+
+### 24. 查询批次列表
+GET {{baseUrl}}/shebao/finance/batch/list?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 25. 查询批次详情
+GET {{baseUrl}}/shebao/finance/batch/detail/202601150001
+Authorization: Bearer {{token}}
+
+### 26. 生成银行文件
+GET {{baseUrl}}/shebao/finance/bank/file/202601150001
+Authorization: Bearer {{token}}
+
+### 27. 提交银行发放
+POST {{baseUrl}}/shebao/finance/bank/submit
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "batchNo": "202601150001",
+  "remark": "已提交银行"
+}
+
+### 28. 导入发放结果
+POST {{baseUrl}}/shebao/finance/bank/import
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="payment_result.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./payment_result.xlsx
+------WebKitFormBoundary
+Content-Disposition: form-data; name="batchNo"
+
+202601150001
+------WebKitFormBoundary--
+
+### 29. 失败处理 - 信息更正
+POST {{baseUrl}}/shebao/finance/failure/handle
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "distributionId": 1,
+  "handleType": "correct",
+  "correctedBankAccountNo": "6228451234567890123",
+  "remark": "银行卡号更正"
+}
+
+### 30. 失败处理 - 二次发放
+POST {{baseUrl}}/shebao/finance/failure/handle
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "distributionId": 1,
+  "handleType": "retry",
+  "remark": "二次发放"
+}
+
+### 31. 查询财务账户列表
+GET {{baseUrl}}/shebao/finance/account/list
+Authorization: Bearer {{token}}
+
+### ==================== 审计报表 ====================
+
+### 32. 查询审批记录
+GET {{baseUrl}}/shebao/audit/approval/list?pageNum=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### 33. 查询发放明细
+GET {{baseUrl}}/shebao/audit/detail/list?pageNum=1&pageSize=10&startDate=2026-01-01&endDate=2026-12-31
+Authorization: Bearer {{token}}
+
+### 34. 统计汇总
+GET {{baseUrl}}/shebao/audit/statistics?subsidyType=land_loss_resident&year=2026
+Authorization: Bearer {{token}}
+
+### ==================== 审批历史 ====================
+
+### 35. 查询业务审批历史
+GET {{baseUrl}}/shebao/approval/history/person_registration/1
+Authorization: Bearer {{token}}

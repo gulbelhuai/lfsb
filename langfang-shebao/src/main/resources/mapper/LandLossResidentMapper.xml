@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.LandLossResidentMapper">
+    
+    <resultMap type="com.ruoyi.shebao.domain.LandLossResident" id="LandLossResidentResult">
+        <result property="id"                          column="id"                          />
+        <result property="subsidyPersonId"             column="subsidy_person_id"           />
+        <result property="landRequisitionTime"         column="land_requisition_time"       />
+        <result property="compensationCompleteTime"    column="compensation_complete_time"  />
+        <result property="recognitionTime"             column="recognition_time"            />
+        <result property="delFlag"                     column="del_flag"                    />
+        <result property="createBy"                    column="create_by"                   />
+        <result property="createTime"                  column="create_time"                 />
+        <result property="updateBy"                    column="update_by"                   />
+        <result property="updateTime"                  column="update_time"                 />
+        <result property="remark"                      column="remark"                      />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.LandLossResidentListResp" id="LandLossResidentListRespResult">
+        <!-- 失地居民信息字段 -->
+        <result property="id"                          column="id"                          />
+        <result property="landRequisitionTime"         column="land_requisition_time"       />
+        <result property="compensationCompleteTime"    column="compensation_complete_time"  />
+        <result property="recognitionTime"             column="recognition_time"            />
+        <result property="createTime"                  column="create_time"                 />
+        <result property="updateTime"                  column="update_time"                 />
+        <result property="remark"                      column="remark"                      />
+        <!-- 基础信息字段 -->
+        <result property="subsidyPersonId"             column="subsidy_person_id"           />
+        <result property="name"                        column="name"                        />
+        <result property="idCardNo"                    column="id_card_no"                  />
+        <result property="gender"                      column="gender"                      />
+        <result property="birthday"                    column="birthday"                    />
+        <result property="phone"                       column="phone"                       />
+        <result property="isAlive"                      column="is_alive"                    />
+        <result property="deathDate"                   column="death_date"                 />
+        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
+        <result property="streetOfficeId"              column="street_office_id"           />
+        <result property="villageCommitteeId"          column="village_committee_id"        />
+        <result property="userCode"                    column="user_code"                  />
+        <result property="streetOfficeName"            column="street_office_name"         />
+        <result property="villageCommitteeName"        column="village_committee_name"      />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.LandLossResidentFormDto" id="LandLossResidentFormResult">
+        <!-- 失地居民信息字段 -->
+        <result property="id"                          column="id"                          />
+        <result property="subsidyPersonId"             column="subsidy_person_id"           />
+        <result property="landRequisitionTime"         column="land_requisition_time"       />
+        <result property="compensationCompleteTime"    column="compensation_complete_time"  />
+        <result property="recognitionTime"             column="recognition_time"            />
+        <result property="remark"                      column="ll_remark"                   />
+        <!-- 基础信息字段 -->
+        <result property="name"                        column="name"                        />
+        <result property="gender"                      column="gender"                      />
+        <result property="idCardNo"                    column="id_card_no"                  />
+        <result property="birthday"                    column="birthday"                    />
+        <result property="householdRegistration"       column="household_registration"      />
+        <result property="homeAddress"                column="home_address"               />
+        <result property="phone"                       column="phone"                       />
+        <result property="isAlive"                     column="is_alive"                    />
+        <result property="deathDate"                   column="death_date"                 />
+        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
+        <result property="streetOfficeId"              column="street_office_id"           />
+        <result property="villageCommitteeId"          column="village_committee_id"        />
+        <result property="userCode"                    column="user_code"                  />
+    </resultMap>
+
+    <sql id="selectLandLossResidentVo">
+        select ll.id, ll.subsidy_person_id, ll.land_requisition_time, 
+               ll.compensation_complete_time, ll.recognition_time, 
+               ll.del_flag, ll.create_by, ll.create_time, 
+               ll.update_by, ll.update_time, ll.remark 
+        from shebao_land_loss_resident ll
+    </sql>
+
+    <select id="selectLandLossResidentList" parameterType="com.ruoyi.shebao.dto.LandLossResidentListReq" resultMap="LandLossResidentListRespResult">
+        select ll.id, ll.subsidy_person_id, ll.land_requisition_time, 
+               ll.compensation_complete_time, ll.recognition_time, 
+               ll.create_time, ll.update_time, ll.remark,
+               sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+               sp.is_alive, sp.death_date, sp.is_village_coop_member,
+               sp.street_office_id, sp.village_committee_id, sp.user_code,
+               sso.street_name as street_office_name, svc.village_name as village_committee_name
+        from shebao_land_loss_resident ll
+        left join shebao_subsidy_person sp on ll.subsidy_person_id = sp.id
+        left join shebao_street_office sso on sp.street_office_id=sso.id
+        left join shebao_village_committee svc on sp.village_committee_id=svc.id
+        <where>
+            ll.del_flag = '0'
+            <if test="req.name != null and req.name != ''">
+                AND sp.name like concat('%', #{req.name}, '%')
+            </if>
+            <if test="req.idCardNo != null and req.idCardNo != ''">
+                AND sp.id_card_no like concat('%', #{req.idCardNo}, '%')
+            </if>
+            <if test="req.userCode != null and req.userCode != ''">
+                AND sp.user_code = #{req.userCode}
+            </if>
+            <if test="req.streetOfficeId != null">
+                AND sp.street_office_id = #{req.streetOfficeId}
+            </if>
+            <if test="req.villageCommitteeId != null">
+                AND sp.village_committee_id = #{req.villageCommitteeId}
+            </if>
+            <if test="req.landRequisitionTimeStart != null">
+                AND ll.land_requisition_time >= #{req.landRequisitionTimeStart}
+            </if>
+            <if test="req.landRequisitionTimeEnd != null">
+                AND ll.land_requisition_time &lt;= #{req.landRequisitionTimeEnd}
+            </if>
+            <if test="req.recognitionTimeStart != null">
+                AND ll.recognition_time >= #{req.recognitionTimeStart}
+            </if>
+            <if test="req.recognitionTimeEnd != null">
+                AND ll.recognition_time &lt;= #{req.recognitionTimeEnd}
+            </if>
+        </where>
+        order by ll.create_time desc
+    </select>
+
+    <select id="selectLandLossResidentFormById" parameterType="Long" resultMap="LandLossResidentFormResult">
+        select ll.id, ll.subsidy_person_id, ll.land_requisition_time, 
+               ll.compensation_complete_time, ll.recognition_time, 
+               ll.remark as ll_remark,
+               sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+               sp.is_alive, sp.death_date, sp.is_village_coop_member,
+               sp.street_office_id, sp.village_committee_id, sp.user_code,
+                sp.household_registration, sp.home_address
+        from shebao_land_loss_resident ll
+        left join shebao_subsidy_person sp on ll.subsidy_person_id = sp.id
+        where ll.id = #{id} and ll.del_flag = '0'
+    </select>
+
+    <select id="selectBySubsidyPersonId" parameterType="Long" resultMap="LandLossResidentResult">
+        <include refid="selectLandLossResidentVo"/>
+        where subsidy_person_id = #{subsidyPersonId} and del_flag = '0'
+        order by create_time desc
+    </select>
+
+    <insert id="batchInsertLandLossResident" parameterType="java.util.List">
+        insert into shebao_land_loss_resident
+        (subsidy_person_id, land_requisition_time, compensation_complete_time, 
+         recognition_time, create_by, create_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.subsidyPersonId}, #{item.landRequisitionTime}, #{item.compensationCompleteTime}, 
+             #{item.recognitionTime}, #{item.createBy}, 
+             #{item.createTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+</mapper>

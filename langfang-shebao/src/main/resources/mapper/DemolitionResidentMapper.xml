@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.DemolitionResidentMapper">
+    
+    <resultMap type="com.ruoyi.shebao.domain.DemolitionResident" id="DemolitionResidentResult">
+        <result property="id"                          column="id"                          />
+        <result property="subsidyPersonId"             column="subsidy_person_id"           />
+        <result property="demolitionReason"            column="demolition_reason"           />
+        <result property="demolitionTime"              column="demolition_time"             />
+        <result property="recognitionTime"             column="recognition_time"            />
+        <result property="delFlag"                     column="del_flag"                    />
+        <result property="createBy"                    column="create_by"                   />
+        <result property="createTime"                  column="create_time"                 />
+        <result property="updateBy"                    column="update_by"                   />
+        <result property="updateTime"                  column="update_time"                 />
+        <result property="remark"                      column="remark"                      />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.DemolitionResidentListResp" id="DemolitionResidentListRespResult">
+        <!-- 拆迁居民信息字段 -->
+        <result property="id"                          column="id"                          />
+        <result property="demolitionReason"            column="demolition_reason"           />
+        <result property="demolitionTime"              column="demolition_time"             />
+        <result property="recognitionTime"             column="recognition_time"            />
+        <result property="createTime"                  column="create_time"                 />
+        <result property="updateTime"                  column="update_time"                 />
+        <result property="remark"                      column="remark"                      />
+        <!-- 基础信息字段 -->
+        <result property="subsidyPersonId"             column="subsidy_person_id"           />
+        <result property="name"                        column="name"                        />
+        <result property="idCardNo"                    column="id_card_no"                  />
+        <result property="gender"                      column="gender"                      />
+        <result property="birthday"                    column="birthday"                    />
+        <result property="phone"                       column="phone"                       />
+        <result property="isAlive"                      column="is_alive"                    />
+        <result property="deathDate"                   column="death_date"                 />
+        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
+        <result property="streetOfficeId"              column="street_office_id"           />
+        <result property="villageCommitteeId"          column="village_committee_id"        />
+        <result property="userCode"                    column="user_code"                  />
+        <result property="streetOfficeName"            column="street_office_name"         />
+        <result property="villageCommitteeName"        column="village_committee_name"      />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.DemolitionResidentFormDto" id="DemolitionResidentFormResult">
+        <!-- 拆迁居民信息字段 -->
+        <result property="id"                          column="id"                          />
+        <result property="subsidyPersonId"             column="subsidy_person_id"           />
+        <result property="demolitionReason"            column="demolition_reason"           />
+        <result property="demolitionTime"              column="demolition_time"             />
+        <result property="recognitionTime"             column="recognition_time"            />
+        <result property="remark"                      column="dr_remark"                   />
+        <!-- 基础信息字段 -->
+        <result property="name"                        column="name"                        />
+        <result property="gender"                      column="gender"                      />
+        <result property="idCardNo"                    column="id_card_no"                  />
+        <result property="birthday"                    column="birthday"                    />
+        <result property="householdRegistration"       column="household_registration"      />
+        <result property="homeAddress"                column="home_address"               />
+        <result property="phone"                       column="phone"                       />
+        <result property="isAlive"                     column="is_alive"                    />
+        <result property="deathDate"                   column="death_date"                 />
+        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
+        <result property="streetOfficeId"              column="street_office_id"           />
+        <result property="villageCommitteeId"          column="village_committee_id"        />
+        <result property="userCode"                    column="user_code"                  />
+    </resultMap>
+
+    <sql id="selectDemolitionResidentVo">
+        select dr.id, dr.subsidy_person_id, dr.demolition_reason, 
+               dr.demolition_time, dr.recognition_time, 
+               dr.status, dr.del_flag, dr.create_by, dr.create_time, 
+               dr.update_by, dr.update_time, dr.remark 
+        from shebao_demolition_resident dr
+    </sql>
+
+    <select id="selectDemolitionResidentList" parameterType="com.ruoyi.shebao.dto.DemolitionResidentListReq" resultMap="DemolitionResidentListRespResult">
+        select dr.id, dr.subsidy_person_id, dr.demolition_reason, 
+               dr.demolition_time, dr.recognition_time, 
+               dr.create_time, dr.update_time, dr.remark,
+                sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+                sp.is_alive, sp.death_date, sp.is_village_coop_member,
+                sp.street_office_id, sp.village_committee_id, sp.user_code,
+                sso.street_name as street_office_name, svc.village_name as village_committee_name
+        from shebao_demolition_resident dr
+        left join shebao_subsidy_person sp on dr.subsidy_person_id = sp.id
+        left join shebao_street_office sso on sp.street_office_id=sso.id
+        left join shebao_village_committee svc on sp.village_committee_id=svc.id
+        <where>
+            dr.del_flag = '0'
+            <if test="req.name != null and req.name != ''">
+                AND sp.name like concat('%', #{req.name}, '%')
+            </if>
+            <if test="req.idCardNo != null and req.idCardNo != ''">
+                AND sp.id_card_no like concat('%', #{req.idCardNo}, '%')
+            </if>
+            <if test="req.userCode != null and req.userCode != ''">
+                AND sp.user_code = #{req.userCode}
+            </if>
+            <if test="req.streetOfficeId != null">
+                AND sp.street_office_id = #{req.streetOfficeId}
+            </if>
+            <if test="req.villageCommitteeId != null">
+                AND sp.village_committee_id = #{req.villageCommitteeId}
+            </if>
+            <if test="req.demolitionTimeStart != null">
+                AND dr.demolition_time >= #{req.demolitionTimeStart}
+            </if>
+            <if test="req.demolitionTimeEnd != null">
+                AND dr.demolition_time &lt;= #{req.demolitionTimeEnd}
+            </if>
+            <if test="req.recognitionTimeStart != null">
+                AND dr.recognition_time >= #{req.recognitionTimeStart}
+            </if>
+            <if test="req.recognitionTimeEnd != null">
+                AND dr.recognition_time &lt;= #{req.recognitionTimeEnd}
+            </if>
+        </where>
+        order by dr.create_time desc
+    </select>
+
+    <select id="selectDemolitionResidentFormById" parameterType="Long" resultMap="DemolitionResidentFormResult">
+        select dr.id, dr.subsidy_person_id, dr.demolition_reason, 
+               dr.demolition_time, dr.recognition_time, 
+               dr.status as dr_status, dr.remark as dr_remark,
+               sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+               sp.is_alive, sp.death_date, sp.is_village_coop_member,
+               sp.street_office_id, sp.village_committee_id, sp.user_code,
+               sp.household_registration, sp.home_address
+        from shebao_demolition_resident dr
+        left join shebao_subsidy_person sp on dr.subsidy_person_id = sp.id
+        where dr.id = #{id} and dr.del_flag = '0'
+    </select>
+
+    <select id="selectBySubsidyPersonId" parameterType="Long" resultMap="DemolitionResidentResult">
+        <include refid="selectDemolitionResidentVo"/>
+        where subsidy_person_id = #{subsidyPersonId} and del_flag = '0'
+        order by create_time desc
+    </select>
+
+    <insert id="batchInsertDemolitionResident" parameterType="java.util.List">
+        insert into shebao_demolition_resident
+        (subsidy_person_id, demolition_reason, demolition_time, 
+         recognition_time, status, create_by, create_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.subsidyPersonId}, #{item.demolitionReason}, #{item.demolitionTime}, 
+             #{item.recognitionTime}, #{item.status}, #{item.createBy}, 
+             #{item.createTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+</mapper>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.PersonCancelMapper">
+
+    <resultMap type="com.ruoyi.shebao.dto.PersonCancelListResp" id="PersonCancelListRespResult">
+        <result property="id"               column="id"/>
+        <result property="subsidyPersonId"  column="subsidy_person_id"/>
+        <result property="deathDate"        column="death_date"/>
+        <result property="createTime"       column="create_time"/>
+        <result property="remark"           column="remark"/>
+        <result property="name"             column="name"/>
+        <result property="idCardNo"         column="id_card_no"/>
+        <result property="userCode"         column="user_code"/>
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.PersonCancelFormDto" id="PersonCancelFormResult">
+        <result property="id"               column="id"/>
+        <result property="subsidyPersonId"  column="subsidy_person_id"/>
+        <result property="deathDate"        column="death_date"/>
+        <result property="createTime"       column="create_time"/>
+        <result property="remark"           column="pc_remark"/>
+        <result property="name"             column="name"/>
+        <result property="idCardNo"         column="id_card_no"/>
+        <result property="userCode"         column="user_code"/>
+    </resultMap>
+
+    <select id="selectPersonCancelList" parameterType="com.ruoyi.shebao.dto.PersonCancelListReq" resultMap="PersonCancelListRespResult">
+        <include refid="selectPersonCancelListSql" />
+    </select>
+
+    <select id="selectPersonCancelListNoPage" parameterType="com.ruoyi.shebao.dto.PersonCancelListReq" resultMap="PersonCancelListRespResult">
+        <include refid="selectPersonCancelListSql" />
+    </select>
+
+    <sql id="selectPersonCancelListSql">
+        select pc.id, pc.subsidy_person_id, pc.death_date, pc.create_time, pc.remark,
+               sp.name, sp.id_card_no, sp.user_code
+        from shebao_person_cancel pc
+        left join shebao_subsidy_person sp on pc.subsidy_person_id = sp.id
+        <where>
+            pc.del_flag = '0'
+            <if test="req.name != null and req.name != ''">
+                AND sp.name like concat('%', #{req.name}, '%')
+            </if>
+            <if test="req.idCardNo != null and req.idCardNo != ''">
+                AND sp.id_card_no like concat('%', #{req.idCardNo}, '%')
+            </if>
+            <if test="req.userCode != null and req.userCode != ''">
+                AND sp.user_code = #{req.userCode}
+            </if>
+            <if test="req.deathDateStart != null">
+                AND pc.death_date >= #{req.deathDateStart}
+            </if>
+            <if test="req.deathDateEnd != null">
+                AND pc.death_date &lt;= #{req.deathDateEnd}
+            </if>
+        </where>
+        order by pc.create_time desc
+    </sql>
+
+    <select id="selectPersonCancelFormById" parameterType="Long" resultMap="PersonCancelFormResult">
+        select pc.id, pc.subsidy_person_id, pc.death_date, pc.create_time,
+               pc.remark as pc_remark,
+               sp.name, sp.id_card_no, sp.user_code
+        from shebao_person_cancel pc
+        left join shebao_subsidy_person sp on pc.subsidy_person_id = sp.id
+        where pc.id = #{id} and pc.del_flag = '0'
+    </select>
+
+    <select id="countActiveByPersonId" resultType="int">
+        select count(1)
+        from shebao_person_cancel
+        where del_flag = '0' and subsidy_person_id = #{subsidyPersonId}
+    </select>
+
+    <select id="selectMaxDeathDateByPersonId" resultType="java.time.LocalDate">
+        select max(death_date)
+        from shebao_person_cancel
+        where del_flag = '0' and subsidy_person_id = #{subsidyPersonId}
+    </select>
+
+</mapper>
+

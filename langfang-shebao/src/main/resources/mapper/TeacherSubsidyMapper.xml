@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.TeacherSubsidyMapper">
+
+    <resultMap type="com.ruoyi.shebao.dto.TeacherSubsidyListResp" id="TeacherSubsidyListRespResult">
+        <!-- 教龄补助字段 -->
+        <result property="id"                column="id"/>
+        <result property="subsidyPersonId"   column="subsidy_person_id"/>
+        <result property="schoolName"        column="school_name"/>
+        <result property="teachingYears"     column="teaching_years"/>
+        <result property="approvalStatus"    column="approval_status"/>
+        <result property="createTime"        column="create_time"/>
+        <result property="updateTime"        column="update_time"/>
+        <result property="remark"            column="remark"/>
+        <!-- 基础信息字段 -->
+        <result property="name"              column="name"/>
+        <result property="idCardNo"          column="id_card_no"/>
+        <result property="userCode"          column="user_code"/>
+        <result property="streetOfficeId"    column="street_office_id"/>
+        <result property="villageCommitteeId" column="village_committee_id"/>
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.TeacherSubsidyFormDto" id="TeacherSubsidyFormResult">
+        <!-- 教龄补助字段 -->
+        <result property="id"                column="id"/>
+        <result property="subsidyPersonId"   column="subsidy_person_id"/>
+        <result property="schoolName"        column="school_name"/>
+        <result property="teachingYears"     column="teaching_years"/>
+        <result property="remark"            column="ts_remark"/>
+        <!-- 基础信息字段 -->
+        <result property="name"              column="name"/>
+        <result property="gender"            column="gender"/>
+        <result property="idCardNo"          column="id_card_no"/>
+        <result property="birthday"          column="birthday"/>
+        <result property="householdRegistration" column="household_registration"/>
+        <result property="homeAddress"       column="home_address"/>
+        <result property="phone"             column="phone"/>
+        <result property="isAlive"           column="is_alive"/>
+        <result property="deathDate"         column="death_date"/>
+        <result property="isVillageCoopMember" column="is_village_coop_member"/>
+        <result property="streetOfficeId"    column="street_office_id"/>
+        <result property="villageCommitteeId" column="village_committee_id"/>
+        <result property="userCode"          column="user_code"/>
+        <result property="status"            column="status"/>
+    </resultMap>
+
+    <select id="selectTeacherSubsidyList" parameterType="com.ruoyi.shebao.dto.TeacherSubsidyListReq" resultMap="TeacherSubsidyListRespResult">
+        select ts.id, ts.subsidy_person_id, ts.school_name, ts.teaching_years,
+               'draft' as approval_status,
+               ts.create_time, ts.update_time, ts.remark,
+               sp.name, sp.id_card_no, sp.user_code, sp.street_office_id, sp.village_committee_id
+        from shebao_teacher_subsidy ts
+        left join shebao_subsidy_person sp on ts.subsidy_person_id = sp.id
+        <where>
+            ts.del_flag = '0'
+            <if test="req.name != null and req.name != ''">
+                AND sp.name like concat('%', #{req.name}, '%')
+            </if>
+            <if test="req.idCardNo != null and req.idCardNo != ''">
+                AND sp.id_card_no like concat('%', #{req.idCardNo}, '%')
+            </if>
+            <if test="req.userCode != null and req.userCode != ''">
+                AND sp.user_code = #{req.userCode}
+            </if>
+            <if test="req.schoolName != null and req.schoolName != ''">
+                AND ts.school_name like concat('%', #{req.schoolName}, '%')
+            </if>
+            <if test="req.streetOfficeId != null">
+                AND sp.street_office_id = #{req.streetOfficeId}
+            </if>
+            <if test="req.villageCommitteeId != null">
+                AND sp.village_committee_id = #{req.villageCommitteeId}
+            </if>
+        </where>
+        order by ts.create_time desc
+    </select>
+
+    <select id="selectTeacherSubsidyFormById" parameterType="Long" resultMap="TeacherSubsidyFormResult">
+        select ts.id, ts.subsidy_person_id, ts.school_name, ts.teaching_years,
+               ts.remark as ts_remark,
+               sp.name, sp.gender, sp.id_card_no, sp.birthday, sp.household_registration, sp.home_address,
+               sp.phone, sp.is_alive, sp.death_date, sp.is_village_coop_member,
+               sp.street_office_id, sp.village_committee_id, sp.user_code, sp.status
+        from shebao_teacher_subsidy ts
+        left join shebao_subsidy_person sp on ts.subsidy_person_id = sp.id
+        where ts.id = #{id} and ts.del_flag = '0'
+    </select>
+
+</mapper>
+

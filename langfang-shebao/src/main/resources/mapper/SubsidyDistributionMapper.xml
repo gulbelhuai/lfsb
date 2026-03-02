@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.SubsidyDistributionMapper">
+    
+    <resultMap type="com.ruoyi.shebao.domain.SubsidyDistribution" id="SubsidyDistributionResult">
+        <result property="id"                      column="id"                      />
+        <result property="subsidyPersonId"         column="subsidy_person_id"       />
+        <result property="subsidyType"             column="subsidy_type"            />
+        <result property="subsidyRecordId"         column="subsidy_record_id"       />
+        <result property="distributionAmount"      column="distribution_amount"     />
+        <result property="distributionDate"        column="distribution_date"       />
+        <result property="distributionStatus"      column="distribution_status"     />
+        <result property="reviewRemark"            column="review_remark"           />
+        <result property="status"                  column="status"                  />
+        <result property="delFlag"                 column="del_flag"                />
+        <result property="createBy"                column="create_by"               />
+        <result property="createTime"              column="create_time"             />
+        <result property="updateBy"                column="update_by"               />
+        <result property="updateTime"              column="update_time"             />
+        <result property="remark"                  column="remark"                  />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.SubsidyDistributionListResp" id="SubsidyDistributionListRespResult">
+        <result property="id"                      column="id"                      />
+        <result property="subsidyPersonId"         column="subsidy_person_id"       />
+        <result property="name"                    column="name"                    />
+        <result property="idCardNo"                column="id_card_no"              />
+        <result property="userCode"                column="user_code"               />
+        <result property="streetOfficeName"        column="street_office_name"      />
+        <result property="villageCommitteeName"    column="village_committee_name"  />
+        <result property="subsidyType"             column="subsidy_type"            />
+        <result property="subsidyRecordId"         column="subsidy_record_id"       />
+        <result property="distributionAmount"      column="distribution_amount"     />
+        <result property="distributionDate"        column="distribution_date"       />
+        <result property="distributionStatus"      column="distribution_status"     />
+        <result property="reviewRemark"            column="review_remark"           />
+        <result property="createTime"              column="create_time"             />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.SubsidyDistributionFormDto" id="SubsidyDistributionFormResult">
+        <result property="id"                      column="id"                      />
+        <result property="subsidyPersonId"         column="subsidy_person_id"       />
+        <result property="name"                    column="name"                    />
+        <result property="idCardNo"                column="id_card_no"              />
+        <result property="gender"                  column="gender"                  />
+        <result property="birthday"                column="birthday"                />
+        <result property="householdRegistration"   column="household_registration"  />
+        <result property="homeAddress"             column="home_address"            />
+        <result property="phone"                   column="phone"                   />
+        <result property="isAlive"                 column="is_alive"                />
+        <result property="deathDate"               column="death_date"              />
+        <result property="isVillageCoopMember"     column="is_village_coop_member"  />
+        <result property="userCode"                column="user_code"               />
+        <result property="streetOfficeId"          column="street_office_id"        />
+        <result property="villageCommitteeId"      column="village_committee_id"    />
+        <result property="streetOfficeName"        column="street_office_name"      />
+        <result property="villageCommitteeName"    column="village_committee_name"  />
+        <result property="subsidyType"             column="subsidy_type"            />
+        <result property="subsidyRecordId"         column="subsidy_record_id"       />
+        <result property="distributionAmount"      column="distribution_amount"     />
+        <result property="distributionDate"        column="distribution_date"       />
+        <result property="distributionStatus"      column="distribution_status"     />
+        <result property="reviewRemark"            column="review_remark"           />
+        <result property="status"                  column="status"                  />
+        <result property="remark"                  column="remark"                  />
+    </resultMap>
+
+    <sql id="selectSubsidyDistributionVo">
+        select sd.id, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id, 
+               sd.distribution_amount, sd.distribution_date, sd.distribution_status, 
+               sd.review_remark, sd.status, sd.del_flag, sd.create_by, sd.create_time, 
+               sd.update_by, sd.update_time, sd.remark
+        from shebao_subsidy_distribution sd
+    </sql>
+
+    <select id="selectSubsidyDistributionList" parameterType="com.ruoyi.shebao.dto.SubsidyDistributionListReq" resultMap="SubsidyDistributionListRespResult">
+        select sd.id, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id,
+               sd.distribution_amount, sd.distribution_date, sd.distribution_status, sd.review_remark, sd.create_time,
+               sp.name, sp.id_card_no, sp.user_code,
+               sso.street_name as street_office_name, svc.village_name as village_committee_name
+        from shebao_subsidy_distribution sd
+        left join shebao_subsidy_person sp on sd.subsidy_person_id = sp.id
+        left join shebao_street_office sso on sp.street_office_id = sso.id
+        left join shebao_village_committee svc on sp.village_committee_id = svc.id
+        where sd.del_flag = '0'
+        <if test="req.subsidyPersonId != null">
+            and sd.subsidy_person_id = #{req.subsidyPersonId}
+        </if>
+        <if test="req.name != null and req.name != ''">
+            and sp.name like concat('%', #{req.name}, '%')
+        </if>
+        <if test="req.idCardNo != null and req.idCardNo != ''">
+            and sp.id_card_no like concat('%', #{req.idCardNo}, '%')
+        </if>
+        <if test="req.subsidyType != null and req.subsidyType != ''">
+            and sd.subsidy_type = #{req.subsidyType}
+        </if>
+        <if test="req.villageCommitteeId != null">
+            and sp.village_committee_id = #{req.villageCommitteeId}
+        </if>
+        <if test="req.distributionStatus != null and req.distributionStatus != ''">
+            and sd.distribution_status = #{req.distributionStatus}
+        </if>
+        <if test="req.distributionDateStart != null">
+            and sd.distribution_date &gt;= #{req.distributionDateStart}
+        </if>
+        <if test="req.distributionDateEnd != null">
+            and sd.distribution_date &lt;= #{req.distributionDateEnd}
+        </if>
+        order by sd.create_time desc
+    </select>
+
+    <select id="selectSubsidyDistributionFormById" parameterType="Long" resultMap="SubsidyDistributionFormResult">
+        select sd.id, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id,
+               sd.distribution_amount, sd.distribution_date, sd.distribution_status, 
+               sd.review_remark, sd.status, sd.remark,
+               sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.household_registration, sp.home_address, sp.phone,
+               sp.is_alive, sp.death_date, sp.is_village_coop_member,
+               sp.street_office_id, sp.village_committee_id, sp.user_code,
+               sso.street_name as street_office_name, svc.village_name as village_committee_name
+        from shebao_subsidy_distribution sd
+        left join shebao_subsidy_person sp on sd.subsidy_person_id = sp.id
+        left join shebao_street_office sso on sp.street_office_id = sso.id
+        left join shebao_village_committee svc on sp.village_committee_id = svc.id
+        where sd.id = #{id}
+    </select>
+
+    <!-- 检查补贴身份是否有未删除的发放记录 -->
+    <select id="checkUndeletedDistributions" resultType="int">
+        select count(*)
+        from shebao_subsidy_distribution
+        where subsidy_type = #{subsidyType}
+          and subsidy_record_id = #{subsidyRecordId}
+          and del_flag = '0'
+    </select>
+
+</mapper>
+

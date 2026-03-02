@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.VillageCommitteeMapper">
+    
+    <resultMap type="VillageCommittee" id="VillageCommitteeResult">
+        <result property="id"    column="id"    />
+        <result property="streetOfficeId"    column="street_office_id"    />
+        <result property="villageCode"    column="village_code"    />
+        <result property="villageName"    column="village_name"    />
+        <result property="contactPerson"    column="contact_person"    />
+        <result property="contactPhone"    column="contact_phone"    />
+        <result property="address"    column="address"    />
+        <result property="sortOrder"    column="sort_order"    />
+        <result property="status"    column="status"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+        <result property="streetOfficeName"    column="street_office_name"    />
+    </resultMap>
+
+    <sql id="selectVillageCommitteeVo">
+        select vc.id, vc.street_office_id, vc.village_code, vc.village_name, vc.contact_person, vc.contact_phone, 
+               vc.address, vc.sort_order, vc.status, vc.del_flag, vc.create_by, vc.create_time, 
+               vc.update_by, vc.update_time, vc.remark, so.street_name as street_office_name
+        from shebao_village_committee vc
+        left join shebao_street_office so on vc.street_office_id = so.id
+    </sql>
+
+    <select id="selectVillageCommitteeList" parameterType="com.ruoyi.shebao.dto.VillageCommitteeListReq" resultMap="VillageCommitteeResult">
+        <include refid="selectVillageCommitteeVo"/>
+        <where>  
+            vc.del_flag = '0'
+            <if test="streetOfficeId != null"> and vc.street_office_id = #{streetOfficeId}</if>
+            <if test="villageCode != null  and villageCode != ''"> and vc.village_code = #{villageCode}</if>
+            <if test="villageName != null  and villageName != ''"> and vc.village_name like concat('%', #{villageName}, '%')</if>
+            <if test="status != null  and status != ''"> and vc.status = #{status}</if>
+        </where>
+        order by vc.sort_order asc, vc.create_time desc
+    </select>
+    
+    <select id="checkVillageCodeUnique" resultType="int">
+        select count(1) from shebao_village_committee 
+        where street_office_id = #{streetOfficeId} and village_code = #{villageCode} and del_flag = '0'
+        <if test="id != null and id != -1"> and id != #{id}</if>
+    </select>
+
+    <select id="checkVillageNameUnique" resultType="int">
+        select count(1) from shebao_village_committee 
+        where street_office_id = #{streetOfficeId} and village_name = #{villageName} and del_flag = '0'
+        <if test="id != null and id != -1"> and id != #{id}</if>
+    </select>
+
+    <select id="selectVillageCommitteeListByStreetOfficeId" resultMap="VillageCommitteeResult">
+        <include refid="selectVillageCommitteeVo"/>
+        where vc.street_office_id = #{streetOfficeId} and vc.del_flag = '0' and vc.status = '0'
+        order by vc.sort_order asc, vc.village_code asc
+    </select>
+
+</mapper>

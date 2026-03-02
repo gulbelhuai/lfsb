@@ -1,0 +1,3 @@
+- 如果是简单的单表CRUD语句，直接使用mybatisPlus的抽象方法；必须使用复杂sql时才使用xml定义动态或复杂语句；
+- 后端业务代码在./langfang-shebao模块下，业务需求都在该模块下实现。除非明确要求，不然不要修改框架代码
+- 前端代码在./ruoyi-ui文件夹下，业务页面在./ruoyi-ui/src/views/shebao

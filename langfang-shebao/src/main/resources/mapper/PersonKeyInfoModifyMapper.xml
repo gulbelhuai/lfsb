@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.PersonKeyInfoModifyMapper">
+
+    <resultMap type="com.ruoyi.shebao.dto.PersonKeyInfoModifyListResp" id="PersonKeyInfoModifyListRespResult">
+        <result property="id" column="id" />
+        <result property="subsidyPersonId" column="subsidy_person_id" />
+        <result property="name" column="name" />
+        <result property="idCardNo" column="id_card_no" />
+        <result property="householdRegistration" column="household_registration" />
+        <result property="streetOfficeId" column="street_office_id" />
+        <result property="streetOfficeName" column="street_office_name" />
+        <result property="villageCommitteeId" column="village_committee_id" />
+        <result property="villageCommitteeName" column="village_committee_name" />
+        <result property="approvalStatus" column="approval_status" />
+        <result property="submitBy" column="submit_by" />
+        <result property="submitTime" column="submit_time" />
+        <result property="reviewBy" column="review_by" />
+        <result property="reviewTime" column="review_time" />
+        <result property="approveBy" column="approve_by" />
+        <result property="approveTime" column="approve_time" />
+        <result property="rejectReason" column="reject_reason" />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <resultMap type="com.ruoyi.shebao.dto.PersonKeyInfoModifyFormDto" id="PersonKeyInfoModifyFormResult">
+        <result property="id" column="id" />
+        <result property="subsidyPersonId" column="subsidy_person_id" />
+        <result property="name" column="name" />
+        <result property="idCardNo" column="id_card_no" />
+        <result property="householdRegistration" column="household_registration" />
+        <result property="streetOfficeId" column="street_office_id" />
+        <result property="streetOfficeName" column="street_office_name" />
+        <result property="villageCommitteeId" column="village_committee_id" />
+        <result property="villageCommitteeName" column="village_committee_name" />
+        <result property="approvalStatus" column="approval_status" />
+        <result property="submitBy" column="submit_by" />
+        <result property="submitTime" column="submit_time" />
+        <result property="reviewBy" column="review_by" />
+        <result property="reviewTime" column="review_time" />
+        <result property="approveBy" column="approve_by" />
+        <result property="approveTime" column="approve_time" />
+        <result property="rejectReason" column="reject_reason" />
+        <result property="remark" column="remark" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <select id="selectModifyList" resultMap="PersonKeyInfoModifyListRespResult">
+        select m.id, m.subsidy_person_id, m.name, m.id_card_no, m.household_registration,
+               m.street_office_id, m.village_committee_id,
+               sso.street_name as street_office_name,
+               svc.village_name as village_committee_name,
+               m.approval_status, m.submit_by, m.submit_time, m.review_by, m.review_time,
+               m.approve_by, m.approve_time, m.reject_reason, m.create_time
+        from person_key_info_modify m
+        left join shebao_street_office sso on m.street_office_id = sso.id
+        left join shebao_village_committee svc on m.village_committee_id = svc.id
+        where m.del_flag = '0'
+        <if test="req.name != null and req.name != ''">
+            and m.name like concat('%', #{req.name}, '%')
+        </if>
+        <if test="req.idCardNo != null and req.idCardNo != ''">
+            and m.id_card_no like concat('%', #{req.idCardNo}, '%')
+        </if>
+        <if test="req.approvalStatus != null and req.approvalStatus != ''">
+            and m.approval_status = #{req.approvalStatus}
+        </if>
+        order by m.create_time desc
+    </select>
+
+    <select id="selectFormById" resultMap="PersonKeyInfoModifyFormResult">
+        select m.id, m.subsidy_person_id, m.name, m.id_card_no, m.household_registration,
+               m.street_office_id, m.village_committee_id,
+               sso.street_name as street_office_name,
+               svc.village_name as village_committee_name,
+               m.approval_status, m.submit_by, m.submit_time, m.review_by, m.review_time,
+               m.approve_by, m.approve_time, m.reject_reason, m.remark, m.create_time, m.update_time
+        from person_key_info_modify m
+        left join shebao_street_office sso on m.street_office_id = sso.id
+        left join shebao_village_committee svc on m.village_committee_id = svc.id
+        where m.id = #{id} and m.del_flag = '0'
+    </select>
+</mapper>
