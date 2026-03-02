@@ -11,7 +11,7 @@ export function getApprovalHistory(businessType, businessId) {
 // 查询审批记录列表
 export function listApprovalLog(query) {
   return request({
-    url: '/shebao/approval/log/list',
+    url: '/shebao/audit/approval/list',
     method: 'get',
     params: query
   })
