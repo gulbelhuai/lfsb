@@ -1,0 +1,9 @@
+{
+  "install": "cd ruoyi-ui && npm install",
+  "terminals": [
+    {
+      "name": "Run Vue dev",
+      "command": "cd ruoyi-ui && npm run dev"
+    }
+  ]
+}
