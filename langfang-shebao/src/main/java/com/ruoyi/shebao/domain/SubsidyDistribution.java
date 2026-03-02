@@ -27,8 +27,8 @@ public class SubsidyDistribution extends BaseDomain
     @Excel(name = "被补贴人ID")
     private Long subsidyPersonId;
 
-    /** 补贴类型（1失地居民补贴 2被征地居民补贴 3拆迁居民补贴 4村干部补贴） */
-    @Excel(name = "补贴类型", readConverterExp = "1=失地居民补贴,2=被征地居民补贴,3=拆迁居民补贴,4=村干部补贴")
+    /** 补贴类型（1失地居民补贴 2被征地居民补贴 3拆迁居民补贴 4村干部补贴 5教龄补助） */
+    @Excel(name = "补贴类型", readConverterExp = "1=失地居民补贴,2=被征地居民补贴,3=拆迁居民补贴,4=村干部补贴,5=教龄补助")
     private String subsidyType;
 
     /** 补贴身份记录ID（关联具体补贴类型表的ID） */

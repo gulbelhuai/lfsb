@@ -13,7 +13,8 @@ public enum SubsidyTypeEnum {
     LAND_LOSS("1", "失地居民补贴", "shebao_land_loss_resident"),
     EXPROPRIATEE("2", "被征地居民补贴", "shebao_expropriatee_subsidy"),
     DEMOLITION("3", "拆迁居民补贴", "shebao_demolition_resident"),
-    VILLAGE_OFFICIAL("4", "村干部补贴", "shebao_village_official");
+    VILLAGE_OFFICIAL("4", "村干部补贴", "shebao_village_official"),
+    TEACHER("5", "教龄补助", "shebao_teacher_subsidy");
     
     /** 补贴类型编码 */
     private final String code;

@@ -24,5 +24,12 @@
             <artifactId>ruoyi-system</artifactId>
         </dependency>
 
+        <!-- JUnit 5 + Mockito 用于单元测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 </project>

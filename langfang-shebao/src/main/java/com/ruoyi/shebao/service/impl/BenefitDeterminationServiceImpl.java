@@ -282,6 +282,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             case "expropriatee" -> SubsidyTypeEnum.EXPROPRIATEE;
             case "demolition_resident" -> SubsidyTypeEnum.DEMOLITION;
             case "village_official" -> SubsidyTypeEnum.VILLAGE_OFFICIAL;
+            case "teacher_subsidy" -> SubsidyTypeEnum.TEACHER;
             default -> null;
         };
     }

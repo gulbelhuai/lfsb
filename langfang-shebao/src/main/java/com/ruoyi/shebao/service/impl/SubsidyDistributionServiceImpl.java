@@ -57,6 +57,9 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
     private VillageOfficialMapper villageOfficialMapper;
 
     @Autowired
+    private TeacherSubsidyMapper teacherSubsidyMapper;
+
+    @Autowired
     private DistributionReviewService distributionReviewService;
 
     @Autowired
@@ -277,6 +280,30 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
                 AvailableSubsidyDto.SubsidyRecordInfo record = new AvailableSubsidyDto.SubsidyRecordInfo();
                 record.setSubsidyRecordId(item.getId());
                 // 补贴金额和发放状态已移到补贴发放管理表，这里设置默认值
+                record.setSubsidyAmount(BigDecimal.ZERO);
+                record.setDistributionStatus("0");
+                record.setDistributionStatusName(getStatusName(record.getDistributionStatus()));
+                record.setSelectable("0".equals(record.getDistributionStatus()));
+                record.setSubsidyDetail(item);
+                records.add(record);
+            }
+            typeInfo.setRecords(records);
+            subsidyTypes.add(typeInfo);
+        }
+
+        // 查询教龄补助
+        List<TeacherSubsidy> teacherList = teacherSubsidyMapper.selectList(
+            new LambdaQueryWrapper<TeacherSubsidy>()
+                .eq(TeacherSubsidy::getSubsidyPersonId, person.getId())
+        );
+        if (!teacherList.isEmpty()) {
+            AvailableSubsidyDto.SubsidyTypeInfo typeInfo = new AvailableSubsidyDto.SubsidyTypeInfo();
+            typeInfo.setSubsidyType(SubsidyTypeEnum.TEACHER.getCode());
+            typeInfo.setSubsidyTypeName(SubsidyTypeEnum.TEACHER.getName());
+            List<AvailableSubsidyDto.SubsidyRecordInfo> records = new ArrayList<>();
+            for (TeacherSubsidy item : teacherList) {
+                AvailableSubsidyDto.SubsidyRecordInfo record = new AvailableSubsidyDto.SubsidyRecordInfo();
+                record.setSubsidyRecordId(item.getId());
                 record.setSubsidyAmount(BigDecimal.ZERO);
                 record.setDistributionStatus("0");
                 record.setDistributionStatusName(getStatusName(record.getDistributionStatus()));
@@ -514,6 +541,13 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
                 // 补贴发放状态已移到补贴发放管理表，这里不再检查
                 status = "0";
                 break;
+            case TEACHER:
+                TeacherSubsidy teacherSubsidy = teacherSubsidyMapper.selectById(subsidyRecordId);
+                if (teacherSubsidy == null) {
+                    throw new ServiceException("补贴记录不存在");
+                }
+                status = "0";
+                break;
         }
 
         if (!"0".equals(status) && status != null) {
@@ -547,6 +581,9 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
             case VILLAGE_OFFICIAL:
                 // 补贴发放状态已移到补贴发放管理表，不再更新实体表
                 break;
+            case TEACHER:
+                // 教龄补助发放状态在发放管理表维护
+                break;
         }
     }
 
@@ -572,6 +609,9 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
                 return BigDecimal.ZERO;
             case VILLAGE_OFFICIAL:
                 // 补贴金额已移到补贴发放管理表，返回默认值
+                return BigDecimal.ZERO;
+            case TEACHER:
+                // 教龄补助发放金额由发放管理表维护
                 return BigDecimal.ZERO;
             default:
                 return BigDecimal.ZERO;
