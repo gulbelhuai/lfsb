@@ -104,4 +104,7 @@ public class LandLossResidentListResp
     /** 备注 */
     @Excel(name = "备注", sort = 22)
     private String remark;
+
+    /** 审批状态 */
+    private String approvalStatus;
 }

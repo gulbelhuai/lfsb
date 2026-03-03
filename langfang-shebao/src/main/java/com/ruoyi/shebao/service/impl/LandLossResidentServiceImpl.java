@@ -422,6 +422,7 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
         newPerson.setUserCode(formDto.getUserCode());
         newPerson.setStatus("0");
+        newPerson.setApprovalStatus("draft");
 
         subsidyPersonService.insertSubsidyPerson(newPerson);
         return newPerson.getId();

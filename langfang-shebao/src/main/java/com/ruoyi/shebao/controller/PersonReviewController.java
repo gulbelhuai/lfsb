@@ -7,7 +7,11 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.shebao.dto.LandLossResidentListReq;
 import com.ruoyi.shebao.dto.LandLossResidentListResp;
+import com.ruoyi.shebao.domain.LandLossResident;
+import com.ruoyi.shebao.domain.SubsidyPerson;
+import com.ruoyi.shebao.service.ApprovalLogService;
 import com.ruoyi.shebao.service.LandLossResidentService;
+import com.ruoyi.shebao.service.SubsidyPersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +29,12 @@ public class PersonReviewController extends BaseController
     @Autowired
     private LandLossResidentService landLossResidentService;
 
+    @Autowired
+    private SubsidyPersonService subsidyPersonService;
+
+    @Autowired
+    private ApprovalLogService approvalLogService;
+
     /**
      * 查询待复核人员列表
      */
@@ -39,9 +49,8 @@ public class PersonReviewController extends BaseController
         if (req.getPageSize() == null) {
             req.setPageSize(10);
         }
-        // 默认查询待复核状态
-        if (req.getStatus() == null || req.getStatus().isEmpty()) {
-            req.setStatus("pending_review");
+        if (req.getApprovalStatus() == null || req.getApprovalStatus().isEmpty()) {
+            req.setApprovalStatus("pending_review");
         }
         Page<LandLossResidentListResp> page = landLossResidentService.selectLandLossResidentList(req);
         return AjaxResult.success(page);
@@ -55,7 +64,19 @@ public class PersonReviewController extends BaseController
     @PostMapping("/approve/{id}")
     public AjaxResult approve(@PathVariable Long id, @RequestParam(required = false) String remark)
     {
-        // TODO: 实现复核通过逻辑
+        LandLossResident resident = landLossResidentService.getById(id);
+        if (resident == null)
+        {
+            return AjaxResult.error("记录不存在");
+        }
+        SubsidyPerson person = subsidyPersonService.getById(resident.getSubsidyPersonId());
+        if (person == null || !"pending_review".equals(person.getApprovalStatus()))
+        {
+            return AjaxResult.error("当前状态不允许复核");
+        }
+        person.setApprovalStatus("approved");
+        subsidyPersonService.updateById(person);
+        approvalLogService.log("person_register", id, "approved", "approve", remark);
         return AjaxResult.success("复核通过");
     }
 
@@ -67,8 +88,20 @@ public class PersonReviewController extends BaseController
     @PostMapping("/reject/{id}")
     public AjaxResult reject(@PathVariable Long id, @RequestParam String reason)
     {
-        // TODO: 实现复核驳回逻辑
-        return AjaxResult.error("复核驳回");
+        LandLossResident resident = landLossResidentService.getById(id);
+        if (resident == null)
+        {
+            return AjaxResult.error("记录不存在");
+        }
+        SubsidyPerson person = subsidyPersonService.getById(resident.getSubsidyPersonId());
+        if (person == null || !"pending_review".equals(person.getApprovalStatus()))
+        {
+            return AjaxResult.error("当前状态不允许驳回");
+        }
+        person.setApprovalStatus("rejected");
+        subsidyPersonService.updateById(person);
+        approvalLogService.log("person_register", id, "rejected", "reject", reason);
+        return AjaxResult.success("复核驳回成功");
     }
 
     /**

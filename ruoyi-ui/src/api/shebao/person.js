@@ -64,18 +64,18 @@ export function listPersonReview(query) {
 // 复核通过
 export function reviewPersonPass(id, remark) {
   return request({
-    url: `/shebao/person/review/${id}/pass`,
+    url: `/shebao/person/review/approve/${id}`,
     method: 'post',
-    data: remark
+    params: { remark }
   })
 }
 
 // 复核驳回
 export function reviewPersonReject(id, remark) {
   return request({
-    url: `/shebao/person/review/${id}/reject`,
+    url: `/shebao/person/review/reject/${id}`,
     method: 'post',
-    data: remark
+    params: { reason: remark }
   })
 }
 

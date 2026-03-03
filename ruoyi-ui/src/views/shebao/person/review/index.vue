@@ -52,7 +52,7 @@
             type="success"
             icon="el-icon-check"
             @click="handlePass(scope.row)"
-            v-hasPermi="['shebao:person:review:pass']"
+            v-hasPermi="['shebao:person:review:approve']"
           >通过</el-button>
           <el-button
             size="mini"
@@ -98,7 +98,7 @@
 
       <!-- 复核操作 -->
       <div slot="footer" class="dialog-footer">
-        <el-button type="success" @click="handlePass(detailData)" v-hasPermi="['shebao:person:review:pass']">复核通过</el-button>
+        <el-button type="success" @click="handlePass(detailData)" v-hasPermi="['shebao:person:review:approve']">复核通过</el-button>
         <el-button type="danger" @click="handleReject(detailData)" v-hasPermi="['shebao:person:review:reject']">复核驳回</el-button>
         <el-button @click="detailOpen = false">关 闭</el-button>
       </div>
