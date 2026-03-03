@@ -293,8 +293,10 @@ export default {
     // 提取村级节点
     extractVillageNodes(data) {
       let villages = []
+      if (!data || !Array.isArray(data)) return villages
       
       const extractRecursive = (nodes) => {
+        if (!nodes || !Array.isArray(nodes)) return
         nodes.forEach(node => {
           if (node.divisionLevel === 5) {
             villages.push(node)
@@ -312,8 +314,10 @@ export default {
     // 扁平化树形数据
     flattenTreeData(data) {
       let flattened = []
+      if (!data || !Array.isArray(data)) return flattened
       
       const flattenRecursive = (nodes) => {
+        if (!nodes || !Array.isArray(nodes)) return
         nodes.forEach(node => {
           flattened.push(node)
           if (node.children && node.children.length > 0) {
