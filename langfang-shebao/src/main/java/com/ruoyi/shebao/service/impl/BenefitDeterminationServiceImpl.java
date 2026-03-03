@@ -123,6 +123,18 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     @Transactional
     public int insertBenefitDetermination(BenefitDetermination benefitDetermination)
     {
+        if (benefitDetermination.getSubsidyPersonId() == null && StringUtils.isNotBlank(benefitDetermination.getIdCardNo()))
+        {
+            SubsidyPerson person = subsidyPersonMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SubsidyPerson>()
+                    .eq(SubsidyPerson::getIdCardNo, benefitDetermination.getIdCardNo())
+                    .eq(SubsidyPerson::getDelFlag, "0")
+                    .last("LIMIT 1")
+            );
+            if (person != null) {
+                benefitDetermination.setSubsidyPersonId(person.getId());
+            }
+        }
         fillDerivedMonths(benefitDetermination);
         benefitDetermination.setApprovalStatus("draft");
         benefitDetermination.setDelFlag("0");
