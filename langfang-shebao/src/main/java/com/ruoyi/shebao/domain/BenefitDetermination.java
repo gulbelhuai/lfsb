@@ -99,6 +99,9 @@ public class BenefitDetermination extends BaseEntity
     private String bankName;
 
     @TableField(exist = false)
+    private String idCardNo;
+
+    @TableField(exist = false)
     private String supplementType;
 
     @TableField(exist = false)
