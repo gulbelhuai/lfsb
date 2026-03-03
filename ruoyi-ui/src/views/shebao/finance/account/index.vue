@@ -10,7 +10,7 @@
                 <div class="account-type">{{ getAccountTypeName(account.accountType) }}</div>
                 <div class="account-balance">{{ account.balance }} 元</div>
                 <div class="account-info">
-                  <span>账户：{{ account.accountNo }}</span>
+                  <span>账户：{{ account.accountCode }}</span>
                 </div>
               </el-card>
             </el-col>

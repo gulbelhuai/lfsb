@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -34,11 +35,14 @@ public class DistributionBatch extends BaseEntity
     /** 补贴类型(1失地 2被征地 3拆迁 4村干部 5教师) */
     private String subsidyType;
 
-    /** 批次类型(1首次 2二次 3三次) */
-    private Integer batchType;
+    /** 批次类型 */
+    private String batchType;
 
-    /** 父批次ID(二次/三次发放关联首次批次) */
-    private Long parentBatchId;
+    /** 发放年 */
+    private Integer distributionYear;
+
+    /** 发放月 */
+    private Integer distributionMonth;
 
     /** 总人数 */
     private Integer totalCount;
@@ -59,33 +63,34 @@ public class DistributionBatch extends BaseEntity
     private BigDecimal failAmount;
 
     /** 状态(draft/pending_review/pending_approve/pending_finance/submitted_bank/distributed) */
+    @TableField("approval_status")
     private String status;
 
-    /** 提交人 */
+    /** 财务上传时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date financeUploadTime;
+
+    /** 银行提交时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date bankSubmitTime;
+
+    /** 银行回盘时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date bankResultTime;
+
+    /** 删除标志 */
+    private String delFlag;
+
+    @TableField(exist = false)
     private String submitBy;
-
-    /** 提交时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(exist = false)
     private Date submitTime;
-
-    /** 复核人 */
+    @TableField(exist = false)
     private String reviewBy;
-
-    /** 复核时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(exist = false)
     private Date reviewTime;
-
-    /** 审批人 */
+    @TableField(exist = false)
     private String approveBy;
-
-    /** 审批时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(exist = false)
     private Date approveTime;
-
-    /** 发放人 */
-    private String distributeBy;
-
-    /** 发放时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date distributeTime;
 }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.shebao.domain.DistributionBatch;
 import com.ruoyi.shebao.dto.DistributionBatchListReq;
@@ -30,7 +31,7 @@ public class PaymentReviewController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('shebao:payment:review:list')")
     @GetMapping("/list")
-    public AjaxResult list(DistributionBatchListReq req)
+    public TableDataInfo list(DistributionBatchListReq req)
     {
         // 设置分页参数默认值
         if (req.getPageNum() == null) {
@@ -44,7 +45,11 @@ public class PaymentReviewController extends BaseController
             req.setStatus("pending_review");
         }
         Page<DistributionBatch> page = distributionBatchService.selectDistributionBatchList(req);
-        return AjaxResult.success(page);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setRows(page.getRecords());
+        rsp.setTotal(page.getTotal());
+        return rsp;
     }
 
     /**

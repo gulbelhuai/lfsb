@@ -760,11 +760,14 @@ export default {
           this.$message.warning("请选择要发放的补贴")
           return
         }
-        // 处理选中的补贴记录
-        this.handleSubsidyRecordChange()
-        this.step = 2
-        // 自动加载最近发放记录
-        this.loadRecentDistributions()
+        try {
+          this.handleSubsidyRecordChange()
+          this.step = 2
+          this.loadRecentDistributions()
+        } catch (e) {
+          console.error('nextStep error:', e)
+          this.$message.error('操作失败: ' + e.message)
+        }
       }
     },
     /** 上一步 */
@@ -806,6 +809,8 @@ export default {
       }
       getRecentDistributions(this.residentInfo.subsidyPersonId, 5).then(response => {
         this.recentDistributions = response.data || []
+      }).catch(() => {
+        this.recentDistributions = []
       })
     },
     /** 提交表单 */

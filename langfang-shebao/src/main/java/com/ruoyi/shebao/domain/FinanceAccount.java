@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -29,16 +30,19 @@ public class FinanceAccount implements Serializable
     /** 账户名称 */
     private String accountName;
 
-    /** 账户编号 */
+    /** 账户编号(对应表列 account_no) */
+    @TableField("account_no")
     private String accountCode;
 
-    /** 账户类型 */
+    /** 补贴类型(对应表列 subsidy_type) */
+    @TableField("subsidy_type")
     private String accountType;
 
     /** 银行名称 */
     private String bankName;
 
-    /** 银行账号 */
+    /** 银行账号(表中无此列，仅用于扩展) */
+    @TableField(exist = false)
     private String bankAccount;
 
     /** 账户余额 */

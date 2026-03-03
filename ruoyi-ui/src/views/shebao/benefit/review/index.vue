@@ -18,8 +18,12 @@
       <el-table-column label="姓名" prop="name" />
       <el-table-column label="身份证号" prop="idCardNo" width="180" />
       <el-table-column label="补贴类型" prop="subsidyType" />
-      <el-table-column label="月补贴标准(元)" prop="monthlyAmount" />
-      <el-table-column label="开始月份" prop="startMonth" />
+      <el-table-column label="月补贴标准(元)" prop="subsidyStandard" />
+      <el-table-column label="开始月份">
+        <template slot-scope="scope">
+          {{ scope.row.benefitStartYear }}-{{ String(scope.row.benefitStartMonth || '').padStart(2, '0') }}
+        </template>
+      </el-table-column>
       <el-table-column label="操作" align="center" width="200">
         <template slot-scope="scope">
           <el-button size="mini" type="text" @click="handleView(scope.row)">详情</el-button>

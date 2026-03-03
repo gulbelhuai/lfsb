@@ -68,17 +68,17 @@ export function listBenefitReview(query) {
 // 审核通过
 export function reviewBenefitPass(id, remark) {
   return request({
-    url: `/shebao/benefit/review/${id}/pass`,
+    url: `/shebao/benefit/review/approve/${id}`,
     method: 'post',
-    data: remark
+    params: { remark }
   })
 }
 
 // 审核驳回
 export function reviewBenefitReject(id, remark) {
   return request({
-    url: `/shebao/benefit/review/${id}/reject`,
+    url: `/shebao/benefit/review/reject/${id}`,
     method: 'post',
-    data: remark
+    params: { reason: remark }
   })
 }

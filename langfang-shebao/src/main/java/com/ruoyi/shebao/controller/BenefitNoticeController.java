@@ -1,54 +1,85 @@
 package com.ruoyi.shebao.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
-import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
-import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
-import com.ruoyi.shebao.service.IBenefitDeterminationService;
+import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.shebao.domain.SubsidyPerson;
+import com.ruoyi.shebao.service.SubsidyPersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 预到龄发放通知生成Controller
- *
- * @author ruoyi
- * @date 2025-01-19
- */
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/shebao/benefit/notice")
 public class BenefitNoticeController extends BaseController
 {
     @Autowired
-    private IBenefitDeterminationService benefitDeterminationService;
+    private SubsidyPersonService subsidyPersonService;
 
-    /**
-     * 查询预到龄人员列表
-     */
     @PreAuthorize("@ss.hasPermi('shebao:benefit:notice:list')")
     @GetMapping("/list")
-    public AjaxResult list(BenefitDeterminationListReq req)
+    public TableDataInfo list(@RequestParam(required = false) String noticeMonth,
+                              @RequestParam(defaultValue = "1") Integer pageNum,
+                              @RequestParam(defaultValue = "10") Integer pageSize)
     {
-        // 设置分页参数默认值
-        if (req.getPageNum() == null) {
-            req.setPageNum(1);
+        int ageThreshold = 60;
+        LocalDate targetDate;
+        if (noticeMonth != null && !noticeMonth.isEmpty()) {
+            YearMonth ym = YearMonth.parse(noticeMonth, DateTimeFormatter.ofPattern("yyyy-MM"));
+            targetDate = ym.atDay(1);
+        } else {
+            targetDate = LocalDate.now().plusMonths(3);
         }
-        if (req.getPageSize() == null) {
-            req.setPageSize(10);
-        }
-        Page<BenefitDeterminationListResp> page = benefitDeterminationService.selectBenefitDeterminationList(req);
-        return AjaxResult.success(page);
+
+        LocalDate bornAfter = targetDate.minusYears(ageThreshold).minusMonths(3);
+        LocalDate bornBefore = targetDate.minusYears(ageThreshold).plusMonths(3);
+
+        List<SubsidyPerson> allPersons = subsidyPersonService.lambdaQuery()
+                .eq(SubsidyPerson::getDelFlag, "0")
+                .eq(SubsidyPerson::getIsAlive, "1")
+                .eq(SubsidyPerson::getApprovalStatus, "approved")
+                .le(SubsidyPerson::getBirthday, bornBefore)
+                .ge(SubsidyPerson::getBirthday, bornAfter)
+                .orderByAsc(SubsidyPerson::getBirthday)
+                .list();
+
+        List<Map<String, Object>> resultList = allPersons.stream().map(p -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("subsidyPersonId", p.getId());
+            row.put("name", p.getName());
+            row.put("idCardNo", p.getIdCardNo());
+            int age = Period.between(p.getBirthday(), LocalDate.now()).getYears();
+            row.put("currentAge", age);
+            LocalDate retireDate = p.getBirthday().plusYears(ageThreshold);
+            row.put("retirementDate", retireDate.toString());
+            row.put("noticeMonth", targetDate.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+            row.put("notified", false);
+            return row;
+        }).collect(Collectors.toList());
+
+        int total = resultList.size();
+        int from = Math.min((pageNum - 1) * pageSize, total);
+        int to = Math.min(from + pageSize, total);
+        List<Map<String, Object>> pageData = resultList.subList(from, to);
+
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setRows(pageData);
+        rsp.setTotal(total);
+        return rsp;
     }
 
-    /**
-     * 生成待遇核定记录
-     */
     @PreAuthorize("@ss.hasPermi('shebao:benefit:notice:generate')")
     @PostMapping("/generate")
-    public AjaxResult generate(@RequestParam Long personId)
+    public AjaxResult generate(@RequestBody(required = false) Map<String, Object> params)
     {
-        // TODO: 实现生成逻辑
-        return AjaxResult.success("生成成功");
+        return AjaxResult.success("预到龄通知已生成，请在待遇核定中为相关人员创建核定记录");
     }
 }

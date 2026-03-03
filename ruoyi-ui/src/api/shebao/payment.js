@@ -62,27 +62,29 @@ export function getBatchDetail(batchNo) {
 }
 
 // 批次复核
-export function reviewBatch(id, data) {
+export function reviewBatch(id, approved, remark) {
+  const action = approved ? 'approve' : 'reject'
   return request({
-    url: `/shebao/payment/batch/${id}/review`,
+    url: `/shebao/payment/review/${action}/${id}`,
     method: 'post',
-    data: data
+    params: { remark }
   })
 }
 
 // 批次审批
-export function approveBatch(id, data) {
+export function approveBatch(id, approved, remark) {
+  const action = approved ? 'approve' : 'reject'
   return request({
-    url: `/shebao/payment/batch/${id}/approve`,
+    url: `/shebao/payment/approve/${action}/${id}`,
     method: 'post',
-    data: data
+    params: { remark }
   })
 }
 
 // 上传财务系统
 export function uploadToFinance(id) {
   return request({
-    url: `/shebao/payment/batch/${id}/upload`,
+    url: `/shebao/payment/batch/upload/${id}`,
     method: 'post'
   })
 }
