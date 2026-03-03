@@ -116,7 +116,6 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "pending_review")
-                .set(DistributionBatch::getSubmitTime, new Date())
                 .update() ? 1 : 0;
     }
 
@@ -134,7 +133,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "pending_approve")
-                .set(DistributionBatch::getReviewTime, new Date())
+                
                 .set(DistributionBatch::getRemark, remark)
                 .update() ? 1 : 0;
     }
@@ -153,7 +152,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "rejected")
-                .set(DistributionBatch::getReviewTime, new Date())
+                
                 .set(DistributionBatch::getRemark, reason)
                 .update() ? 1 : 0;
     }
@@ -172,7 +171,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "pending_finance")
-                .set(DistributionBatch::getApproveTime, new Date())
+                
                 .set(DistributionBatch::getRemark, remark)
                 .update() ? 1 : 0;
     }
@@ -191,7 +190,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "rejected")
-                .set(DistributionBatch::getApproveTime, new Date())
+                
                 .set(DistributionBatch::getRemark, reason)
                 .update() ? 1 : 0;
     }

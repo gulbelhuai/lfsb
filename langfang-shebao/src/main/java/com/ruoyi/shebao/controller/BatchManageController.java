@@ -109,11 +109,17 @@ public class BatchManageController extends BaseController
      * 创建批次
      */
     @PostMapping("/create")
-    public AjaxResult create(@RequestBody Map<String, Object> params)
+    public AjaxResult create(@RequestBody(required = false) java.util.Map<String, Object> params)
     {
         DistributionBatch batch = new DistributionBatch();
-        batch.setBatchType(1);
+        String batchNo = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))
+            + "-" + String.format("%03d", System.currentTimeMillis() % 1000);
+        batch.setBatchNo(batchNo);
+        batch.setBatchType("first");
         batch.setStatus("draft");
+        batch.setTotalCount(0);
+        batch.setTotalAmount(java.math.BigDecimal.ZERO);
+        batch.setDelFlag("0");
         return toAjax(distributionBatchService.save(batch));
     }
 
