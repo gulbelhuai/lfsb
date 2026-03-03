@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.shebao.dto.LandLossResidentListReq;
 import com.ruoyi.shebao.dto.LandLossResidentListResp;
@@ -40,9 +41,8 @@ public class PersonReviewController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:review:list')")
     @GetMapping("/list")
-    public AjaxResult list(LandLossResidentListReq req)
+    public TableDataInfo list(LandLossResidentListReq req)
     {
-        // 设置分页参数默认值
         if (req.getPageNum() == null) {
             req.setPageNum(1);
         }
@@ -53,7 +53,12 @@ public class PersonReviewController extends BaseController
             req.setApprovalStatus("pending_review");
         }
         Page<LandLossResidentListResp> page = landLossResidentService.selectLandLossResidentList(req);
-        return AjaxResult.success(page);
+        TableDataInfo rspData = new TableDataInfo();
+        rspData.setCode(200);
+        rspData.setMsg("查询成功");
+        rspData.setRows(page.getRecords());
+        rspData.setTotal(page.getTotal());
+        return rspData;
     }
 
     /**
