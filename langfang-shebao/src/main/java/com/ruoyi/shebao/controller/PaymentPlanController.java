@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.shebao.dto.PaymentPlanListReq;
 import com.ruoyi.shebao.dto.SubsidyDistributionFormDto;
@@ -32,7 +33,7 @@ public class PaymentPlanController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('shebao:payment:plan:list')")
     @GetMapping("/list")
-    public AjaxResult list(PaymentPlanListReq req)
+    public TableDataInfo list(PaymentPlanListReq req)
     {
         // 设置分页参数默认值
         if (req.getPageNum() == null) {
@@ -54,7 +55,11 @@ public class PaymentPlanController extends BaseController
         distributionReq.setDistributionDateEnd(req.getDistributionDateEnd());
 
         Page<SubsidyDistributionListResp> page = subsidyDistributionService.selectSubsidyDistributionList(distributionReq);
-        return AjaxResult.success(page);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setRows(page.getRecords());
+        rsp.setTotal(page.getTotal());
+        return rsp;
     }
 
     /**

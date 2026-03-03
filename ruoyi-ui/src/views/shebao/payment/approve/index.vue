@@ -65,7 +65,7 @@ export default {
         confirmButtonText: '确定',
         cancelButtonText: '取消'
       }).then(({ value }) => {
-        return approveBatch(row.id, { approved, remark: value })
+        return approveBatch(row.id, approved, value)
       }).then(() => {
         this.$modal.msgSuccess(`${msg}成功`)
         this.getList()
