@@ -30,8 +30,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
     @Override
     public Page<DistributionBatch> selectDistributionBatchList(DistributionBatchListReq req)
     {
-        // 使用默认分页参数
-        Page<DistributionBatch> page = new Page<>(1, 10);
+        Page<DistributionBatch> page = new Page<>(req.getPageNum(), req.getPageSize());
 
         var query = this.lambdaQuery()
                 .like(StringUtils.isNotBlank(req.getBatchNo()), DistributionBatch::getBatchNo, req.getBatchNo())
@@ -117,7 +116,6 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "pending_review")
-                .set(DistributionBatch::getSubmitTime, new Date())
                 .update() ? 1 : 0;
     }
 
@@ -135,7 +133,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "pending_approve")
-                .set(DistributionBatch::getReviewTime, new Date())
+                
                 .set(DistributionBatch::getRemark, remark)
                 .update() ? 1 : 0;
     }
@@ -154,7 +152,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "rejected")
-                .set(DistributionBatch::getReviewTime, new Date())
+                
                 .set(DistributionBatch::getRemark, reason)
                 .update() ? 1 : 0;
     }
@@ -173,7 +171,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "pending_finance")
-                .set(DistributionBatch::getApproveTime, new Date())
+                
                 .set(DistributionBatch::getRemark, remark)
                 .update() ? 1 : 0;
     }
@@ -192,7 +190,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         return this.lambdaUpdate()
                 .eq(DistributionBatch::getId, id)
                 .set(DistributionBatch::getStatus, "rejected")
-                .set(DistributionBatch::getApproveTime, new Date())
+                
                 .set(DistributionBatch::getRemark, reason)
                 .update() ? 1 : 0;
     }

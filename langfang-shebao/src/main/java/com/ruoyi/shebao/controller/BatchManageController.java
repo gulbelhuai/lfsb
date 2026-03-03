@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.shebao.domain.DistributionBatch;
 import com.ruoyi.shebao.dto.DistributionBatchListReq;
@@ -12,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 批次管理Controller
@@ -31,7 +34,7 @@ public class BatchManageController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('shebao:payment:batch:list')")
     @GetMapping("/list")
-    public AjaxResult list(DistributionBatchListReq req)
+    public TableDataInfo list(DistributionBatchListReq req)
     {
         // 设置分页参数默认值
         if (req.getPageNum() == null) {
@@ -41,7 +44,11 @@ public class BatchManageController extends BaseController
             req.setPageSize(10);
         }
         Page<DistributionBatch> page = distributionBatchService.selectDistributionBatchList(req);
-        return AjaxResult.success(page);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setRows(page.getRecords());
+        rsp.setTotal(page.getTotal());
+        return rsp;
     }
 
     /**
@@ -96,5 +103,35 @@ public class BatchManageController extends BaseController
     public AjaxResult submit(@PathVariable Long id)
     {
         return toAjax(distributionBatchService.submitForReview(id));
+    }
+
+    /**
+     * 创建批次
+     */
+    @PostMapping("/create")
+    public AjaxResult create(@RequestBody(required = false) java.util.Map<String, Object> params)
+    {
+        DistributionBatch batch = new DistributionBatch();
+        String batchNo = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))
+            + "-" + String.format("%03d", System.currentTimeMillis() % 1000);
+        batch.setBatchNo(batchNo);
+        batch.setBatchType("first");
+        batch.setStatus("draft");
+        batch.setTotalCount(0);
+        batch.setTotalAmount(java.math.BigDecimal.ZERO);
+        batch.setDelFlag("0");
+        return toAjax(distributionBatchService.save(batch));
+    }
+
+    /**
+     * 上传财务
+     */
+    @PostMapping("/upload/{id}")
+    public AjaxResult upload(@PathVariable Long id)
+    {
+        return toAjax(distributionBatchService.lambdaUpdate()
+            .eq(DistributionBatch::getId, id)
+            .set(DistributionBatch::getStatus, "uploaded")
+            .update());
     }
 }
