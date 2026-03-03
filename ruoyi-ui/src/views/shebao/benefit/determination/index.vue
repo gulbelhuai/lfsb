@@ -41,9 +41,13 @@
           <dict-tag :options="dict.type.subsidy_type" :value="scope.row.subsidyType"/>
         </template>
       </el-table-column>
-      <el-table-column label="月补贴标准(元)" prop="monthlyAmount" width="120" />
-      <el-table-column label="开始月份" prop="startMonth" width="100" />
-      <el-table-column label="银行账号" prop="bankAccountNo" width="180" />
+      <el-table-column label="月补贴标准(元)" prop="subsidyStandard" width="120" />
+      <el-table-column label="开始月份" width="100">
+        <template slot-scope="scope">
+          {{ scope.row.benefitStartYear }}-{{ String(scope.row.benefitStartMonth).padStart(2, '0') }}
+        </template>
+      </el-table-column>
+      <el-table-column label="银行账号" prop="bankAccount" width="180" />
       <el-table-column label="审批状态" align="center" width="100">
         <template slot-scope="scope">
           <approval-status :status="scope.row.approvalStatus" />
@@ -81,9 +85,12 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="补贴类型" prop="subsidyType">
-              <el-select v-model="form.subsidyType" placeholder="请选择" disabled>
+              <el-select v-model="form.subsidyType" placeholder="请选择">
                 <el-option label="失地居民" value="land_loss_resident" />
                 <el-option label="被征地居民" value="expropriatee" />
+                <el-option label="拆迁居民" value="demolition_resident" />
+                <el-option label="村干部" value="village_official" />
+                <el-option label="教龄补助" value="teacher" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -156,7 +163,7 @@
 
 <script>
 import { listBenefitDetermination, addBenefitDetermination, submitBenefitDetermination } from '@/api/shebao/benefit'
-import { searchResidents } from '@/api/shebao/person'
+import { searchResidents } from '@/api/shebao/residentQuery'
 import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
 
 export default {
@@ -183,6 +190,7 @@ export default {
       form: {},
       rules: {
         idCardNo: [{ required: true, message: '身份证号不能为空', trigger: 'blur' }],
+        subsidyType: [{ required: true, message: '请选择补贴类型', trigger: 'change' }],
         monthlyAmount: [{ required: true, message: '月补贴标准不能为空', trigger: 'blur' }],
         startMonth: [{ required: true, message: '开始月份不能为空', trigger: 'change' }],
         bankName: [{ required: true, message: '银行名称不能为空', trigger: 'blur' }],
@@ -220,9 +228,9 @@ export default {
         searchResidents(this.form.idCardNo).then(response => {
           if (response.data && response.data.length > 0) {
             const person = response.data[0]
-            this.form.personId = person.id
-            this.form.name = person.name
-            this.form.subsidyType = person.subsidyType
+            this.$set(this.form, 'subsidyPersonId', person.subsidyPersonId)
+            this.$set(this.form, 'name', person.name)
+            this.$modal.msgSuccess('已关联人员: ' + person.name)
           } else {
             this.$modal.msgWarning('未找到该人员信息')
           }
@@ -244,7 +252,21 @@ export default {
     submitForm() {
       this.$refs['form'].validate(valid => {
         if (valid) {
-          addBenefitDetermination(this.form).then(() => {
+          const data = {
+            subsidyPersonId: this.form.subsidyPersonId,
+            idCardNo: this.form.idCardNo,
+            subsidyType: this.form.subsidyType,
+            subsidyStandard: this.form.monthlyAmount,
+            bankAccount: this.form.bankAccountNo,
+            bankAccountName: this.form.bankAccountName,
+            bankName: this.form.bankName
+          }
+          if (this.form.startMonth) {
+            const parts = this.form.startMonth.split('-')
+            data.benefitStartYear = parseInt(parts[0])
+            data.benefitStartMonth = parseInt(parts[1])
+          }
+          addBenefitDetermination(data).then(() => {
             this.$modal.msgSuccess('核定成功')
             this.open = false
             this.getList()

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
@@ -30,21 +31,17 @@ public class BenefitReviewController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('shebao:benefit:review:list')")
     @GetMapping("/list")
-    public AjaxResult list(BenefitDeterminationListReq req)
+    public TableDataInfo list(BenefitDeterminationListReq req)
     {
-        // 设置分页参数默认值
-        if (req.getPageNum() == null) {
-            req.setPageNum(1);
-        }
-        if (req.getPageSize() == null) {
-            req.setPageSize(10);
-        }
-        // 默认查询待复核状态
-        if (req.getApprovalStatus() == null) {
-            req.setApprovalStatus("pending_review");
-        }
+        if (req.getPageNum() == null) req.setPageNum(1);
+        if (req.getPageSize() == null) req.setPageSize(10);
+        if (req.getApprovalStatus() == null) req.setApprovalStatus("pending_review");
         Page<BenefitDeterminationListResp> page = benefitDeterminationService.selectBenefitDeterminationList(req);
-        return AjaxResult.success(page);
+        TableDataInfo rspData = new TableDataInfo();
+        rspData.setCode(200);
+        rspData.setRows(page.getRecords());
+        rspData.setTotal(page.getTotal());
+        return rspData;
     }
 
     /**
