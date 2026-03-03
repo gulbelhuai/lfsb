@@ -174,7 +174,6 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         return this.lambdaUpdate()
                 .eq(BenefitDetermination::getId, id)
                 .set(BenefitDetermination::getApprovalStatus, "pending_review")
-                .set(BenefitDetermination::getSubmitTime, new Date())
                 .update() ? 1 : 0;
     }
 
@@ -192,8 +191,6 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         return this.lambdaUpdate()
                 .eq(BenefitDetermination::getId, id)
                 .set(BenefitDetermination::getApprovalStatus, "approved")
-                .set(BenefitDetermination::getReviewTime, new Date())
-                .set(BenefitDetermination::getReviewRemark, remark)
                 .update() ? 1 : 0;
     }
 
@@ -211,8 +208,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         return this.lambdaUpdate()
                 .eq(BenefitDetermination::getId, id)
                 .set(BenefitDetermination::getApprovalStatus, "rejected")
-                .set(BenefitDetermination::getReviewTime, new Date())
-                .set(BenefitDetermination::getRejectReason, reason)
+                .set(BenefitDetermination::getRemark, reason)
                 .update() ? 1 : 0;
     }
 
@@ -249,7 +245,8 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
 
         // 到龄年月：年满60周岁所在年月（取当月）
         YearMonth eligibleYm = YearMonth.from(birthday.plusYears(60));
-        benefitDetermination.setEligibleMonth(toMonthDate(eligibleYm));
+        benefitDetermination.setEligibleYear(eligibleYm.getYear());
+        benefitDetermination.setEligibleMonth(eligibleYm.getMonthValue());
 
         // 享受开始年月：默认=到龄次月；若到龄次月早于征地/拆迁时间，则取征地/拆迁时间；否则取到龄次月
         if (benefitDetermination.getBenefitStartMonth() == null)
@@ -260,7 +257,8 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             {
                 startYm = eventYm;
             }
-            benefitDetermination.setBenefitStartMonth(toMonthDate(startYm));
+            benefitDetermination.setBenefitStartYear(startYm.getYear());
+            benefitDetermination.setBenefitStartMonth(startYm.getMonthValue());
         }
     }
 
@@ -328,10 +326,5 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             }
             default -> null;
         };
-    }
-
-    private Date toMonthDate(YearMonth ym)
-    {
-        return Date.from(ym.atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 }

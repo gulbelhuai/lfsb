@@ -42,6 +42,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="userCode"                    column="user_code"                  />
         <result property="streetOfficeName"            column="street_office_name"         />
         <result property="villageCommitteeName"        column="village_committee_name"      />
+        <result property="approvalStatus"              column="approval_status"             />
     </resultMap>
 
     <resultMap type="com.ruoyi.shebao.dto.LandLossResidentFormDto" id="LandLossResidentFormResult">
@@ -83,6 +84,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
                sp.is_alive, sp.death_date, sp.is_village_coop_member,
                sp.street_office_id, sp.village_committee_id, sp.user_code,
+               sp.approval_status,
                sso.street_name as street_office_name, svc.village_name as village_committee_name
         from shebao_land_loss_resident ll
         left join shebao_subsidy_person sp on ll.subsidy_person_id = sp.id
@@ -116,6 +118,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="req.recognitionTimeEnd != null">
                 AND ll.recognition_time &lt;= #{req.recognitionTimeEnd}
+            </if>
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND sp.approval_status = #{req.approvalStatus}
             </if>
         </where>
         order by ll.create_time desc
