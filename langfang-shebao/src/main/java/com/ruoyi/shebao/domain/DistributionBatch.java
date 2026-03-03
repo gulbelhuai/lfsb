@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -59,6 +60,7 @@ public class DistributionBatch extends BaseEntity
     private BigDecimal failAmount;
 
     /** 状态(draft/pending_review/pending_approve/pending_finance/submitted_bank/distributed) */
+    @TableField("approval_status")
     private String status;
 
     /** 提交人 */
