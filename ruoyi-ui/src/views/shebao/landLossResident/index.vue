@@ -146,6 +146,11 @@
       <el-table-column label="所属村委会" align="center" prop="villageCommitteeName" />
       <el-table-column label="征地时间" align="center" prop="landRequisitionTime" width="120" />
       <el-table-column label="认定时间" align="center" prop="recognitionTime" width="120" />
+      <el-table-column label="审批状态" align="center" prop="approvalStatus" width="100">
+        <template slot-scope="scope">
+          <approval-status :status="scope.row.approvalStatus" />
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
@@ -415,10 +420,12 @@ import { getToken } from "@/utils/auth"
 import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
 import { getVillageCommitteeSelectList } from "@/api/shebao/villageCommittee"
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
+import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 
 export default {
   name: "LandLossResident",
   dicts: ['sys_normal_disable', 'sys_user_sex'],
+  components: { ApprovalStatus },
   data() {
     return {
       // 遮罩层
@@ -617,13 +624,13 @@ export default {
         if (valid) {
           if (this.form.id != null) {
             updateLandLossResident(this.form).then(response => {
-              this.$modal.msgSuccess("修改成功")
+              this.$modal.msgSuccess(response.msg || "修改并提交复核成功")
               this.open = false
               this.getList()
             })
           } else {
             addLandLossResident(this.form).then(response => {
-              this.$modal.msgSuccess("新增成功")
+              this.$modal.msgSuccess(response.msg || "登记并提交复核成功")
               this.open = false
               this.getList()
             })

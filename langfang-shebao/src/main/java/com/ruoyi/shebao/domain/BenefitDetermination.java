@@ -75,44 +75,44 @@ public class BenefitDetermination extends BaseEntity
     /** 删除标志(0正常 2删除) */
     private String delFlag;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String submitBy;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date submitTime;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String reviewBy;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date reviewTime;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String reviewRemark;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String rejectReason;
 
-    @TableField(exist = false)
+    /** 银行名称 */
     private String bankName;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String idCardNo;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String supplementType;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private Date supplementStartMonth;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private Date supplementEndMonth;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private BigDecimal supplementAmount;
 
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String filePath;
 }

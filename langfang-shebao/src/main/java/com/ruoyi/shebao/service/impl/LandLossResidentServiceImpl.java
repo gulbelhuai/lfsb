@@ -100,8 +100,12 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         landLossResident.setRemark(formDto.getRemark());
         landLossResident.setCreateTime(LocalDateTime.now());
         landLossResident.setCreateBy(SecurityUtils.getUsername());
-
-        return landLossResidentMapper.insert(landLossResident);
+        int rows = landLossResidentMapper.insert(landLossResident);
+        if (rows > 0)
+        {
+            markPersonPendingReview(subsidyPersonId);
+        }
+        return rows;
     }
 
     /**
@@ -127,8 +131,12 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         landLossResident.setRemark(formDto.getRemark());
         landLossResident.setUpdateTime(LocalDateTime.now());
         landLossResident.setUpdateBy(SecurityUtils.getUsername());
-
-        return landLossResidentMapper.updateById(landLossResident);
+        int rows = landLossResidentMapper.updateById(landLossResident);
+        if (rows > 0)
+        {
+            markPersonPendingReview(subsidyPersonId);
+        }
+        return rows;
     }
 
     /**
@@ -426,6 +434,22 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
 
         subsidyPersonService.insertSubsidyPerson(newPerson);
         return newPerson.getId();
+    }
+
+    /**
+     * 登记保存后直接进入待复核，保证复核页面可见。
+     */
+    private void markPersonPendingReview(Long subsidyPersonId)
+    {
+        SubsidyPerson person = subsidyPersonService.getById(subsidyPersonId);
+        if (person == null)
+        {
+            throw new ServiceException("被补贴人信息不存在");
+        }
+        person.setApprovalStatus("pending_review");
+        person.setUpdateBy(SecurityUtils.getUsername());
+        person.setUpdateTime(LocalDateTime.now());
+        subsidyPersonService.updateById(person);
     }
 
     /**

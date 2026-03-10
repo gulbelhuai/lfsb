@@ -35,7 +35,7 @@ public class DemolitionResidentController extends BaseController
     /**
      * 查询拆迁居民信息列表
      */
-    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:list')")
+    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:list') or @ss.hasPermi('shebao:person:demolition:list')")
     @GetMapping("/list")
     public AjaxResult list(DemolitionResidentListReq req)
     {
@@ -46,7 +46,7 @@ public class DemolitionResidentController extends BaseController
     /**
      * 获取拆迁居民信息详细信息
      */
-    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:query')")
+    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:query') or @ss.hasPermi('shebao:person:demolition:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id)
     {
@@ -56,7 +56,7 @@ public class DemolitionResidentController extends BaseController
     /**
      * 导出拆迁居民信息列表
      */
-    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:export')")
+    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:export') or @ss.hasPermi('shebao:person:demolition:export')")
     @Log(title = "拆迁居民信息", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, DemolitionResidentListReq req)
@@ -78,7 +78,7 @@ public class DemolitionResidentController extends BaseController
     /**
      * 新增拆迁居民信息
      */
-    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:add')")
+    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:add') or @ss.hasPermi('shebao:person:demolition:add')")
     @Log(title = "拆迁居民信息", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@Validated @RequestBody DemolitionResidentFormDto formDto)
@@ -89,7 +89,7 @@ public class DemolitionResidentController extends BaseController
     /**
      * 修改拆迁居民信息
      */
-    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:edit')")
+    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:edit') or @ss.hasPermi('shebao:person:demolition:edit')")
     @Log(title = "拆迁居民信息", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody DemolitionResidentFormDto formDto)
@@ -100,7 +100,7 @@ public class DemolitionResidentController extends BaseController
     /**
      * 删除拆迁居民信息
      */
-    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:remove')")
+    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:remove') or @ss.hasPermi('shebao:person:demolition:remove')")
     @Log(title = "拆迁居民信息", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids)
@@ -121,7 +121,7 @@ public class DemolitionResidentController extends BaseController
     /**
      * 导入数据
      */
-    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:import')")
+    @PreAuthorize("@ss.hasPermi('shebao:demolitionResident:import') or @ss.hasPermi('shebao:person:demolition:import')")
     @Log(title = "拆迁居民信息", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception

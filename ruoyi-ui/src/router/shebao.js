@@ -34,7 +34,7 @@ export default {
     // 1.3 拆迁居民登记
     {
       path: 'person/demolition',
-      component: () => import('@/views/shebao/person/demolition/index'),
+      component: () => import('@/views/shebao/demolitionResident/index'),
       name: 'DemolitionRegistration',
       meta: { title: '拆迁居民登记', icon: 'form' },
       hidden: false

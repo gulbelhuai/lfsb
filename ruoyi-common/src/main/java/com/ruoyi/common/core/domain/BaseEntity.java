@@ -20,7 +20,7 @@ public class BaseEntity implements Serializable
 
     /** 搜索值 */
     @JsonIgnore
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private String searchValue;
 
     /** 创建者 */
@@ -42,7 +42,7 @@ public class BaseEntity implements Serializable
 
     /** 请求参数 */
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    @TableField(exist = false)
+    @TableField(exist = false, select = false)
     private Map<String, Object> params;
 
     public String getSearchValue()

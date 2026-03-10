@@ -70,7 +70,7 @@
           icon="el-icon-plus"
           size="mini"
           @click="handleAdd"
-          v-hasPermi="['shebao:demolitionResident:add']"
+          v-hasPermi="['shebao:demolitionResident:add', 'shebao:person:demolition:add']"
         >新增</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -81,7 +81,7 @@
           size="mini"
           :disabled="single"
           @click="handleUpdate"
-          v-hasPermi="['shebao:demolitionResident:edit']"
+          v-hasPermi="['shebao:demolitionResident:edit', 'shebao:person:demolition:edit']"
         >修改</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -92,7 +92,7 @@
           size="mini"
           :disabled="multiple"
           @click="handleDelete"
-          v-hasPermi="['shebao:demolitionResident:remove']"
+          v-hasPermi="['shebao:demolitionResident:remove', 'shebao:person:demolition:remove']"
         >删除</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -102,7 +102,7 @@
           icon="el-icon-upload2"
           size="mini"
           @click="handleImport"
-          v-hasPermi="['shebao:demolitionResident:import']"
+          v-hasPermi="['shebao:demolitionResident:import', 'shebao:person:demolition:import']"
         >导入</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -112,7 +112,7 @@
           icon="el-icon-download"
           size="mini"
           @click="handleExport"
-          v-hasPermi="['shebao:demolitionResident:export']"
+          v-hasPermi="['shebao:demolitionResident:export', 'shebao:person:demolition:export']"
         >导出</el-button>
       </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
@@ -154,14 +154,14 @@
             type="text"
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
-            v-hasPermi="['shebao:demolitionResident:edit']"
+            v-hasPermi="['shebao:demolitionResident:edit', 'shebao:person:demolition:edit']"
           >修改</el-button>
           <el-button
             size="mini"
             type="text"
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
-            v-hasPermi="['shebao:demolitionResident:remove']"
+            v-hasPermi="['shebao:demolitionResident:remove', 'shebao:person:demolition:remove']"
           >删除</el-button>
         </template>
       </el-table-column>
@@ -409,10 +409,12 @@ import { getToken } from "@/utils/auth"
 import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
 import { getVillageCommitteeSelectList } from "@/api/shebao/villageCommittee"
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
+import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 
 export default {
   name: "DemolitionResident",
   dicts: ['sys_normal_disable', 'sys_user_sex'],
+  components: { ApprovalStatus },
   data() {
     return {
       // 遮罩层

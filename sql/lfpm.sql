@@ -102,6 +102,7 @@ CREATE TABLE `benefit_determination` (
   `benefit_start_year` int DEFAULT NULL COMMENT '琛ヨ创浜?彈寮??骞翠唤',
   `benefit_start_month` int DEFAULT NULL COMMENT '琛ヨ创浜?彈寮??鏈堜唤',
   `bank_id` bigint DEFAULT NULL COMMENT '鍙戞斁閾惰?ID',
+  `bank_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '银行名称',
   `bank_account` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '閾惰?璐﹀彿',
   `bank_account_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '閾惰?璐︽埛濮撳悕',
   `subsidy_standard` decimal(10,2) DEFAULT NULL COMMENT '琛ヨ创鏍囧噯',
@@ -129,7 +130,7 @@ CREATE TABLE `benefit_determination` (
 
 LOCK TABLES `benefit_determination` WRITE;
 /*!40000 ALTER TABLE `benefit_determination` DISABLE KEYS */;
-INSERT INTO `benefit_determination` VALUES (1,1000024,'land_loss_resident',2053,1,2053,2,NULL,'6222009876543210','全流程测试李四',600.00,0,0.00,'approved',NULL,'0',NULL,'2026-03-03 09:07:04',NULL,'2026-03-03 01:07:04',NULL),(2,1000025,'land_loss_resident',2028,3,2026,3,NULL,'6222001234567890',NULL,500.00,0,0.00,'approved',NULL,'0',NULL,'2026-03-03 13:12:27',NULL,'2026-03-03 05:16:05',NULL);
+INSERT INTO `benefit_determination` VALUES (1,1000024,'land_loss_resident',2053,1,2053,2,NULL,NULL,'6222009876543210','全流程测试李四',600.00,0,0.00,'approved',NULL,'0',NULL,'2026-03-03 09:07:04',NULL,'2026-03-03 01:07:04',NULL),(2,1000025,'land_loss_resident',2028,3,2026,3,NULL,NULL,'6222001234567890',NULL,500.00,0,0.00,'approved',NULL,'0',NULL,'2026-03-03 13:12:27',NULL,'2026-03-03 05:16:05',NULL);
 /*!40000 ALTER TABLE `benefit_determination` ENABLE KEYS */;
 UNLOCK TABLES;
 

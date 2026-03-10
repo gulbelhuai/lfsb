@@ -1,6 +1,5 @@
 package com.ruoyi.shebao.service.impl;
 
-import com.ruoyi.shebao.service.SubsidyCalculationService;
 import com.ruoyi.system.service.ISysConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +15,7 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
@@ -36,7 +36,7 @@ class SubsidyCalculationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        when(configService.selectConfigByKey(eq(AVERAGE_SALARY_KEY))).thenReturn(DEFAULT_SALARY);
+        lenient().when(configService.selectConfigByKey(eq(AVERAGE_SALARY_KEY))).thenReturn(DEFAULT_SALARY);
     }
 
     @Nested
