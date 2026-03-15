@@ -1,0 +1,14 @@
+{
+  "batchNo": "NOTICE-CHECK-20260315-220559",
+  "generatedAt": "2026-03-15T14:05:59.201Z",
+  "noticeMonth": "2030-02",
+  "noticeBatchNo": "NT203002603",
+  "summary": {
+    "noticeBatchCount": 1,
+    "noticeDetailCount": 2,
+    "determinationCount": 2,
+    "approvedDeterminationCount": 1,
+    "paymentGeneratedCount": 1,
+    "paymentPlanCount": 1
+  }
+}

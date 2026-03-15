@@ -1,9 +1,26 @@
 import request from '@/utils/request'
 
-// 查询预到龄通知列表
-export function listBenefitNotice(query) {
+// 查询预到龄通知批次列表
+export function listBenefitNoticeBatch(query) {
   return request({
-    url: '/shebao/benefit/notice/list',
+    url: '/shebao/benefit/notice/batch/list',
+    method: 'get',
+    params: query
+  })
+}
+
+// 查询预到龄通知批次详情
+export function getBenefitNoticeBatch(batchNo) {
+  return request({
+    url: `/shebao/benefit/notice/batch/${batchNo}`,
+    method: 'get'
+  })
+}
+
+// 查询预到龄通知明细
+export function listBenefitNoticeDetail(query) {
+  return request({
+    url: '/shebao/benefit/notice/detail/list',
     method: 'get',
     params: query
   })
@@ -27,6 +44,14 @@ export function listBenefitDetermination(query) {
   })
 }
 
+// 查询待遇核定详情
+export function getBenefitDetermination(id) {
+  return request({
+    url: `/shebao/benefit/determination/${id}`,
+    method: 'get'
+  })
+}
+
 // 单个待遇核定
 export function addBenefitDetermination(data) {
   return request({
@@ -36,12 +61,38 @@ export function addBenefitDetermination(data) {
   })
 }
 
+// 更新待遇核定
+export function updateBenefitDetermination(data) {
+  return request({
+    url: '/shebao/benefit/determination',
+    method: 'put',
+    data: data
+  })
+}
+
 // 批量待遇核定
-export function batchBenefitDetermination(file) {
+export function batchBenefitDetermination(data) {
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('file', data.file)
+  if (data.noticeBatchNo) {
+    formData.append('noticeBatchNo', data.noticeBatchNo)
+  }
+  ;(data.attachments || []).forEach(file => formData.append('attachments', file))
   return request({
     url: '/shebao/benefit/determination/batch',
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+// 上传待遇核定材料
+export function uploadBenefitAttachment(determinationId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('determinationId', determinationId)
+  return request({
+    url: '/shebao/benefit/determination/attachment/upload',
     method: 'post',
     data: formData,
     headers: { 'Content-Type': 'multipart/form-data' }
@@ -80,5 +131,14 @@ export function reviewBenefitReject(id, remark) {
     url: `/shebao/benefit/review/reject/${id}`,
     method: 'post',
     params: { reason: remark }
+  })
+}
+
+// 批量审核通过
+export function batchApproveBenefitReview(data) {
+  return request({
+    url: '/shebao/benefit/review/batchApprove',
+    method: 'post',
+    data
   })
 }

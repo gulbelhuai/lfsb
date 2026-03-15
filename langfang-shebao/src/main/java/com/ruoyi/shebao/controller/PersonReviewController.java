@@ -1,21 +1,36 @@
 package com.ruoyi.shebao.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
-import com.ruoyi.shebao.dto.LandLossResidentListReq;
-import com.ruoyi.shebao.dto.LandLossResidentListResp;
+import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.shebao.domain.ExpropriateeSubsidy;
 import com.ruoyi.shebao.domain.LandLossResident;
 import com.ruoyi.shebao.domain.SubsidyPerson;
+import com.ruoyi.shebao.domain.TeacherSubsidy;
+import com.ruoyi.shebao.domain.VillageOfficial;
+import com.ruoyi.shebao.dto.SubsidyPersonListReq;
+import com.ruoyi.shebao.dto.SubsidyPersonListResp;
+import com.ruoyi.shebao.mapper.DemolitionResidentMapper;
+import com.ruoyi.shebao.mapper.ExpropriateeSubsidyMapper;
+import com.ruoyi.shebao.mapper.LandLossResidentMapper;
+import com.ruoyi.shebao.mapper.TeacherSubsidyMapper;
+import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.service.ApprovalLogService;
-import com.ruoyi.shebao.service.LandLossResidentService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 人员登记复核Controller
@@ -28,20 +43,32 @@ import org.springframework.web.bind.annotation.*;
 public class PersonReviewController extends BaseController
 {
     @Autowired
-    private LandLossResidentService landLossResidentService;
-
-    @Autowired
     private SubsidyPersonService subsidyPersonService;
 
     @Autowired
     private ApprovalLogService approvalLogService;
+
+    @Autowired
+    private LandLossResidentMapper landLossResidentMapper;
+
+    @Autowired
+    private ExpropriateeSubsidyMapper expropriateeSubsidyMapper;
+
+    @Autowired
+    private DemolitionResidentMapper demolitionResidentMapper;
+
+    @Autowired
+    private VillageOfficialMapper villageOfficialMapper;
+
+    @Autowired
+    private TeacherSubsidyMapper teacherSubsidyMapper;
 
     /**
      * 查询待复核人员列表
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:review:list')")
     @GetMapping("/list")
-    public TableDataInfo list(LandLossResidentListReq req)
+    public TableDataInfo list(SubsidyPersonListReq req, @RequestParam(required = false) String subsidyType)
     {
         if (req.getPageNum() == null) {
             req.setPageNum(1);
@@ -49,15 +76,37 @@ public class PersonReviewController extends BaseController
         if (req.getPageSize() == null) {
             req.setPageSize(10);
         }
-        if (req.getApprovalStatus() == null || req.getApprovalStatus().isEmpty()) {
+        if (StringUtils.isBlank(req.getApprovalStatus())) {
             req.setApprovalStatus("pending_review");
         }
-        Page<LandLossResidentListResp> page = landLossResidentService.selectLandLossResidentList(req);
+
+        int pageNum = req.getPageNum();
+        int pageSize = req.getPageSize();
+        req.setPageNum(1);
+        req.setPageSize(5000);
+        Page<SubsidyPersonListResp> page = subsidyPersonService.selectSubsidyPersonList(req);
+        List<Map<String, Object>> filteredRows = new ArrayList<>();
+        for (SubsidyPersonListResp item : page.getRecords())
+        {
+            String resolvedSubsidyType = resolveSubsidyType(item.getId());
+            if (StringUtils.isBlank(resolvedSubsidyType))
+            {
+                continue;
+            }
+            if (StringUtils.isNotBlank(subsidyType) && !StringUtils.equals(subsidyType, resolvedSubsidyType))
+            {
+                continue;
+            }
+            filteredRows.add(buildRow(item, resolvedSubsidyType));
+        }
+
+        int fromIndex = Math.min((pageNum - 1) * pageSize, filteredRows.size());
+        int toIndex = Math.min(fromIndex + pageSize, filteredRows.size());
         TableDataInfo rspData = new TableDataInfo();
         rspData.setCode(200);
         rspData.setMsg("查询成功");
-        rspData.setRows(page.getRecords());
-        rspData.setTotal(page.getTotal());
+        rspData.setRows(filteredRows.subList(fromIndex, toIndex));
+        rspData.setTotal(filteredRows.size());
         return rspData;
     }
 
@@ -69,17 +118,17 @@ public class PersonReviewController extends BaseController
     @PostMapping("/approve/{id}")
     public AjaxResult approve(@PathVariable Long id, @RequestParam(required = false) String remark)
     {
-        LandLossResident resident = landLossResidentService.getById(id);
-        if (resident == null)
+        SubsidyPerson person = subsidyPersonService.getById(id);
+        if (person == null)
         {
             return AjaxResult.error("记录不存在");
         }
-        SubsidyPerson person = subsidyPersonService.getById(resident.getSubsidyPersonId());
-        if (person == null || !"pending_review".equals(person.getApprovalStatus()))
+        if (!"pending_review".equals(person.getApprovalStatus()))
         {
             return AjaxResult.error("当前状态不允许复核");
         }
         person.setApprovalStatus("approved");
+        person.setUpdateTime(LocalDateTime.now());
         subsidyPersonService.updateById(person);
         approvalLogService.log("person_register", id, "approved", "approve", remark);
         return AjaxResult.success("复核通过");
@@ -93,17 +142,17 @@ public class PersonReviewController extends BaseController
     @PostMapping("/reject/{id}")
     public AjaxResult reject(@PathVariable Long id, @RequestParam String reason)
     {
-        LandLossResident resident = landLossResidentService.getById(id);
-        if (resident == null)
+        SubsidyPerson person = subsidyPersonService.getById(id);
+        if (person == null)
         {
             return AjaxResult.error("记录不存在");
         }
-        SubsidyPerson person = subsidyPersonService.getById(resident.getSubsidyPersonId());
-        if (person == null || !"pending_review".equals(person.getApprovalStatus()))
+        if (!"pending_review".equals(person.getApprovalStatus()))
         {
             return AjaxResult.error("当前状态不允许驳回");
         }
         person.setApprovalStatus("rejected");
+        person.setUpdateTime(LocalDateTime.now());
         subsidyPersonService.updateById(person);
         approvalLogService.log("person_register", id, "rejected", "reject", reason);
         return AjaxResult.success("复核驳回成功");
@@ -116,6 +165,73 @@ public class PersonReviewController extends BaseController
     @GetMapping("/{id}")
     public AjaxResult getInfo(@PathVariable Long id)
     {
-        return AjaxResult.success(landLossResidentService.selectLandLossResidentFormById(id));
+        SubsidyPerson person = subsidyPersonService.getById(id);
+        if (person == null)
+        {
+            return AjaxResult.error("记录不存在");
+        }
+        SubsidyPersonListResp resp = new SubsidyPersonListResp();
+        resp.setId(person.getId());
+        resp.setName(person.getName());
+        resp.setGender(person.getGender());
+        resp.setIdCardNo(person.getIdCardNo());
+        resp.setBirthday(person.getBirthday());
+        resp.setPhone(person.getPhone());
+        resp.setStreetOfficeId(person.getStreetOfficeId());
+        resp.setVillageCommitteeId(person.getVillageCommitteeId());
+        resp.setUserCode(person.getUserCode());
+        resp.setApprovalStatus(person.getApprovalStatus());
+        resp.setUpdateTime(person.getUpdateTime());
+        return AjaxResult.success(buildRow(resp, resolveSubsidyType(person.getId())));
+    }
+
+    private Map<String, Object> buildRow(SubsidyPersonListResp item, String subsidyType)
+    {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", item.getId());
+        row.put("subsidyPersonId", item.getId());
+        row.put("userCode", item.getUserCode());
+        row.put("name", item.getName());
+        row.put("idCardNo", item.getIdCardNo());
+        row.put("gender", item.getGender());
+        row.put("birthday", item.getBirthday());
+        row.put("subsidyType", subsidyType);
+        row.put("streetOfficeName", item.getStreetOfficeName());
+        row.put("villageCommitteeName", item.getVillageCommitteeName());
+        row.put("phone", item.getPhone());
+        row.put("submitTime", item.getUpdateTime());
+        row.put("approvalStatus", item.getApprovalStatus());
+        return row;
+    }
+
+    private String resolveSubsidyType(Long subsidyPersonId)
+    {
+        List<LandLossResident> landLossResidents = landLossResidentMapper.selectBySubsidyPersonId(subsidyPersonId);
+        if (!landLossResidents.isEmpty())
+        {
+            return "land_loss_resident";
+        }
+        List<ExpropriateeSubsidy> expropriatees = expropriateeSubsidyMapper.selectBySubsidyPersonId(subsidyPersonId);
+        if (!expropriatees.isEmpty())
+        {
+            return "expropriatee";
+        }
+        if (!demolitionResidentMapper.selectBySubsidyPersonId(subsidyPersonId).isEmpty())
+        {
+            return "demolition_resident";
+        }
+        List<VillageOfficial> villageOfficials = villageOfficialMapper.selectBySubsidyPersonId(subsidyPersonId);
+        if (!villageOfficials.isEmpty())
+        {
+            return "village_official";
+        }
+        List<TeacherSubsidy> teacherSubsidies = teacherSubsidyMapper.selectList(new LambdaQueryWrapper<TeacherSubsidy>()
+                .eq(TeacherSubsidy::getSubsidyPersonId, subsidyPersonId)
+                .eq(TeacherSubsidy::getDelFlag, "0"));
+        if (!teacherSubsidies.isEmpty())
+        {
+            return "teacher";
+        }
+        return null;
     }
 }

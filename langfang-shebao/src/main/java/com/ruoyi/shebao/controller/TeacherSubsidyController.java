@@ -5,14 +5,20 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.domain.SubsidyPerson;
+import com.ruoyi.shebao.domain.TeacherSubsidy;
 import com.ruoyi.shebao.dto.TeacherSubsidyFormDto;
 import com.ruoyi.shebao.dto.TeacherSubsidyListReq;
 import com.ruoyi.shebao.dto.TeacherSubsidyListResp;
+import com.ruoyi.shebao.service.ApprovalLogService;
+import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.TeacherSubsidyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * 教龄补助登记Controller（人员信息管理 → 教龄补助登记）
@@ -30,6 +36,12 @@ public class TeacherSubsidyController extends BaseController
 {
     @Autowired
     private TeacherSubsidyService teacherSubsidyService;
+
+    @Autowired
+    private SubsidyPersonService subsidyPersonService;
+
+    @Autowired
+    private ApprovalLogService approvalLogService;
 
     /**
      * 查询教龄补助登记列表
@@ -96,16 +108,33 @@ public class TeacherSubsidyController extends BaseController
     }
 
     /**
-     * 提交审核（预留：符合概要设计“人员登记2级审核”流程）
-     *
-     * 当前版本仅返回成功，后续可接入 approval_log 状态机。
+     * 提交审核
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:teacher:submit')")
     @Log(title = "教龄补助登记", businessType = BusinessType.UPDATE)
     @PostMapping("/submit/{id}")
     public AjaxResult submit(@PathVariable("id") Long id, @RequestBody(required = false) String remark)
     {
-        return AjaxResult.success("提交成功");
+        TeacherSubsidy teacherSubsidy = teacherSubsidyService.getById(id);
+        if (teacherSubsidy == null)
+        {
+            return AjaxResult.error("记录不存在");
+        }
+        SubsidyPerson person = subsidyPersonService.getById(teacherSubsidy.getSubsidyPersonId());
+        if (person == null)
+        {
+            return AjaxResult.error("被补贴人信息不存在");
+        }
+        String currentStatus = person.getApprovalStatus();
+        if (!"draft".equals(currentStatus) && !"rejected".equals(currentStatus) && !"approved".equals(currentStatus))
+        {
+            return AjaxResult.error("当前状态不允许提交审核");
+        }
+        person.setApprovalStatus("pending_review");
+        person.setUpdateTime(LocalDateTime.now());
+        subsidyPersonService.updateById(person);
+        approvalLogService.log("person_register", person.getId(), "pending_review", "submit", remark);
+        return AjaxResult.success("提交审核成功");
     }
 }
 

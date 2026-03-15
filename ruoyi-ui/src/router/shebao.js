@@ -42,7 +42,7 @@ export default {
     // 1.4 村干部登记
     {
       path: 'person/official',
-      component: () => import('@/views/shebao/person/official/index'),
+      component: () => import('@/views/shebao/villageOfficial/index'),
       name: 'OfficialRegistration',
       meta: { title: '村干部登记', icon: 'form' },
       hidden: false

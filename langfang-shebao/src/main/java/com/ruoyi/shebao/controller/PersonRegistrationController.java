@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.HashMap;
@@ -161,7 +160,7 @@ public class PersonRegistrationController extends BaseController
         }
         person.setApprovalStatus("pending_review");
         subsidyPersonService.updateById(person);
-        approvalLogService.log("person_register", id, "pending_review", "submit", remark);
+        approvalLogService.log("person_register", person.getId(), "pending_review", "submit", remark);
         return AjaxResult.success("提交审核成功");
     }
 }

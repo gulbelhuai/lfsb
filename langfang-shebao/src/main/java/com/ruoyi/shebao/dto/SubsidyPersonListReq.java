@@ -49,4 +49,7 @@ public class SubsidyPersonListReq extends PageReq
 
     /** 状态（0正常 1停用） */
     private String status;
+
+    /** 审批状态（draft/pending_review/approved/rejected） */
+    private String approvalStatus;
 }

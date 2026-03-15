@@ -3,9 +3,15 @@ package com.ruoyi.shebao.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.shebao.domain.BenefitDetermination;
+import com.ruoyi.shebao.domain.BenefitAttachment;
+import com.ruoyi.shebao.dto.BenefitDeterminationDetailResp;
+import com.ruoyi.shebao.dto.BenefitDeterminationImportDto;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
 import com.ruoyi.shebao.dto.BenefitDeterminationPrintDto;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * 待遇核定Service接口
@@ -30,6 +36,8 @@ public interface IBenefitDeterminationService extends IService<BenefitDeterminat
      * @return 待遇核定详情
      */
     BenefitDetermination selectBenefitDeterminationById(Long id);
+
+    BenefitDeterminationDetailResp selectBenefitDeterminationDetail(Long id);
 
     /**
      * 新增待遇核定
@@ -88,4 +96,10 @@ public interface IBenefitDeterminationService extends IService<BenefitDeterminat
      * @return 核定表DTO
      */
     BenefitDeterminationPrintDto buildPrintDto(Long id);
+
+    int batchImport(String noticeBatchNo, List<BenefitDeterminationImportDto> rows, MultipartFile[] attachmentFiles) throws Exception;
+
+    BenefitAttachment uploadAttachment(Long determinationId, MultipartFile file) throws Exception;
+
+    int batchApprove(List<Long> ids, String noticeBatchNo, String remark);
 }

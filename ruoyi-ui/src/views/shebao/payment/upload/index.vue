@@ -20,14 +20,14 @@
       <el-table-column label="总金额(元)" prop="totalAmount" />
       <el-table-column label="上传状态" align="center">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.uploadTime" type="success">已上传</el-tag>
+          <el-tag v-if="scope.row.approvalStatus === 'submitted_bank' || scope.row.bankSubmitTime" type="success">已上传</el-tag>
           <el-tag v-else type="warning">待上传</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" width="150">
         <template slot-scope="scope">
           <el-button size="mini" type="text" @click="handleView(scope.row)">详情</el-button>
-          <el-button size="mini" type="primary" @click="handleUpload(scope.row)" v-if="!scope.row.uploadTime">上传</el-button>
+          <el-button size="mini" type="primary" @click="handleUpload(scope.row)" v-if="scope.row.approvalStatus === 'pending_finance'">上传</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -46,7 +46,7 @@ export default {
       loading: true,
       total: 0,
       dataList: [],
-      queryParams: { pageNum: 1, pageSize: 10, batchNo: null, approvalStatus: 'approved' }
+      queryParams: { pageNum: 1, pageSize: 10, batchNo: null, approvalStatus: 'pending_finance' }
     }
   },
   created() {
@@ -66,7 +66,11 @@ export default {
       this.getList()
     },
     handleView(row) {
-      this.$router.push({ name: 'BatchDetail', params: { id: row.id } })
+      this.$alert(
+        `批次号：${row.batchNo || '-'}\n补贴类型：${row.subsidyType || '-'}\n总人数：${row.totalCount || 0}\n总金额：${row.totalAmount || 0}`,
+        '批次摘要',
+        { confirmButtonText: '关闭' }
+      )
     },
     handleUpload(row) {
       this.$modal.confirm('是否确认上传该批次到财务系统？').then(() => {

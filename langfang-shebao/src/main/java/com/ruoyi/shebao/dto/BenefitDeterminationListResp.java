@@ -30,6 +30,9 @@ public class BenefitDeterminationListResp
     /** 用户编码 */
     private String userCode;
 
+    /** 通知批次号 */
+    private String noticeBatchNo;
+
     /** 补贴类型 */
     private String subsidyType;
 
@@ -58,6 +61,12 @@ public class BenefitDeterminationListResp
 
     /** 审批状态 */
     private String approvalStatus;
+
+    /** 材料状态 */
+    private String materialStatus;
+
+    /** 是否已进入支付计划 */
+    private String paymentPlanGenerated;
 
     /** 提交人 */
     private String submitBy;

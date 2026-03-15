@@ -8,15 +8,16 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.shebao.domain.VillageOfficial;
 import com.ruoyi.shebao.domain.VillageOfficialPosition;
 import com.ruoyi.shebao.domain.SubsidyPerson;
+import com.ruoyi.shebao.domain.VillageCommittee;
 import com.ruoyi.shebao.dto.VillageOfficialListReq;
 import com.ruoyi.shebao.dto.VillageOfficialListResp;
 import com.ruoyi.shebao.dto.VillageOfficialFormDto;
 import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialPositionMapper;
-import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
 import com.ruoyi.shebao.service.VillageOfficialService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
+import com.ruoyi.shebao.service.VillageCommitteeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,13 +45,13 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     private VillageOfficialPositionMapper villageOfficialPositionMapper;
 
     @Autowired
-    private SubsidyPersonMapper subsidyPersonMapper;
-
-    @Autowired
     private SubsidyPersonService subsidyPersonService;
 
     @Autowired
     private SubsidyDistributionMapper subsidyDistributionMapper;
+
+    @Autowired
+    private VillageCommitteeService villageCommitteeService;
 
 
     /**
@@ -79,6 +80,16 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         if (formDto != null)
         {
             formDto.setPersonExists(true);
+            formDto.setNativePlace(formDto.getHouseholdRegistration());
+            if (formDto.getVillageCommitteeId() != null)
+            {
+                VillageCommittee villageCommittee = villageCommitteeService.getById(formDto.getVillageCommitteeId());
+                if (villageCommittee != null)
+                {
+                    formDto.setVillageCode(villageCommittee.getVillageCode());
+                    formDto.setVillageName(villageCommittee.getVillageName());
+                }
+            }
             // 查询任职信息列表
             List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList =
                 villageOfficialPositionMapper.selectByVillageOfficialId(id);
@@ -118,6 +129,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             handlePositionList(villageOfficial.getId(), formDto.getPositionList());
         }
 
+        markPersonPendingReview(subsidyPersonId);
         return result;
     }
 
@@ -157,6 +169,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             handlePositionList(formDto.getId(), formDto.getPositionList());
         }
 
+        markPersonPendingReview(subsidyPersonId);
         return result;
     }
 
@@ -235,6 +248,8 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             formDto.setIdCardNo(subsidyPerson.getIdCardNo());
             formDto.setBirthday(subsidyPerson.getBirthday());
             formDto.setHouseholdRegistration(subsidyPerson.getHouseholdRegistration());
+            formDto.setNativePlace(subsidyPerson.getHouseholdRegistration());
+            formDto.setHomeAddress(subsidyPerson.getHomeAddress());
             formDto.setPhone(subsidyPerson.getPhone());
             formDto.setIsAlive(subsidyPerson.getIsAlive());
             formDto.setDeathDate(subsidyPerson.getDeathDate());
@@ -242,6 +257,15 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             formDto.setStreetOfficeId(subsidyPerson.getStreetOfficeId());
             formDto.setVillageCommitteeId(subsidyPerson.getVillageCommitteeId());
             formDto.setUserCode(subsidyPerson.getUserCode());
+            if (subsidyPerson.getVillageCommitteeId() != null)
+            {
+                VillageCommittee villageCommittee = villageCommitteeService.getById(subsidyPerson.getVillageCommitteeId());
+                if (villageCommittee != null)
+                {
+                    formDto.setVillageCode(villageCommittee.getVillageCode());
+                    formDto.setVillageName(villageCommittee.getVillageName());
+                }
+            }
         }
         else
         {
@@ -323,6 +347,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
      */
     private Long handleSubsidyPersonInfo(VillageOfficialFormDto formDto)
     {
+        normalizeDivisionFields(formDto);
         if (StringUtils.isEmpty(formDto.getIdCardNo()))
         {
             throw new RuntimeException("身份证号不能为空");
@@ -376,6 +401,11 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         if (!StringUtils.equals(existingPerson.getHouseholdRegistration(), formDto.getHouseholdRegistration()))
         {
             existingPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
+            needUpdate = true;
+        }
+        if (!StringUtils.equals(existingPerson.getHomeAddress(), formDto.getHomeAddress()))
+        {
+            existingPerson.setHomeAddress(formDto.getHomeAddress());
             needUpdate = true;
         }
         if (!StringUtils.equals(existingPerson.getPhone(), formDto.getPhone()))
@@ -435,6 +465,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         newPerson.setIdCardNo(formDto.getIdCardNo());
         newPerson.setBirthday(formDto.getBirthday());
         newPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
+        newPerson.setHomeAddress(formDto.getHomeAddress());
         newPerson.setPhone(formDto.getPhone());
         newPerson.setIsAlive(formDto.getIsAlive());
         newPerson.setDeathDate(formDto.getDeathDate());
@@ -443,9 +474,47 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
         newPerson.setUserCode(formDto.getUserCode());
         newPerson.setStatus("0");
+        newPerson.setApprovalStatus("draft");
 
         subsidyPersonService.insertSubsidyPerson(newPerson);
         return newPerson.getId();
+    }
+
+    private void normalizeDivisionFields(VillageOfficialFormDto formDto)
+    {
+        if (StringUtils.isBlank(formDto.getHouseholdRegistration()) && StringUtils.isNotBlank(formDto.getNativePlace()))
+        {
+            formDto.setHouseholdRegistration(formDto.getNativePlace());
+        }
+        if (StringUtils.isNotBlank(formDto.getVillageCode()) && formDto.getVillageCommitteeId() == null)
+        {
+            VillageCommittee villageCommittee = villageCommitteeService.lambdaQuery()
+                    .eq(VillageCommittee::getVillageCode, formDto.getVillageCode())
+                    .last("limit 1")
+                    .one();
+            if (villageCommittee != null)
+            {
+                formDto.setVillageCommitteeId(villageCommittee.getId());
+                formDto.setStreetOfficeId(villageCommittee.getStreetOfficeId());
+                if (StringUtils.isBlank(formDto.getVillageName()))
+                {
+                    formDto.setVillageName(villageCommittee.getVillageName());
+                }
+            }
+        }
+    }
+
+    private void markPersonPendingReview(Long subsidyPersonId)
+    {
+        SubsidyPerson person = subsidyPersonService.getById(subsidyPersonId);
+        if (person == null)
+        {
+            throw new ServiceException("被补贴人信息不存在");
+        }
+        person.setApprovalStatus("pending_review");
+        person.setUpdateBy(SecurityUtils.getUsername());
+        person.setUpdateTime(LocalDateTime.now());
+        subsidyPersonService.updateById(person);
     }
 
     /**

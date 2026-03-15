@@ -16,9 +16,9 @@
       <el-table-column label="总金额(元)" prop="totalAmount" />
       <el-table-column label="操作" align="center" width="200">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="handleView(scope.row)">详情</el-button>
-          <el-button size="mini" type="success" @click="handleReview(scope.row, true)">通过</el-button>
-          <el-button size="mini" type="danger" @click="handleReview(scope.row, false)">驳回</el-button>
+          <el-button size="mini" type="text" :data-testid="`payment-review-view-${scope.row.batchNo}`" @click="handleView(scope.row)">详情</el-button>
+          <el-button size="mini" type="success" :data-testid="`payment-review-approve-${scope.row.batchNo}`" @click="handleReview(scope.row, true)">通过</el-button>
+          <el-button size="mini" type="danger" :data-testid="`payment-review-reject-${scope.row.batchNo}`" @click="handleReview(scope.row, false)">驳回</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -57,7 +57,11 @@ export default {
       this.getList()
     },
     handleView(row) {
-      this.$router.push({ name: 'BatchDetail', params: { id: row.id } })
+      this.$alert(
+        `批次号：${row.batchNo || '-'}\n补贴类型：${row.subsidyType || '-'}\n总人数：${row.totalCount || 0}\n总金额：${row.totalAmount || 0}`,
+        '批次摘要',
+        { confirmButtonText: '关闭' }
+      )
     },
     handleReview(row, approved) {
       const msg = approved ? '通过' : '驳回'

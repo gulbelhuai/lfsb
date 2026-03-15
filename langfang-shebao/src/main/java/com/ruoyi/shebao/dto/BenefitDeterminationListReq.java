@@ -29,6 +29,12 @@ public class BenefitDeterminationListReq extends PageReq
     /** 审批状态 */
     private String approvalStatus;
 
+    /** 通知批次号 */
+    private String noticeBatchNo;
+
+    /** 材料状态 */
+    private String materialStatus;
+
     /** 到龄年月开始 */
     @JsonFormat(pattern = "yyyy-MM")
     private Date eligibleMonthStart;

@@ -72,34 +72,55 @@ public class BenefitDetermination extends BaseEntity
     /** 审批批次号 */
     private String approvalBatchNo;
 
-    /** 删除标志(0正常 2删除) */
-    private String delFlag;
+    /** 预到龄通知批次号 */
+    private String noticeBatchNo;
 
-    @TableField(exist = false, select = false)
+    /** 预到龄通知明细ID */
+    private Long noticeDetailId;
+
+    /** 身份证号快照 */
+    private String idCardNo;
+
+    /** 提交人 */
     private String submitBy;
 
-    @TableField(exist = false, select = false)
+    /** 提交时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date submitTime;
 
-    @TableField(exist = false, select = false)
+    /** 复核人 */
     private String reviewBy;
 
-    @TableField(exist = false, select = false)
+    /** 复核时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date reviewTime;
 
-    @TableField(exist = false, select = false)
+    /** 复核意见 */
     private String reviewRemark;
+
+    /** 材料ZIP路径 */
+    private String materialZipPath;
+
+    /** 材料解压目录 */
+    private String materialExtractDir;
+
+    /** 材料图片路径 */
+    private String materialImagePaths;
+
+    /** 材料状态 */
+    private String materialStatus;
+
+    /** 是否已进入支付计划 */
+    private String paymentPlanGenerated;
+
+    /** 删除标志(0正常 2删除) */
+    private String delFlag;
 
     @TableField(exist = false, select = false)
     private String rejectReason;
 
     /** 银行名称 */
     private String bankName;
-
-    @TableField(exist = false, select = false)
-    private String idCardNo;
 
     @TableField(exist = false, select = false)
     private String supplementType;

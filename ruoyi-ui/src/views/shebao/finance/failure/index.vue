@@ -21,7 +21,7 @@
       <el-table-column label="批次号" prop="batchNo" width="160" />
       <el-table-column label="姓名" prop="name" />
       <el-table-column label="身份证号" prop="idCardNo" width="180" />
-      <el-table-column label="应发金额(元)" prop="payableAmount" />
+      <el-table-column label="应发金额(元)" prop="distributionAmount" />
       <el-table-column label="银行账号" prop="bankAccountNo" width="180" />
       <el-table-column label="失败原因" prop="failureReason" width="120" />
       <el-table-column label="发放次数" prop="retryCount" width="80">
@@ -31,10 +31,11 @@
           <el-tag type="danger" v-else>三次</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="200">
+      <el-table-column label="操作" align="center" width="260">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="handleCorrect(scope.row)">信息更正</el-button>
-          <el-button size="mini" type="text" @click="handleRetry(scope.row)" v-if="scope.row.retryCount < 3">重新发放</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-failure-correct-${scope.row.id}`" @click="handleCorrect(scope.row)">信息更正</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-failure-retry-${scope.row.id}`" @click="handleRetry(scope.row)" v-if="scope.row.retryCount < 2">重新发放</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-failure-manual-${scope.row.id}`" @click="handleManual(scope.row)" v-else>人工处理</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -130,6 +131,23 @@ export default {
         })
       }).then(() => {
         this.$modal.msgSuccess('提交成功')
+        this.getList()
+      })
+    },
+    handleManual(row) {
+      this.$prompt('请输入人工处理说明', '人工处理', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputPattern: /.+/,
+        inputErrorMessage: '请输入处理说明'
+      }).then(({ value }) => {
+        return handleFailure({
+          distributionId: row.id,
+          handleType: 'manual',
+          remark: value
+        })
+      }).then(() => {
+        this.$modal.msgSuccess('已转人工处理')
         this.getList()
       })
     }

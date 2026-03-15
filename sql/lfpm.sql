@@ -110,6 +110,19 @@ CREATE TABLE `benefit_determination` (
   `benefit_amount` decimal(12,2) DEFAULT '0.00' COMMENT '琛ュ彂閲戦?',
   `approval_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'draft' COMMENT '瀹℃壒鐘舵?(draft/pending_review/pending_approve/approved/rejected)',
   `approval_batch_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '瀹℃壒鎵规?鍙',
+  `notice_batch_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '预到龄通知批次号',
+  `notice_detail_id` bigint DEFAULT NULL COMMENT '预到龄通知明细ID',
+  `id_card_no` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '身份证号快照',
+  `submit_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '提交人',
+  `submit_time` datetime DEFAULT NULL COMMENT '提交时间',
+  `review_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '复核人',
+  `review_time` datetime DEFAULT NULL COMMENT '复核时间',
+  `review_remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '复核意见',
+  `material_zip_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '材料ZIP路径',
+  `material_extract_dir` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '材料解压目录',
+  `material_image_paths` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '材料图片路径集合',
+  `material_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'pending_upload' COMMENT '材料状态(pending_upload/uploaded/verified)',
+  `payment_plan_generated` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '是否已进入支付计划(0否1是)',
   `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '鍒犻櫎鏍囧織(0瀛樺湪1鍒犻櫎)',
   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '鍒涘缓鑰',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '鍒涘缓鏃堕棿',
@@ -120,6 +133,9 @@ CREATE TABLE `benefit_determination` (
   KEY `idx_person` (`subsidy_person_id`) USING BTREE,
   KEY `idx_approval_status` (`approval_status`) USING BTREE,
   KEY `idx_batch` (`approval_batch_no`) USING BTREE,
+  KEY `idx_notice_batch_no` (`notice_batch_no`) USING BTREE,
+  KEY `idx_notice_detail_id` (`notice_detail_id`) USING BTREE,
+  KEY `idx_payment_plan_generated` (`payment_plan_generated`) USING BTREE,
   KEY `idx_create_time` (`create_time`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='寰呴亣鏍稿畾琛';
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -133,6 +149,102 @@ LOCK TABLES `benefit_determination` WRITE;
 INSERT INTO `benefit_determination` VALUES (1,1000024,'land_loss_resident',2053,1,2053,2,NULL,NULL,'6222009876543210','全流程测试李四',600.00,0,0.00,'approved',NULL,'0',NULL,'2026-03-03 09:07:04',NULL,'2026-03-03 01:07:04',NULL),(2,1000025,'land_loss_resident',2028,3,2026,3,NULL,NULL,'6222001234567890',NULL,500.00,0,0.00,'approved',NULL,'0',NULL,'2026-03-03 13:12:27',NULL,'2026-03-03 05:16:05',NULL);
 /*!40000 ALTER TABLE `benefit_determination` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `shebao_benefit_notice_batch`
+--
+
+DROP TABLE IF EXISTS `shebao_benefit_notice_batch`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `shebao_benefit_notice_batch` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `batch_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '批次号',
+  `notice_month` varchar(7) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '通知月份',
+  `retirement_month` varchar(7) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '到龄月份',
+  `age_threshold` int DEFAULT 60 COMMENT '年龄阈值',
+  `total_count` int DEFAULT 0 COMMENT '总人数',
+  `pending_review_count` int DEFAULT 0 COMMENT '待复核人数',
+  `approved_count` int DEFAULT 0 COMMENT '已通过人数',
+  `rejected_count` int DEFAULT 0 COMMENT '已驳回人数',
+  `batch_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'generated' COMMENT '批次状态(generated/processing/completed)',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '删除标志（0存在 2删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_batch_no` (`batch_no`) USING BTREE,
+  UNIQUE KEY `uk_notice_month` (`notice_month`) USING BTREE,
+  KEY `idx_batch_status` (`batch_status`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='预到龄通知批次表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `shebao_benefit_notice_detail`
+--
+
+DROP TABLE IF EXISTS `shebao_benefit_notice_detail`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `shebao_benefit_notice_detail` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `notice_batch_id` bigint NOT NULL COMMENT '通知批次ID',
+  `batch_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '批次号',
+  `subsidy_person_id` bigint NOT NULL COMMENT '人员ID',
+  `user_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '用户编号',
+  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '姓名',
+  `id_card_no` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '身份证号',
+  `subsidy_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '补贴类型',
+  `birthday` date DEFAULT NULL COMMENT '出生日期',
+  `retirement_date` date DEFAULT NULL COMMENT '到龄日期',
+  `determination_id` bigint DEFAULT NULL COMMENT '待遇核定记录ID',
+  `determination_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'draft' COMMENT '核定状态(draft/pending_review/approved/rejected/payment_generated)',
+  `material_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'pending_upload' COMMENT '材料状态(pending_upload/uploaded/verified)',
+  `review_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'draft' COMMENT '复核状态',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '删除标志（0存在 2删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_batch_person` (`batch_no`,`subsidy_person_id`) USING BTREE,
+  KEY `idx_notice_batch_id` (`notice_batch_id`) USING BTREE,
+  KEY `idx_determination_status` (`determination_status`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='预到龄通知明细表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `shebao_benefit_attachment`
+--
+
+DROP TABLE IF EXISTS `shebao_benefit_attachment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `shebao_benefit_attachment` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `business_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '业务类型',
+  `business_id` bigint NOT NULL COMMENT '业务ID',
+  `notice_batch_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '通知批次号',
+  `subsidy_person_id` bigint NOT NULL COMMENT '人员ID',
+  `original_file_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '原始文件名',
+  `zip_file_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'ZIP路径',
+  `extract_dir` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '解压目录',
+  `preview_image_paths` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '预览图片路径',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '删除标志（0存在 2删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_business` (`business_type`,`business_id`) USING BTREE,
+  KEY `idx_notice_batch_no` (`notice_batch_no`) USING BTREE,
+  KEY `idx_subsidy_person_id` (`subsidy_person_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='待遇核定附件表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `distribution_batch`

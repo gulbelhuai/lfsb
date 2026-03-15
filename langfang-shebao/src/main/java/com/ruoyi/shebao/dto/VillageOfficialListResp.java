@@ -45,6 +45,9 @@ public class VillageOfficialListResp
     /** 状态（0正常 1停用） */
     private String status;
 
+    /** 审批状态 */
+    private String approvalStatus;
+
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;

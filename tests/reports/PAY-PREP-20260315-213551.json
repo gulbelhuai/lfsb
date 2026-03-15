@@ -1,0 +1,67 @@
+{
+  "batchNo": "PAY-PREP-20260315-213551",
+  "generatedAt": "2026-03-15T13:35:51.844Z",
+  "baseUrl": "http://localhost:8087/api",
+  "frontendUrl": "http://127.0.0.1:81",
+  "database": {
+    "host": "192.168.88.48",
+    "port": 5455,
+    "database": "lfpm",
+    "user": "root"
+  },
+  "files": [
+    {
+      "path": "sql/payment_closure_minimal_upgrade_20260315.sql",
+      "exists": true
+    },
+    {
+      "path": "spec/支付工作详细设计文档.md",
+      "exists": true
+    },
+    {
+      "path": "spec/支付工作使用说明.md",
+      "exists": true
+    },
+    {
+      "path": "tests/支付工作测试用例.md",
+      "exists": true
+    },
+    {
+      "path": "ruoyi-ui/playwright.config.js",
+      "exists": true
+    }
+  ],
+  "envChecks": [
+    {
+      "name": "MYSQL_HOST",
+      "ok": true
+    },
+    {
+      "name": "MYSQL_PORT",
+      "ok": true
+    },
+    {
+      "name": "MYSQL_DB",
+      "ok": true
+    },
+    {
+      "name": "MYSQL_USER",
+      "ok": true
+    },
+    {
+      "name": "MYSQL_PWD",
+      "ok": true
+    },
+    {
+      "name": "VUE_APP_BASE_API",
+      "ok": false
+    }
+  ],
+  "commands": [
+    "mvn compile -DskipTests",
+    "node .\\tests\\支付工作闭环准备检查.js",
+    "node .\\tests\\验证支付工作闭环.js --dry-run",
+    "cd ruoyi-ui && npm run test:e2e"
+  ],
+  "ready": true
+}

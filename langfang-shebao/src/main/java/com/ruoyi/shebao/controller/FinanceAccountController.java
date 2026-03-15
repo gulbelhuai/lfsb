@@ -1,11 +1,11 @@
 package com.ruoyi.shebao.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.shebao.domain.FinanceAccount;
 import com.ruoyi.shebao.service.IFinanceAccountService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -39,15 +40,34 @@ public class FinanceAccountController extends BaseController
                           @RequestParam(defaultValue = "1") Integer pageNum,
                           @RequestParam(defaultValue = "10") Integer pageSize)
     {
-        // TODO: 实现财务账户查询逻辑
-        // 暂时返回所有账户
-        List<FinanceAccount> list = financeAccountService.list();
+        List<FinanceAccount> list = financeAccountService.lambdaQuery()
+                .like(StringUtils.isNotBlank(accountName), FinanceAccount::getAccountName, accountName)
+                .eq(StringUtils.isNotBlank(accountType), FinanceAccount::getAccountType, accountType)
+                .eq(StringUtils.isNotBlank(status), FinanceAccount::getStatus, status)
+                .orderByAsc(FinanceAccount::getAccountType)
+                .orderByAsc(FinanceAccount::getAccountName)
+                .list();
         TableDataInfo rspData = new TableDataInfo();
         rspData.setCode(200);
         rspData.setMsg("查询成功");
         rspData.setRows(list);
         rspData.setTotal(list.size());
         return AjaxResult.success(rspData);
+    }
+
+    /**
+     * 查询账户余额
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:finance:account:list')")
+    @GetMapping("/balance/{accountType}")
+    public AjaxResult getBalance(@PathVariable String accountType)
+    {
+        FinanceAccount account = financeAccountService.lambdaQuery()
+                .eq(FinanceAccount::getAccountType, accountType)
+                .eq(FinanceAccount::getStatus, "0")
+                .last("limit 1")
+                .one();
+        return AjaxResult.success(account == null ? BigDecimal.ZERO : account.getBalance());
     }
 
     /**

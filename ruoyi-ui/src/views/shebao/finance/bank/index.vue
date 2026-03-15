@@ -6,10 +6,11 @@
 
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
       <el-form-item label="批次号"><el-input v-model="queryParams.batchNo" clearable /></el-form-item>
-      <el-form-item label="发放状态">
-        <el-select v-model="queryParams.paymentStatus" clearable>
-          <el-option label="待发放" value="pending" />
-          <el-option label="已提交" value="submitted" />
+      <el-form-item label="审批状态">
+        <el-select v-model="queryParams.approvalStatus" clearable>
+          <el-option label="待财务" value="pending_finance" />
+          <el-option label="已提交银行" value="submitted_bank" />
+          <el-option label="部分失败" value="partial_failed" />
           <el-option label="已完成" value="completed" />
         </el-select>
       </el-form-item>
@@ -37,9 +38,9 @@
       </el-table-column>
       <el-table-column label="操作" align="center" width="300">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="handleGenerateFile(scope.row)">生成文件</el-button>
-          <el-button size="mini" type="text" @click="handleSubmitBank(scope.row)" v-if="!scope.row.bankSubmitTime">提交银行</el-button>
-          <el-button size="mini" type="text" @click="handleImportResult(scope.row)" v-if="scope.row.bankSubmitTime">导入结果</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-bank-generate-${scope.row.batchNo}`" @click="handleGenerateFile(scope.row)">生成文件</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-bank-submit-${scope.row.batchNo}`" @click="handleSubmitBank(scope.row)" v-if="!scope.row.bankSubmitTime">提交银行</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-bank-import-${scope.row.batchNo}`" @click="handleImportResult(scope.row)" v-if="scope.row.bankSubmitTime">导入结果</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -51,8 +52,10 @@
       <el-upload
         drag
         :action="uploadUrl"
+        :headers="uploadHeaders"
         :data="{ batchNo: currentBatchNo }"
         :on-success="handleImportSuccess"
+        :on-error="handleImportError"
         accept=".xlsx,.xls">
         <i class="el-icon-upload"></i>
         <div class="el-upload__text">将Excel文件拖到此处，或<em>点击上传</em></div>
@@ -67,6 +70,7 @@
 
 <script>
 import { listBatch, generateBankFile, submitToBank } from '@/api/shebao/finance'
+import { getToken } from '@/utils/auth'
 
 export default {
   name: 'FinanceBank',
@@ -80,12 +84,12 @@ export default {
       importOpen: false,
       currentBatchNo: null,
       uploadUrl: process.env.VUE_APP_BASE_API + '/shebao/finance/bank/import',
+      uploadHeaders: { Authorization: 'Bearer ' + getToken() },
       queryParams: {
         pageNum: 1,
         pageSize: 10,
         batchNo: null,
-        approvalStatus: 'pending_finance',
-        paymentStatus: null
+        approvalStatus: 'pending_finance'
       }
     }
   },
@@ -111,13 +115,14 @@ export default {
     handleGenerateFile(row) {
       this.$modal.confirm('是否生成银行发放文件？').then(() => {
         return generateBankFile(row.batchNo)
-      }).then(response => {
-        const blob = new Blob([response.data])
+      }).then(data => {
+        const blob = new Blob([data], { type: 'text/plain;charset=utf-8' })
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
         link.download = `bank_${row.batchNo}.txt`
         link.click()
+        window.URL.revokeObjectURL(url)
         this.$modal.msgSuccess('文件生成成功')
       })
     },
@@ -134,9 +139,16 @@ export default {
       this.importOpen = true
     },
     handleImportSuccess(response) {
+      if (response.code !== 200) {
+        this.$modal.msgError(response.msg || '导入失败')
+        return
+      }
       this.$modal.msgSuccess('导入成功')
       this.importOpen = false
       this.getList()
+    },
+    handleImportError() {
+      this.$modal.msgError('导入失败')
     }
   }
 }

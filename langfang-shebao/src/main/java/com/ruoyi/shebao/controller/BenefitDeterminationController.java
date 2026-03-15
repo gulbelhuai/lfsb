@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.shebao.domain.BenefitDetermination;
+import com.ruoyi.shebao.dto.BenefitDeterminationImportDto;
 import com.ruoyi.shebao.dto.BenefitDeterminationPrintDto;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
@@ -15,8 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * 待遇核定Controller
@@ -36,9 +40,8 @@ public class BenefitDeterminationController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:list')")
     @GetMapping("/list")
-    public AjaxResult list(BenefitDeterminationListReq req)
+    public TableDataInfo list(BenefitDeterminationListReq req)
     {
-        // 设置分页参数默认值
         if (req.getPageNum() == null) {
             req.setPageNum(1);
         }
@@ -46,7 +49,11 @@ public class BenefitDeterminationController extends BaseController
             req.setPageSize(10);
         }
         Page<BenefitDeterminationListResp> page = benefitDeterminationService.selectBenefitDeterminationList(req);
-        return AjaxResult.success(page);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setRows(page.getRecords());
+        rsp.setTotal(page.getTotal());
+        return rsp;
     }
 
     /**
@@ -56,7 +63,7 @@ public class BenefitDeterminationController extends BaseController
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id)
     {
-        return AjaxResult.success(benefitDeterminationService.selectBenefitDeterminationById(id));
+        return AjaxResult.success(benefitDeterminationService.selectBenefitDeterminationDetail(id));
     }
 
     /**
@@ -101,6 +108,43 @@ public class BenefitDeterminationController extends BaseController
     public AjaxResult submit(@PathVariable Long id)
     {
         return toAjax(benefitDeterminationService.submitForReview(id));
+    }
+
+    /**
+     * 导入模板
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:import')")
+    @GetMapping("/importTemplate")
+    public void importTemplate(HttpServletResponse response)
+    {
+        ExcelUtil<BenefitDeterminationImportDto> util = new ExcelUtil<>(BenefitDeterminationImportDto.class);
+        util.importTemplateExcel(response, "待遇核定导入模板");
+    }
+
+    /**
+     * 批量导入待遇核定
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:import')")
+    @Log(title = "待遇核定导入", businessType = BusinessType.IMPORT)
+    @PostMapping("/batch")
+    public AjaxResult batchImport(@RequestParam(required = false) String noticeBatchNo,
+                                  @RequestPart("file") MultipartFile file,
+                                  @RequestPart(value = "attachments", required = false) MultipartFile[] attachments) throws Exception
+    {
+        ExcelUtil<BenefitDeterminationImportDto> util = new ExcelUtil<>(BenefitDeterminationImportDto.class);
+        List<BenefitDeterminationImportDto> rows = util.importExcel(file.getInputStream());
+        int count = benefitDeterminationService.batchImport(noticeBatchNo, rows, attachments);
+        return AjaxResult.success("导入成功，共处理 " + count + " 条记录");
+    }
+
+    /**
+     * 上传单条待遇核定附件ZIP
+     */
+    @PreAuthorize("@ss.hasAnyPermi('shebao:benefit:determination:add,shebao:benefit:determination:edit,shebao:benefit:determination:import')")
+    @PostMapping("/attachment/upload")
+    public AjaxResult uploadAttachment(@RequestParam Long determinationId, @RequestPart("file") MultipartFile file) throws Exception
+    {
+        return AjaxResult.success(benefitDeterminationService.uploadAttachment(determinationId, file));
     }
 
     /**

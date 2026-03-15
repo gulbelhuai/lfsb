@@ -6,8 +6,11 @@
       </el-form-item>
       <el-form-item label="补贴类型" prop="subsidyType">
         <el-select v-model="queryParams.subsidyType" placeholder="请选择" clearable>
-          <el-option label="失地居民" value="land_loss_resident" />
-          <el-option label="被征地居民" value="expropriatee" />
+          <el-option label="失地居民" value="1" />
+          <el-option label="被征地居民" value="2" />
+          <el-option label="拆迁居民" value="3" />
+          <el-option label="村干部" value="4" />
+          <el-option label="教师" value="5" />
         </el-select>
       </el-form-item>
       <el-form-item label="审批状态" prop="approvalStatus">
@@ -43,10 +46,10 @@
       <el-table-column label="创建时间" prop="createTime" width="160" />
       <el-table-column label="操作" align="center" width="250">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="handleView(scope.row)">详情</el-button>
-          <el-button size="mini" type="text" @click="handleGenerateFile(scope.row)" v-if="scope.row.approvalStatus === 'pending_finance'">生成银行文件</el-button>
-          <el-button size="mini" type="text" @click="handleSubmitBank(scope.row)" v-if="scope.row.approvalStatus === 'pending_finance'">提交银行</el-button>
-          <el-button size="mini" type="text" @click="handleImportResult(scope.row)" v-if="scope.row.bankSubmitTime">导入结果</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-batch-view-${scope.row.batchNo}`" @click="handleView(scope.row)">详情</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-batch-generate-${scope.row.batchNo}`" @click="handleGenerateFile(scope.row)" v-if="scope.row.approvalStatus === 'pending_finance'">生成银行文件</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-batch-submit-${scope.row.batchNo}`" @click="handleSubmitBank(scope.row)" v-if="scope.row.approvalStatus === 'pending_finance'">提交银行</el-button>
+          <el-button size="mini" type="text" :data-testid="`finance-batch-import-${scope.row.batchNo}`" @click="handleImportResult(scope.row)" v-if="scope.row.bankSubmitTime">导入结果</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -73,7 +76,7 @@
         <el-table-column type="index" label="序号" width="50" />
         <el-table-column label="姓名" prop="name" width="100" />
         <el-table-column label="身份证号" prop="idCardNo" width="180" />
-        <el-table-column label="应发金额" prop="payableAmount" width="100" />
+        <el-table-column label="应发金额" prop="distributionAmount" width="100" />
         <el-table-column label="银行账号" prop="bankAccountNo" width="180" />
         <el-table-column label="发放状态" prop="paymentStatus" width="100">
           <template slot-scope="scope">
@@ -94,8 +97,10 @@
         class="upload-demo"
         drag
         :action="uploadUrl"
+        :headers="uploadHeaders"
         :data="{ batchNo: currentBatchNo }"
         :on-success="handleImportSuccess"
+        :on-error="handleImportError"
         accept=".xlsx,.xls">
         <i class="el-icon-upload"></i>
         <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
@@ -106,10 +111,11 @@
 </template>
 
 <script>
-import { listBatch, getBatchDetail, generateBankFile, submitToBank, importPaymentResult } from '@/api/shebao/finance'
+import { listBatch, getBatchDetail, generateBankFile, submitToBank } from '@/api/shebao/finance'
 import { getApprovalHistory } from '@/api/shebao/approval'
 import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
 import ApprovalHistory from '@/components/Shebao/ApprovalHistory'
+import { getToken } from '@/utils/auth'
 
 export default {
   name: 'FinanceBatch',
@@ -127,6 +133,7 @@ export default {
       approvalHistory: [],
       currentBatchNo: null,
       uploadUrl: process.env.VUE_APP_BASE_API + '/shebao/finance/bank/import',
+      uploadHeaders: { Authorization: 'Bearer ' + getToken() },
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -157,11 +164,11 @@ export default {
       this.handleQuery()
     },
     handleView(row) {
-      this.detailData = row
       this.detailOpen = true
       // 获取批次详情
       getBatchDetail(row.batchNo).then(response => {
-        this.detailList = response.data.details
+        this.detailData = response.data.batch || row
+        this.detailList = response.data.details || []
       })
       // 获取审批历史
       getApprovalHistory('payment_batch', row.id).then(response => {
@@ -171,14 +178,15 @@ export default {
     handleGenerateFile(row) {
       this.$modal.confirm('是否生成银行发放文件？').then(() => {
         return generateBankFile(row.batchNo)
-      }).then(response => {
+      }).then(data => {
         // 下载文件
-        const blob = new Blob([response.data])
+        const blob = new Blob([data], { type: 'text/plain;charset=utf-8' })
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
         link.download = `bank_file_${row.batchNo}.txt`
         link.click()
+        window.URL.revokeObjectURL(url)
         this.$modal.msgSuccess('文件生成成功')
       })
     },
@@ -195,9 +203,16 @@ export default {
       this.importOpen = true
     },
     handleImportSuccess(response) {
+      if (response.code !== 200) {
+        this.$modal.msgError(response.msg || '导入失败')
+        return
+      }
       this.$modal.msgSuccess('导入成功')
       this.importOpen = false
       this.getList()
+    },
+    handleImportError() {
+      this.$modal.msgError('导入失败')
     }
   }
 }

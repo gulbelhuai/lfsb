@@ -6,6 +6,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <resultMap type="com.ruoyi.shebao.domain.SubsidyDistribution" id="SubsidyDistributionResult">
         <result property="id"                      column="id"                      />
+        <result property="batchNo"                 column="batch_no"                />
+        <result property="batchType"               column="batch_type"              />
+        <result property="approvalStatus"          column="approval_status"         />
+        <result property="rejectionReason"         column="rejection_reason"        />
+        <result property="reviewTime"              column="review_time"             />
+        <result property="reviewUserId"            column="review_user_id"          />
+        <result property="reviewUserName"          column="review_user_name"        />
+        <result property="approveTime"             column="approve_time"            />
+        <result property="approveUserId"           column="approve_user_id"         />
+        <result property="approveUserName"         column="approve_user_name"       />
         <result property="subsidyPersonId"         column="subsidy_person_id"       />
         <result property="subsidyType"             column="subsidy_type"            />
         <result property="subsidyRecordId"         column="subsidy_record_id"       />
@@ -24,6 +34,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <resultMap type="com.ruoyi.shebao.dto.SubsidyDistributionListResp" id="SubsidyDistributionListRespResult">
         <result property="id"                      column="id"                      />
+        <result property="batchNo"                 column="batch_no"                />
+        <result property="batchType"               column="batch_type"              />
+        <result property="approvalStatus"          column="approval_status"         />
         <result property="subsidyPersonId"         column="subsidy_person_id"       />
         <result property="name"                    column="name"                    />
         <result property="idCardNo"                column="id_card_no"              />
@@ -33,14 +46,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="subsidyType"             column="subsidy_type"            />
         <result property="subsidyRecordId"         column="subsidy_record_id"       />
         <result property="distributionAmount"      column="distribution_amount"     />
+        <result property="paymentMonth"            column="payment_month"           />
+        <result property="bankAccountNo"           column="bank_account_no"         />
         <result property="distributionDate"        column="distribution_date"       />
         <result property="distributionStatus"      column="distribution_status"     />
         <result property="reviewRemark"            column="review_remark"           />
+        <result property="failureReason"           column="failure_reason"          />
+        <result property="paymentStatus"           column="payment_status"          />
+        <result property="retryCount"              column="retry_count"             />
         <result property="createTime"              column="create_time"             />
     </resultMap>
 
     <resultMap type="com.ruoyi.shebao.dto.SubsidyDistributionFormDto" id="SubsidyDistributionFormResult">
         <result property="id"                      column="id"                      />
+        <result property="batchNo"                 column="batch_no"                />
+        <result property="batchType"               column="batch_type"              />
+        <result property="approvalStatus"          column="approval_status"         />
         <result property="subsidyPersonId"         column="subsidy_person_id"       />
         <result property="name"                    column="name"                    />
         <result property="idCardNo"                column="id_card_no"              />
@@ -60,6 +81,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="subsidyType"             column="subsidy_type"            />
         <result property="subsidyRecordId"         column="subsidy_record_id"       />
         <result property="distributionAmount"      column="distribution_amount"     />
+        <result property="paymentMonth"            column="payment_month"           />
+        <result property="bankAccountNo"           column="bank_account_no"         />
         <result property="distributionDate"        column="distribution_date"       />
         <result property="distributionStatus"      column="distribution_status"     />
         <result property="reviewRemark"            column="review_remark"           />
@@ -68,22 +91,34 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectSubsidyDistributionVo">
-        select sd.id, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id, 
-               sd.distribution_amount, sd.distribution_date, sd.distribution_status, 
-               sd.review_remark, sd.status, sd.del_flag, sd.create_by, sd.create_time, 
+        select sd.id, sd.batch_no, sd.batch_type, sd.approval_status, sd.rejection_reason,
+               sd.review_time, sd.review_user_id, sd.review_user_name, sd.approve_time,
+               sd.approve_user_id, sd.approve_user_name, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id,
+               sd.distribution_amount, sd.distribution_date, sd.distribution_status,
+               sd.review_remark, sd.status, sd.del_flag, sd.create_by, sd.create_time,
                sd.update_by, sd.update_time, sd.remark
         from shebao_subsidy_distribution sd
     </sql>
 
     <select id="selectSubsidyDistributionList" parameterType="com.ruoyi.shebao.dto.SubsidyDistributionListReq" resultMap="SubsidyDistributionListRespResult">
-        select sd.id, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id,
+        select sd.id, sd.batch_no, sd.batch_type, sd.approval_status, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id,
                sd.distribution_amount, sd.distribution_date, sd.distribution_status, sd.review_remark, sd.create_time,
+               ifnull(concat(bd.benefit_start_year, '-', lpad(bd.benefit_start_month, 2, '0')), date_format(sd.distribution_date, '%Y-%m')) as payment_month,
+               bd.bank_account as bank_account_no,
+               sd.review_remark as failure_reason,
+               case when sd.approval_status in ('success', 'completed') then 'success'
+                    when sd.approval_status = 'failed' then 'failed'
+                    else 'pending' end as payment_status,
+               case when sd.batch_type = 'second' then 1
+                    when sd.batch_type = 'third' then 2
+                    else 0 end as retry_count,
                sp.name, sp.id_card_no, sp.user_code,
                sso.street_name as street_office_name, svc.village_name as village_committee_name
         from shebao_subsidy_distribution sd
         left join shebao_subsidy_person sp on sd.subsidy_person_id = sp.id
         left join shebao_street_office sso on sp.street_office_id = sso.id
         left join shebao_village_committee svc on sp.village_committee_id = svc.id
+        left join benefit_determination bd on sd.subsidy_record_id = bd.id and sd.subsidy_person_id = bd.subsidy_person_id
         where sd.del_flag = '0'
         <if test="req.subsidyPersonId != null">
             and sd.subsidy_person_id = #{req.subsidyPersonId}
@@ -97,11 +132,23 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <if test="req.subsidyType != null and req.subsidyType != ''">
             and sd.subsidy_type = #{req.subsidyType}
         </if>
+        <if test="req.batchNo != null and req.batchNo != ''">
+            and sd.batch_no = #{req.batchNo}
+        </if>
         <if test="req.villageCommitteeId != null">
             and sp.village_committee_id = #{req.villageCommitteeId}
         </if>
+        <if test="req.approvalStatus != null and req.approvalStatus != ''">
+            and sd.approval_status = #{req.approvalStatus}
+        </if>
+        <if test="req.failureReason != null and req.failureReason != ''">
+            and sd.review_remark like concat('%', #{req.failureReason}, '%')
+        </if>
         <if test="req.distributionStatus != null and req.distributionStatus != ''">
             and sd.distribution_status = #{req.distributionStatus}
+        </if>
+        <if test="req.paymentMonth != null and req.paymentMonth != ''">
+            and ifnull(concat(bd.benefit_start_year, '-', lpad(bd.benefit_start_month, 2, '0')), date_format(sd.distribution_date, '%Y-%m')) = #{req.paymentMonth}
         </if>
         <if test="req.distributionDateStart != null">
             and sd.distribution_date &gt;= #{req.distributionDateStart}
@@ -113,9 +160,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectSubsidyDistributionFormById" parameterType="Long" resultMap="SubsidyDistributionFormResult">
-        select sd.id, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id,
+        select sd.id, sd.batch_no, sd.batch_type, sd.approval_status, sd.subsidy_person_id, sd.subsidy_type, sd.subsidy_record_id,
                sd.distribution_amount, sd.distribution_date, sd.distribution_status, 
                sd.review_remark, sd.status, sd.remark,
+               ifnull(concat(bd.benefit_start_year, '-', lpad(bd.benefit_start_month, 2, '0')), date_format(sd.distribution_date, '%Y-%m')) as payment_month,
+               bd.bank_account as bank_account_no,
                sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.household_registration, sp.home_address, sp.phone,
                sp.is_alive, sp.death_date, sp.is_village_coop_member,
                sp.street_office_id, sp.village_committee_id, sp.user_code,
@@ -124,6 +173,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join shebao_subsidy_person sp on sd.subsidy_person_id = sp.id
         left join shebao_street_office sso on sp.street_office_id = sso.id
         left join shebao_village_committee svc on sp.village_committee_id = svc.id
+        left join benefit_determination bd on sd.subsidy_record_id = bd.id and sd.subsidy_person_id = bd.subsidy_person_id
         where sd.id = #{id}
     </select>
 

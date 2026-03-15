@@ -617,13 +617,13 @@ export default {
         if (valid) {
           if (this.form.id != null) {
             updateDemolitionResident(this.form).then(response => {
-              this.$modal.msgSuccess("修改成功")
+              this.$modal.msgSuccess("修改成功，已进入待复核")
               this.open = false
               this.getList()
             })
           } else {
             addDemolitionResident(this.form).then(response => {
-              this.$modal.msgSuccess("新增成功")
+              this.$modal.msgSuccess("新增成功，已进入待复核")
               this.open = false
               this.getList()
             })

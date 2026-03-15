@@ -42,6 +42,12 @@ public class VillageOfficialFormDto
     /** 户籍所在地 */
     private String householdRegistration;
 
+    /** 前端展示口径：籍贯 */
+    private String nativePlace;
+
+    /** 家庭住址 */
+    private String homeAddress;
+
     /** 联系电话 */
     private String phone;
 
@@ -61,8 +67,20 @@ public class VillageOfficialFormDto
     /** 所属村委会ID */
     private Long villageCommitteeId;
 
+    /** 前端展示口径：村委会区划编码 */
+    private String villageCode;
+
+    /** 前端展示口径：村委会名称 */
+    private String villageName;
+
     /** 用户编号（格式：001-002-0001） */
     private String userCode;
+
+    /** 前端展示口径：户别编号 */
+    private String householdNo;
+
+    /** 前端展示口径：是否已领职工养老保险 */
+    private String hasEmployeePension;
 
     // ===== 村干部特有信息字段 =====
     /** 累计任职年限 */

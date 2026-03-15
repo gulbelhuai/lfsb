@@ -6,6 +6,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.dto.BenefitReviewBatchReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
 import com.ruoyi.shebao.service.IBenefitDeterminationService;
@@ -64,5 +65,16 @@ public class BenefitReviewController extends BaseController
     public AjaxResult reject(@PathVariable Long id, @RequestParam String reason)
     {
         return toAjax(benefitDeterminationService.rejectReview(id, reason));
+    }
+
+    /**
+     * 批量复核通过
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:benefit:review:approve')")
+    @Log(title = "待遇核定批量复核", businessType = BusinessType.UPDATE)
+    @PostMapping("/batchApprove")
+    public AjaxResult batchApprove(@RequestBody BenefitReviewBatchReq req)
+    {
+        return toAjax(benefitDeterminationService.batchApprove(req.getIds(), req.getNoticeBatchNo(), req.getRemark()));
     }
 }

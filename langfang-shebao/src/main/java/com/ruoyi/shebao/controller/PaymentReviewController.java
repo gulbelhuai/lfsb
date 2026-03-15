@@ -69,8 +69,10 @@ public class PaymentReviewController extends BaseController
     @PreAuthorize("@ss.hasPermi('shebao:payment:review:reject')")
     @Log(title = "支付计划复核", businessType = BusinessType.UPDATE)
     @PostMapping("/reject/{id}")
-    public AjaxResult reject(@PathVariable Long id, @RequestParam String reason)
+    public AjaxResult reject(@PathVariable Long id,
+                             @RequestParam(required = false) String reason,
+                             @RequestParam(required = false) String remark)
     {
-        return toAjax(distributionBatchService.rejectReview(id, reason));
+        return toAjax(distributionBatchService.rejectReview(id, reason != null ? reason : remark));
     }
 }

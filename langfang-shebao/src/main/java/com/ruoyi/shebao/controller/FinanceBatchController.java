@@ -11,7 +11,6 @@ import com.ruoyi.shebao.dto.DistributionBatchListReq;
 import com.ruoyi.shebao.service.IDistributionBatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -60,6 +59,16 @@ public class FinanceBatchController extends BaseController
     }
 
     /**
+     * 根据批次号获取批次详情
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:query')")
+    @GetMapping("/detail/{batchNo}")
+    public AjaxResult getDetail(@PathVariable String batchNo)
+    {
+        return AjaxResult.success(distributionBatchService.getBatchDetailByBatchNo(batchNo));
+    }
+
+    /**
      * 提交银行发放
      */
     @PreAuthorize("@ss.hasPermi('shebao:finance:batch:submit')")
@@ -67,8 +76,12 @@ public class FinanceBatchController extends BaseController
     @PostMapping("/submit/{id}")
     public AjaxResult submitToBank(@PathVariable Long id)
     {
-        // TODO: 实现提交银行发放逻辑
-        return AjaxResult.success("已提交银行发放");
+        DistributionBatch batch = distributionBatchService.getById(id);
+        if (batch == null)
+        {
+            return AjaxResult.error("批次不存在");
+        }
+        return toAjax(distributionBatchService.submitToBank(batch.getBatchNo()));
     }
 
     /**
@@ -79,8 +92,12 @@ public class FinanceBatchController extends BaseController
     @PostMapping("/importResult/{id}")
     public AjaxResult importResult(@PathVariable Long id)
     {
-        // TODO: 实现导入银行结果逻辑
-        return AjaxResult.success("导入成功");
+        DistributionBatch batch = distributionBatchService.getById(id);
+        if (batch == null)
+        {
+            return AjaxResult.error("批次不存在");
+        }
+        return AjaxResult.error("请使用 /shebao/finance/bank/import 接口上传银行结果文件");
     }
 
     /**
@@ -91,7 +108,10 @@ public class FinanceBatchController extends BaseController
     @PostMapping("/complete/{id}")
     public AjaxResult complete(@PathVariable Long id)
     {
-        // TODO: 实现完成批次逻辑
-        return AjaxResult.success("批次已完成");
+        boolean updated = distributionBatchService.lambdaUpdate()
+                .eq(DistributionBatch::getId, id)
+                .set(DistributionBatch::getStatus, "completed")
+                .update();
+        return updated ? AjaxResult.success("批次已完成") : AjaxResult.error("批次不存在或更新失败");
     }
 }

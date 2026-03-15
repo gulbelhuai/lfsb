@@ -17,6 +17,15 @@ public class SubsidyDistributionFormDto
     /** 主键ID */
     private Long id;
 
+    /** 批次号 */
+    private String batchNo;
+
+    /** 批次类型 */
+    private String batchType;
+
+    /** 审批状态 */
+    private String approvalStatus;
+
     /** 被补贴人ID */
     private Long subsidyPersonId;
 
@@ -73,6 +82,12 @@ public class SubsidyDistributionFormDto
 
     /** 发放金额 */
     private BigDecimal distributionAmount;
+
+    /** 发放月份 */
+    private String paymentMonth;
+
+    /** 银行账号 */
+    private String bankAccountNo;
 
     /** 发放日期 */
     private LocalDate distributionDate;

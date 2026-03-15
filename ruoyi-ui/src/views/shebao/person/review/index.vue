@@ -33,7 +33,7 @@
       <el-table-column label="身份证号" align="center" prop="idCardNo" width="180" />
       <el-table-column label="补贴类型" align="center" prop="subsidyType" width="120">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.subsidy_type" :value="scope.row.subsidyType"/>
+          <span>{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="街道办事处" align="center" prop="streetOfficeName" width="120" />
@@ -81,9 +81,9 @@
         <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
         <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
         <el-descriptions-item label="性别">{{ detailData.gender === '1' ? '男' : '女' }}</el-descriptions-item>
-        <el-descriptions-item label="出生日期">{{ detailData.birthDate }}</el-descriptions-item>
+        <el-descriptions-item label="出生日期">{{ detailData.birthday || detailData.birthDate }}</el-descriptions-item>
         <el-descriptions-item label="补贴类型">
-          <dict-tag :options="dict.type.subsidy_type" :value="detailData.subsidyType"/>
+          {{ getSubsidyTypeLabel(detailData.subsidyType) }}
         </el-descriptions-item>
         <el-descriptions-item label="街道办事处">{{ detailData.streetOfficeName }}</el-descriptions-item>
         <el-descriptions-item label="村委会">{{ detailData.villageCommitteeName }}</el-descriptions-item>
@@ -202,7 +202,7 @@ export default {
       this.detailData = row
       this.detailOpen = true
       // 获取审批历史
-      getApprovalHistory('person_registration', row.id).then(response => {
+      getApprovalHistory('person_register', row.id).then(response => {
         this.approvalHistory = response.data
       })
     },
@@ -235,6 +235,21 @@ export default {
           })
         }
       })
+    },
+    getSubsidyTypeLabel(subsidyType) {
+      const typeMap = {
+        land_loss_resident: '失地居民',
+        expropriatee: '被征地居民',
+        demolition_resident: '拆迁居民',
+        village_official: '村干部',
+        teacher: '教师',
+        '1': '失地居民',
+        '2': '被征地居民',
+        '3': '拆迁居民',
+        '4': '村干部',
+        '5': '教师'
+      }
+      return typeMap[subsidyType] || subsidyType || '-'
     }
   }
 }

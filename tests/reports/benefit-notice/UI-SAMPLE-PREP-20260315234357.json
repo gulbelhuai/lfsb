@@ -1,0 +1,38 @@
+{
+  "batchId": "20260315234357",
+  "generatedAt": "2026-03-15T15:43:57.568Z",
+  "samples": [
+    {
+      "key": "landloss",
+      "name": "UI预到龄失地A-20260315234357",
+      "idCardNo": "130101197006050061",
+      "birthday": "1970-06-05",
+      "phone": "13910010001",
+      "householdRegistration": "廊坊市测试街道失地样本",
+      "homeAddress": "廊坊市测试街道失地样本1号",
+      "reviewTypeLabel": "失地居民"
+    },
+    {
+      "key": "demolition",
+      "name": "UI预到龄拆迁A-20260315234357",
+      "idCardNo": "130101197006180077",
+      "birthday": "1970-06-18",
+      "phone": "13910010002",
+      "householdRegistration": "廊坊市测试街道拆迁样本",
+      "homeAddress": "廊坊市测试街道拆迁样本2号",
+      "reviewTypeLabel": "拆迁居民"
+    },
+    {
+      "key": "official",
+      "name": "UI预到龄村干A-20260315234357",
+      "idCardNo": "13010119700625008X",
+      "birthday": "1970-06-25",
+      "phone": "13910010003",
+      "householdRegistration": "廊坊市测试街道村干样本",
+      "homeAddress": "廊坊市测试街道村干样本3号",
+      "reviewTypeLabel": "村干部"
+    }
+  ],
+  "status": "failed",
+  "error": "Error: \u001b[31mTimed out 10000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\nCall log:\n  \u001b[2m- expect.toBeVisible with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('.el-dialog__wrapper:visible').last().locator('.el-form-item').filter({ has: locator('.el-dialog__wrapper:visible').last().locator('.el-form-item__label').filter({ hasText: '性别' }) }).first().locator('.el-radio').filter({ hasText: '男' }).first()\u001b[22m\n\n    at chooseRadioByLabel (E:\\langfangsb\\lfsb\\ruoyi-ui\\e2e\\flows\\prepare-benefit-notice-ui-samples.spec.js:82:23)\n    at createLandLossSample (E:\\langfangsb\\lfsb\\ruoyi-ui\\e2e\\flows\\prepare-benefit-notice-ui-samples.spec.js:106:9)\n    at E:\\langfangsb\\lfsb\\ruoyi-ui\\e2e\\flows\\prepare-benefit-notice-ui-samples.spec.js:260:25"
+}

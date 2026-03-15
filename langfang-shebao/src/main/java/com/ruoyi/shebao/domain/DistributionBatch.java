@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.Date;
 
 /**
@@ -93,4 +94,35 @@ public class DistributionBatch extends BaseEntity
     private String approveBy;
     @TableField(exist = false)
     private Date approveTime;
+
+    @TableField(exist = false)
+    private String paymentMonth;
+
+    public String getApprovalStatus()
+    {
+        return status;
+    }
+
+    public void setApprovalStatus(String approvalStatus)
+    {
+        this.status = approvalStatus;
+    }
+
+    public String getPaymentMonth()
+    {
+        if (paymentMonth != null)
+        {
+            return paymentMonth;
+        }
+        if (distributionYear != null && distributionMonth != null)
+        {
+            return YearMonth.of(distributionYear, distributionMonth).toString();
+        }
+        return null;
+    }
+
+    public void setPaymentMonth(String paymentMonth)
+    {
+        this.paymentMonth = paymentMonth;
+    }
 }

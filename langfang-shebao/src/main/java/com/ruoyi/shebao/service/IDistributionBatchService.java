@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.shebao.domain.DistributionBatch;
 import com.ruoyi.shebao.dto.DistributionBatchListReq;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 发放批次Service接口
  *
@@ -96,4 +99,14 @@ public interface IDistributionBatchService extends IService<DistributionBatch>
      * @return 结果
      */
     int reject(Long id, String reason);
+
+    Long createBatchFromPlanIds(List<Long> planIds);
+
+    Map<String, Object> getBatchDetailByBatchNo(String batchNo);
+
+    byte[] generateBankFile(String batchNo);
+
+    int submitToBank(String batchNo);
+
+    Map<String, Object> importBankResult(String batchNo, List<Map<String, String>> rows);
 }

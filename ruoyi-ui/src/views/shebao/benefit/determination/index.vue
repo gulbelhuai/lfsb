@@ -1,79 +1,82 @@
 <template>
-  <div class="app-container">
+  <div class="app-container" data-testid="benefit-determination-page">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
-      <el-form-item label="姓名" prop="name">
-        <el-input v-model="queryParams.name" placeholder="请输入姓名" clearable />
+      <el-form-item label="通知批次号">
+        <el-input v-model="queryParams.noticeBatchNo" placeholder="请输入通知批次号" clearable data-testid="determination-query-batch-no" />
       </el-form-item>
-      <el-form-item label="身份证号" prop="idCardNo">
-        <el-input v-model="queryParams.idCardNo" placeholder="请输入身份证号" clearable />
+      <el-form-item label="姓名">
+        <el-input v-model="queryParams.name" placeholder="请输入姓名" clearable data-testid="determination-query-name" />
       </el-form-item>
-      <el-form-item label="补贴类型" prop="subsidyType">
-        <el-select v-model="queryParams.subsidyType" placeholder="请选择" clearable>
-          <el-option label="失地居民" value="land_loss_resident" />
-          <el-option label="被征地居民" value="expropriatee" />
-          <el-option label="拆迁居民" value="demolition_resident" />
-          <el-option label="村干部" value="village_official" />
-          <el-option label="教龄补助" value="teacher" />
+      <el-form-item label="身份证号">
+        <el-input v-model="queryParams.idCardNo" placeholder="请输入身份证号" clearable data-testid="determination-query-id-card" />
+      </el-form-item>
+      <el-form-item label="审批状态">
+        <el-select v-model="queryParams.approvalStatus" clearable placeholder="全部" data-testid="determination-query-approval-status">
+          <el-option label="待录入" value="draft" />
+          <el-option label="待复核" value="pending_review" />
+          <el-option label="已通过" value="approved" />
+          <el-option label="已驳回" value="rejected" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="材料状态">
+        <el-select v-model="queryParams.materialStatus" clearable placeholder="全部" data-testid="determination-query-material-status">
+          <el-option label="待上传" value="pending_upload" />
+          <el-option label="已上传" value="uploaded" />
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
-        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
+        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery" data-testid="determination-query-search">搜索</el-button>
+        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery" data-testid="determination-query-reset">重置</el-button>
       </el-form-item>
     </el-form>
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd" v-hasPermi="['shebao:benefit:determination:add']">单个核定</el-button>
+        <el-button type="success" plain icon="el-icon-upload" size="mini" @click="handleBatchImport" v-hasPermi="['shebao:benefit:determination:import']" data-testid="determination-batch-import-open">批量导入</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="el-icon-upload" size="mini" @click="handleBatchImport" v-hasPermi="['shebao:benefit:determination:import']">批量导入</el-button>
+        <el-button type="info" plain icon="el-icon-download" size="mini" @click="downloadTemplate" v-hasPermi="['shebao:benefit:determination:import']" data-testid="determination-download-template">下载模板</el-button>
       </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="dataList">
+    <el-table v-loading="loading" :data="dataList" data-testid="determination-table">
       <el-table-column type="index" label="序号" width="50" />
+      <el-table-column label="通知批次号" prop="noticeBatchNo" min-width="180" />
       <el-table-column label="姓名" prop="name" width="100" />
-      <el-table-column label="身份证号" prop="idCardNo" width="180" />
-      <el-table-column label="补贴类型" prop="subsidyType" width="120">
+      <el-table-column label="身份证号" prop="idCardNo" min-width="180" />
+      <el-table-column label="补贴类型" prop="subsidyType" width="140" />
+      <el-table-column label="补贴标准" prop="subsidyStandard" width="100" />
+      <el-table-column label="银行名称" prop="bankName" width="140" />
+      <el-table-column label="银行卡号" prop="bankAccount" min-width="180" />
+      <el-table-column label="材料状态" width="100">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.subsidy_type" :value="scope.row.subsidyType"/>
+          <el-tag :type="scope.row.materialStatus === 'uploaded' ? 'success' : 'info'">{{ scope.row.materialStatus === 'uploaded' ? '已上传' : '待上传' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="月补贴标准(元)" prop="subsidyStandard" width="120" />
-      <el-table-column label="开始月份" width="100">
-        <template slot-scope="scope">
-          {{ scope.row.benefitStartYear }}-{{ String(scope.row.benefitStartMonth).padStart(2, '0') }}
-        </template>
-      </el-table-column>
-      <el-table-column label="银行账号" prop="bankAccount" width="180" />
       <el-table-column label="审批状态" align="center" width="100">
         <template slot-scope="scope">
           <approval-status :status="scope.row.approvalStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="200">
+      <el-table-column label="操作" align="center" width="260">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="handleView(scope.row)">详情</el-button>
-          <el-button size="mini" type="text" @click="handlePrint(scope.row)" v-hasPermi="['shebao:benefit:determination:print']">打印</el-button>
-          <el-button size="mini" type="text" @click="handleUpdate(scope.row)" v-if="scope.row.approvalStatus === 'draft'">修改</el-button>
-          <el-button size="mini" type="text" @click="handleSubmit(scope.row)" v-if="scope.row.approvalStatus === 'draft'">提交</el-button>
+          <el-button size="mini" type="text" @click="handleView(scope.row)" :data-testid="`determination-view-${scope.row.id}`">详情</el-button>
+          <el-button size="mini" type="text" @click="handleEdit(scope.row)" v-if="scope.row.approvalStatus === 'draft' || scope.row.approvalStatus === 'rejected'" :data-testid="`determination-edit-${scope.row.id}`">录入/修改</el-button>
+          <el-button size="mini" type="text" @click="handleSubmit(scope.row)" v-if="scope.row.approvalStatus === 'draft' || scope.row.approvalStatus === 'rejected'" :data-testid="`determination-submit-${scope.row.id}`">提交复核</el-button>
+          <el-button size="mini" type="text" @click="handlePrint(scope.row)" v-hasPermi="['shebao:benefit:determination:print']" :data-testid="`determination-print-${scope.row.id}`">打印</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <pagination v-show="total>0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
+    <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
 
-    <!-- 核定对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="800px">
+    <el-dialog :title="title" :visible.sync="open" width="900px" data-testid="determination-edit-dialog">
       <el-form ref="form" :model="form" :rules="rules" label-width="120px">
         <el-row>
           <el-col :span="12">
-            <el-form-item label="身份证号" prop="idCardNo">
-              <el-input v-model="form.idCardNo" placeholder="请输入身份证号" @blur="handleSearchPerson">
-                <el-button slot="append" icon="el-icon-search" @click="handleSearchPerson"></el-button>
-              </el-input>
+            <el-form-item label="通知批次号">
+              <el-input v-model="form.noticeBatchNo" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -84,129 +87,185 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="补贴类型" prop="subsidyType">
-              <el-select v-model="form.subsidyType" placeholder="请选择">
-                <el-option label="失地居民" value="land_loss_resident" />
-                <el-option label="被征地居民" value="expropriatee" />
-                <el-option label="拆迁居民" value="demolition_resident" />
-                <el-option label="村干部" value="village_official" />
-                <el-option label="教龄补助" value="teacher" />
-              </el-select>
+            <el-form-item label="身份证号" prop="idCardNo">
+              <el-input v-model="form.idCardNo" placeholder="请输入身份证号" data-testid="determination-form-id-card" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="月补贴标准" prop="monthlyAmount">
-              <el-input-number v-model="form.monthlyAmount" :min="0" :precision="2" style="width: 100%" />
+            <el-form-item label="补贴类型" prop="subsidyType">
+              <el-input v-model="form.subsidyType" disabled />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="开始月份" prop="startMonth">
-              <el-date-picker v-model="form.startMonth" type="month" placeholder="选择月份" value-format="yyyy-MM" style="width: 100%" />
+            <el-form-item label="补贴标准" prop="subsidyStandard">
+              <el-input-number v-model="form.subsidyStandard" :min="0" :precision="2" style="width: 100%" data-testid="determination-form-standard" />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="享受开始年月" prop="startMonth">
+              <el-date-picker v-model="form.startMonth" type="month" value-format="yyyy-MM" style="width: 100%" data-testid="determination-form-start-month" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
           <el-col :span="12">
             <el-form-item label="银行名称" prop="bankName">
-              <el-input v-model="form.bankName" placeholder="请输入银行名称" />
+              <el-input v-model="form.bankName" placeholder="请输入银行名称" data-testid="determination-form-bank-name" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="银行卡号" prop="bankAccount">
+              <el-input v-model="form.bankAccount" placeholder="请输入银行卡号" data-testid="determination-form-bank-account" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row>
-          <el-col :span="12">
-            <el-form-item label="银行账号" prop="bankAccountNo">
-              <el-input v-model="form.bankAccountNo" placeholder="请输入银行账号" />
-            </el-form-item>
-          </el-col>
           <el-col :span="12">
             <el-form-item label="账户名" prop="bankAccountName">
-              <el-input v-model="form.bankAccountName" placeholder="请输入账户名" />
+              <el-input v-model="form.bankAccountName" placeholder="请输入账户名" data-testid="determination-form-bank-account-name" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="材料状态">
+              <el-tag :type="form.materialStatus === 'uploaded' ? 'success' : 'info'">{{ form.materialStatus === 'uploaded' ? '已上传' : '待上传' }}</el-tag>
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="档案文件" prop="archiveFile">
-              <el-upload
-                class="upload-demo"
-                action="/api/shebao/upload"
-                :on-success="handleUploadSuccess"
-                :file-list="fileList">
-                <el-button size="small" type="primary">点击上传ZIP</el-button>
-                <div slot="tip" class="el-upload__tip">只能上传zip文件</div>
-              </el-upload>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="证明材料ZIP">
+          <el-upload :auto-upload="false" :limit="1" :file-list="attachmentFileList" accept=".zip" :on-change="handleAttachmentChange" :on-remove="handleAttachmentRemove" data-testid="determination-attachment-upload">
+            <el-button size="mini" type="primary" data-testid="determination-attachment-select">选择ZIP</el-button>
+            <div slot="tip" class="el-upload__tip">文件名必须为“用户ID.zip”</div>
+          </el-upload>
+          <el-button size="mini" type="success" class="mt8" :disabled="!selectedAttachment" @click="handleUploadAttachment" data-testid="determination-attachment-submit">上传并解压</el-button>
+        </el-form-item>
+        <el-form-item label="图片预览" v-if="form.materialImagePaths && form.materialImagePaths.length">
+          <div class="preview-list">
+            <image-preview v-for="(item, index) in form.materialImagePaths" :key="index" :src="item" :width="100" :height="100" class="preview-item" />
+          </div>
+        </el-form-item>
       </el-form>
       <div slot="footer">
-        <el-button type="primary" @click="submitForm">确 定</el-button>
-        <el-button @click="cancel">取 消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="submitForm" data-testid="determination-form-save">保存</el-button>
+        <el-button @click="cancel" data-testid="determination-form-cancel">取消</el-button>
       </div>
     </el-dialog>
 
-    <!-- 批量导入对话框 -->
-    <el-dialog title="批量导入" :visible.sync="importOpen" width="400px">
-      <el-upload
-        class="upload-demo"
-        drag
-        action="/api/shebao/benefit/determination/batch"
-        :on-success="handleImportSuccess"
-        accept=".xlsx,.xls">
-        <i class="el-icon-upload"></i>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <div class="el-upload__tip" slot="tip">只能上传Excel文件</div>
-      </el-upload>
+    <el-dialog title="核定详情" :visible.sync="detailOpen" width="900px" data-testid="determination-detail-dialog">
+      <el-descriptions :column="2" border v-if="detailData.id">
+        <el-descriptions-item label="通知批次号">{{ detailData.noticeBatchNo }}</el-descriptions-item>
+        <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
+        <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
+        <el-descriptions-item label="补贴类型">{{ detailData.subsidyType }}</el-descriptions-item>
+        <el-descriptions-item label="银行名称">{{ detailData.bankName }}</el-descriptions-item>
+        <el-descriptions-item label="银行卡号">{{ detailData.bankAccount }}</el-descriptions-item>
+        <el-descriptions-item label="账户名">{{ detailData.bankAccountName }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ detailData.approvalStatus }}</el-descriptions-item>
+      </el-descriptions>
+      <div class="mt12" v-if="detailData.materialImagePaths && detailData.materialImagePaths.length">
+        <div class="section-title">证明材料预览</div>
+        <div class="preview-list">
+          <image-preview v-for="(item, index) in detailData.materialImagePaths" :key="index" :src="item" :width="120" :height="120" class="preview-item" />
+        </div>
+      </div>
+      <div class="mt12" v-if="detailData.materialZipPath">
+        <el-link :href="baseUrl + detailData.materialZipPath" target="_blank" type="primary">下载原始ZIP</el-link>
+      </div>
+    </el-dialog>
+
+    <el-dialog title="批量导入待遇核定" :visible.sync="importOpen" width="560px" data-testid="determination-import-dialog">
+      <el-form label-width="110px">
+        <el-form-item label="通知批次号">
+          <el-input v-model="importForm.noticeBatchNo" placeholder="可为空，优先读取Excel中的批次号" data-testid="determination-import-batch-no" />
+        </el-form-item>
+        <el-form-item label="Excel文件">
+          <el-upload :auto-upload="false" :limit="1" :file-list="importFileList" accept=".xls,.xlsx" :on-change="handleImportFileChange" :on-remove="handleImportFileRemove" data-testid="determination-import-excel-upload">
+            <el-button size="mini" type="primary" data-testid="determination-import-excel-select">选择Excel</el-button>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="材料ZIP">
+          <el-upload :auto-upload="false" multiple :file-list="importAttachmentList" accept=".zip" :on-change="handleImportAttachmentChange" :on-remove="handleImportAttachmentRemove" data-testid="determination-import-zip-upload">
+            <el-button size="mini" type="success" data-testid="determination-import-zip-select">选择多个ZIP</el-button>
+            <div slot="tip" class="el-upload__tip">每个ZIP名称需为“用户ID.zip”</div>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="downloadTemplate" data-testid="determination-import-download-template">下载模板</el-button>
+        <el-button type="primary" :loading="importLoading" @click="submitImport" data-testid="determination-import-submit">开始导入</el-button>
+        <el-button @click="importOpen = false" data-testid="determination-import-cancel">取消</el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { listBenefitDetermination, addBenefitDetermination, submitBenefitDetermination } from '@/api/shebao/benefit'
-import { searchResidents } from '@/api/shebao/residentQuery'
+import { batchBenefitDetermination, getBenefitDetermination, listBenefitDetermination, submitBenefitDetermination, updateBenefitDetermination, uploadBenefitAttachment } from '@/api/shebao/benefit'
 import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
+import ImagePreview from '@/components/ImagePreview'
 
 export default {
   name: 'BenefitDetermination',
   dicts: ['subsidy_type'],
-  components: { ApprovalStatus },
+  components: { ApprovalStatus, ImagePreview },
   data() {
     return {
-      loading: true,
+      baseUrl: process.env.VUE_APP_BASE_API,
+      loading: false,
+      importLoading: false,
+      submitLoading: false,
       showSearch: true,
       total: 0,
       dataList: [],
-      title: '',
+      title: '待遇核定录入',
       open: false,
+      detailOpen: false,
       importOpen: false,
-      fileList: [],
+      form: {},
+      detailData: {},
       queryParams: {
         pageNum: 1,
         pageSize: 10,
+        noticeBatchNo: null,
         name: null,
         idCardNo: null,
-        subsidyType: null
+        approvalStatus: null,
+        materialStatus: null
       },
-      form: {},
+      selectedAttachment: null,
+      attachmentFileList: [],
+      importForm: {
+        noticeBatchNo: null,
+        file: null,
+        attachments: []
+      },
+      importFileList: [],
+      importAttachmentList: [],
       rules: {
         idCardNo: [{ required: true, message: '身份证号不能为空', trigger: 'blur' }],
-        subsidyType: [{ required: true, message: '请选择补贴类型', trigger: 'change' }],
-        monthlyAmount: [{ required: true, message: '月补贴标准不能为空', trigger: 'blur' }],
-        startMonth: [{ required: true, message: '开始月份不能为空', trigger: 'change' }],
+        subsidyStandard: [{ required: true, message: '补贴标准不能为空', trigger: 'blur' }],
+        startMonth: [{ required: true, message: '享受开始年月不能为空', trigger: 'change' }],
         bankName: [{ required: true, message: '银行名称不能为空', trigger: 'blur' }],
-        bankAccountNo: [{ required: true, message: '银行账号不能为空', trigger: 'blur' }]
+        bankAccount: [{ required: true, message: '银行卡号不能为空', trigger: 'blur' }],
+        bankAccountName: [{ required: true, message: '账户名不能为空', trigger: 'blur' }]
       }
     }
   },
   created() {
+    if (this.$route.query.noticeBatchNo) {
+      this.queryParams.noticeBatchNo = this.$route.query.noticeBatchNo
+      this.importForm.noticeBatchNo = this.$route.query.noticeBatchNo
+    }
     this.getList()
   },
   methods: {
     getList() {
       this.loading = true
       listBenefitDetermination(this.queryParams).then(response => {
-        this.dataList = (response.data && response.data.records) ? response.data.records : []
-        this.total = (response.data && typeof response.data.total !== 'undefined') ? response.data.total : 0
+        this.dataList = response.rows || []
+        this.total = response.total || 0
+      }).finally(() => {
         this.loading = false
       })
     },
@@ -218,85 +277,172 @@ export default {
       this.resetForm('queryForm')
       this.handleQuery()
     },
-    handleAdd() {
-      this.reset()
-      this.open = true
-      this.title = '待遇核定'
-    },
-    handleSearchPerson() {
-      if (this.form.idCardNo) {
-        searchResidents(this.form.idCardNo).then(response => {
-          if (response.data && response.data.length > 0) {
-            const person = response.data[0]
-            this.$set(this.form, 'subsidyPersonId', person.subsidyPersonId)
-            this.$set(this.form, 'name', person.name)
-            this.$modal.msgSuccess('已关联人员: ' + person.name)
-          } else {
-            this.$modal.msgWarning('未找到该人员信息')
-          }
-        })
-      }
-    },
     handleBatchImport() {
       this.importOpen = true
+      this.importForm.noticeBatchNo = this.queryParams.noticeBatchNo
     },
-    handleUploadSuccess(response) {
-      this.$modal.msgSuccess('上传成功')
-      this.fileList.push(response.data)
+    downloadTemplate() {
+      this.download('shebao/benefit/determination/importTemplate', {}, `待遇核定导入模板_${new Date().getTime()}.xlsx`)
     },
-    handleImportSuccess(response) {
-      this.$modal.msgSuccess('导入成功')
-      this.importOpen = false
-      this.getList()
+    handleEdit(row) {
+      this.title = '待遇核定录入'
+      this.loadDetail(row.id, true)
+    },
+    handleView(row) {
+      this.loadDetail(row.id, false)
+    },
+    loadDetail(id, editable) {
+      getBenefitDetermination(id).then(response => {
+        const data = response.data || {}
+        if (editable) {
+          this.form = {
+            ...data,
+            startMonth: data.benefitStartYear && data.benefitStartMonth ? `${data.benefitStartYear}-${String(data.benefitStartMonth).padStart(2, '0')}` : null
+          }
+          this.selectedAttachment = null
+          this.attachmentFileList = []
+          this.open = true
+        } else {
+          this.detailData = data
+          this.detailOpen = true
+        }
+      })
     },
     submitForm() {
-      this.$refs['form'].validate(valid => {
-        if (valid) {
-          const data = {
-            subsidyPersonId: this.form.subsidyPersonId,
-            idCardNo: this.form.idCardNo,
-            subsidyType: this.form.subsidyType,
-            subsidyStandard: this.form.monthlyAmount,
-            bankAccount: this.form.bankAccountNo,
-            bankAccountName: this.form.bankAccountName,
-            bankName: this.form.bankName
+      this.$refs.form.validate(valid => {
+        if (!valid) return
+        this.submitLoading = true
+        const data = {
+          id: this.form.id,
+          subsidyPersonId: this.form.subsidyPersonId,
+          noticeBatchNo: this.form.noticeBatchNo,
+          noticeDetailId: this.form.noticeDetailId,
+          subsidyType: this.form.subsidyType,
+          idCardNo: this.form.idCardNo,
+          bankName: this.form.bankName,
+          bankAccount: this.form.bankAccount,
+          bankAccountName: this.form.bankAccountName,
+          subsidyStandard: this.form.subsidyStandard
+        }
+        if (this.form.startMonth) {
+          const parts = this.form.startMonth.split('-')
+          data.benefitStartYear = parseInt(parts[0])
+          data.benefitStartMonth = parseInt(parts[1])
+        }
+        updateBenefitDetermination(data).then(() => {
+          if (this.selectedAttachment) {
+            return uploadBenefitAttachment(this.form.id, this.selectedAttachment)
           }
-          if (this.form.startMonth) {
-            const parts = this.form.startMonth.split('-')
-            data.benefitStartYear = parseInt(parts[0])
-            data.benefitStartMonth = parseInt(parts[1])
-          }
-          addBenefitDetermination(data).then(() => {
-            this.$modal.msgSuccess('核定成功')
-            this.open = false
-            this.getList()
-          })
+          return Promise.resolve()
+        }).then(() => {
+          this.$modal.msgSuccess('保存成功')
+          this.open = false
+          this.getList()
+        }).finally(() => {
+          this.submitLoading = false
+        })
+      })
+    },
+    handleUploadAttachment() {
+      if (!this.selectedAttachment || !this.form.id) {
+        this.$modal.msgWarning('请先选择ZIP文件')
+        return
+      }
+      uploadBenefitAttachment(this.form.id, this.selectedAttachment).then(() => {
+        this.$modal.msgSuccess('材料上传成功')
+        return getBenefitDetermination(this.form.id)
+      }).then(response => {
+        const data = response.data || {}
+        this.form = {
+          ...this.form,
+          materialStatus: data.materialStatus,
+          materialImagePaths: data.materialImagePaths || [],
+          materialZipPath: data.materialZipPath
         }
       })
     },
     handleSubmit(row) {
-      this.$modal.confirm('是否确认提交待遇核定？').then(() => {
+      this.$modal.confirm('确认提交该待遇核定进入复核吗？').then(() => {
         return submitBenefitDetermination(row.id)
       }).then(() => {
-        this.getList()
         this.$modal.msgSuccess('提交成功')
+        this.getList()
       })
-    },
-    handleView(row) {
-      this.$router.push({ name: 'BenefitDetail', params: { id: row.id } })
     },
     handlePrint(row) {
       this.download(`shebao/benefit/determination/print/${row.id}`, {}, `待遇核定表_${row.id}_${new Date().getTime()}.xlsx`)
     },
     cancel() {
       this.open = false
-      this.reset()
-    },
-    reset() {
       this.form = {}
-      this.fileList = []
-      this.resetForm('form')
+      this.selectedAttachment = null
+      this.attachmentFileList = []
+    },
+    handleAttachmentChange(file, fileList) {
+      this.selectedAttachment = file.raw
+      this.attachmentFileList = fileList.slice(-1)
+    },
+    handleAttachmentRemove() {
+      this.selectedAttachment = null
+      this.attachmentFileList = []
+    },
+    handleImportFileChange(file, fileList) {
+      this.importForm.file = file.raw
+      this.importFileList = fileList.slice(-1)
+    },
+    handleImportFileRemove() {
+      this.importForm.file = null
+      this.importFileList = []
+    },
+    handleImportAttachmentChange(file, fileList) {
+      this.importForm.attachments = fileList.map(item => item.raw).filter(Boolean)
+      this.importAttachmentList = fileList
+    },
+    handleImportAttachmentRemove(file, fileList) {
+      this.importForm.attachments = fileList.map(item => item.raw).filter(Boolean)
+      this.importAttachmentList = fileList
+    },
+    submitImport() {
+      if (!this.importForm.file) {
+        this.$modal.msgWarning('请先选择Excel文件')
+        return
+      }
+      this.importLoading = true
+      batchBenefitDetermination(this.importForm).then(res => {
+        this.$modal.msgSuccess(res.msg || '导入成功')
+        this.importOpen = false
+        this.importForm = { noticeBatchNo: this.queryParams.noticeBatchNo, file: null, attachments: [] }
+        this.importFileList = []
+        this.importAttachmentList = []
+        this.getList()
+      }).finally(() => {
+        this.importLoading = false
+      })
     }
   }
 }
 </script>
+
+<style scoped>
+.mb8 {
+  margin-bottom: 8px;
+}
+.mt8 {
+  margin-top: 8px;
+}
+.mt12 {
+  margin-top: 12px;
+}
+.preview-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+.preview-item {
+  margin-right: 12px;
+  margin-bottom: 12px;
+}
+.section-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+</style>

@@ -1,0 +1,169 @@
+{
+  "batchNo": "NOTICE-FLOW-20260315-220459",
+  "generatedAt": "2026-03-15T14:04:59.779Z",
+  "mode": "execute",
+  "baseUrl": "http://localhost:8087/api",
+  "noticeMonth": "2030-02",
+  "plan": [
+    "清理预到龄通知专项旧测试数据",
+    "导入预到龄通知专项 SQL 样本",
+    "经办人登录并生成通知批次",
+    "按通知月份与批次号回查通知主表与明细",
+    "进入待遇核定录入身份证、银行卡和补贴信息",
+    "上传用户ID.zip 并校验材料解压与预览路径",
+    "提交待遇核定进入复核状态",
+    "复核人按批次检索并批量审核通过",
+    "生成支付计划并校验支付落库结果",
+    "输出 JSON 与 Markdown 测试报告"
+  ],
+  "execution": {
+    "noticeMonth": "2030-02",
+    "generateResult": {
+      "status": 200,
+      "data": {
+        "msg": "预到龄通知批次生成成功",
+        "code": 200,
+        "data": {
+          "id": 3,
+          "createTime": null,
+          "updateTime": null,
+          "createBy": "operator01",
+          "updateBy": "operator01",
+          "delFlag": null,
+          "remark": null,
+          "batchNo": "NT203002603",
+          "noticeMonth": "2030-02",
+          "retirementMonth": "2030-05",
+          "ageThreshold": 60,
+          "totalCount": 2,
+          "pendingReviewCount": 0,
+          "approvedCount": 0,
+          "rejectedCount": 0,
+          "batchStatus": "generated"
+        }
+      }
+    },
+    "batch": {
+      "id": 3,
+      "batchNo": "NT203002603",
+      "noticeMonth": "2030-02",
+      "retirementMonth": "2030-05",
+      "ageThreshold": 60,
+      "totalCount": 2,
+      "pendingReviewCount": 0,
+      "approvedCount": 0,
+      "rejectedCount": 0,
+      "batchStatus": "generated",
+      "createBy": "operator01",
+      "createTime": "2026-03-15 22:05:41"
+    },
+    "updateResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "uploadResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200,
+        "data": {
+          "id": 2,
+          "createTime": null,
+          "updateTime": null,
+          "createBy": "operator01",
+          "updateBy": "operator01",
+          "delFlag": null,
+          "remark": null,
+          "businessType": "benefit_determination",
+          "businessId": 7,
+          "noticeBatchNo": "NT203002603",
+          "subsidyPersonId": 1000053,
+          "originalFileName": "1000053.zip",
+          "zipFilePath": "/profile/benefit/determination/NT203002603/zip/2026/03/15/1000053_20260315220504A001.zip",
+          "extractDir": "/profile/benefit/determination/NT203002603/1000053/images",
+          "previewImagePaths": "/profile/benefit/determination/NT203002603/1000053/images/1000053.png"
+        }
+      }
+    },
+    "submitResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "batchApproveResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "paymentResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "batchRows": [
+      {
+        "batch_no": "NT203002603",
+        "notice_month": "2030-02",
+        "total_count": 2,
+        "pending_review_count": 0,
+        "approved_count": 1,
+        "rejected_count": 0,
+        "batch_status": "processing"
+      }
+    ],
+    "detailRows": [
+      {
+        "subsidy_person_id": 1000053,
+        "name": "闭环正样本甲",
+        "determination_status": "payment_generated",
+        "material_status": "uploaded",
+        "review_status": "approved"
+      },
+      {
+        "subsidy_person_id": 1000054,
+        "name": "闭环正样本乙",
+        "determination_status": "draft",
+        "material_status": "pending_upload",
+        "review_status": "draft"
+      }
+    ],
+    "determinationRows": [
+      {
+        "id": 7,
+        "notice_batch_no": "NT203002603",
+        "approval_status": "approved",
+        "bank_name": "中国银行",
+        "bank_account": "6222000000000001",
+        "material_status": "uploaded",
+        "payment_plan_generated": "1"
+      },
+      {
+        "id": 8,
+        "notice_batch_no": "NT203002603",
+        "approval_status": "draft",
+        "bank_name": null,
+        "bank_account": null,
+        "material_status": "pending_upload",
+        "payment_plan_generated": "0"
+      }
+    ],
+    "distributionRows": [
+      {
+        "subsidy_person_id": 1000053,
+        "subsidy_type": "1",
+        "subsidy_record_id": 7,
+        "distribution_status": "1",
+        "remark": "来源通知批次：NT203002603"
+      }
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-03-15T14:04:20.542Z",
+  "environment": {
+    "apiBaseUrl": "http://127.0.0.1:81",
+    "mysqlHost": "192.168.88.48",
+    "mysqlPort": 5455,
+    "mysqlDb": "lfpm",
+    "redisHost": "192.168.88.48",
+    "profilePath": "/data/temp/langfang_shebao/profile",
+    "logPath": "/data/temp/langfang_shebao/logs"
+  },
+  "files": {
+    "fixtureSqlExists": true,
+    "fixtureSqlPath": "E:\\langfangsb\\lfsb\\tests\\预到龄通知闭环测试数据.sql",
+    "outputDir": "E:\\langfangsb\\lfsb\\tests\\reports\\benefit-notice",
+    "tmpDir": "E:\\langfangsb\\lfsb\\tests\\tmp\\notice-flow"
+  },
+  "database": {
+    "tables": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "users": [
+      {
+        "user_name": "operator01",
+        "status": "0"
+      },
+      {
+        "user_name": "reviewer01",
+        "status": "0"
+      }
+    ],
+    "fixtureCount": 5
+  },
+  "nextSteps": [
+    "确认主测试环境后端与前端已启动",
+    "如需导入示例数据，执行 tests/导入预到龄测试数据.js 或使用专项 SQL",
+    "如需执行真实 UI 自动化，设置 RUN_REAL_E2E=true 后运行 ruoyi-ui 的 Playwright 用例",
+    "执行后将报告统一输出到 tests/reports 目录"
+  ]
+}

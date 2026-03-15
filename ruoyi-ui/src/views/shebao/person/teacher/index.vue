@@ -39,7 +39,7 @@
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-view" @click="handleView(scope.row)">详情</el-button>
           <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)" v-hasPermi="['shebao:person:teacher:edit']" v-if="scope.row.approvalStatus === 'draft' || scope.row.approvalStatus === 'rejected'">修改</el-button>
-          <el-button size="mini" type="text" icon="el-icon-upload" @click="handleSubmit(scope.row)" v-hasPermi="['shebao:person:teacher:submit']" v-if="scope.row.approvalStatus === 'draft' || scope.row.approvalStatus === 'rejected'">提交</el-button>
+          <el-button size="mini" type="text" icon="el-icon-upload" @click="handleSubmit(scope.row)" v-hasPermi="['shebao:person:teacher:submit']" v-if="scope.row.approvalStatus === 'draft' || scope.row.approvalStatus === 'rejected' || scope.row.approvalStatus === 'approved'">提交</el-button>
         </template>
       </el-table-column>
     </el-table>

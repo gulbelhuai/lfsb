@@ -25,9 +25,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="idCardNo"                    column="id_card_no"                  />
         <result property="gender"                      column="gender"                      />
         <result property="phone"                       column="phone"                       />
+        <result property="villageName"                 column="village_name"                />
         <result property="totalServiceYears"           column="total_service_years"         />
         <result property="hasViolation"                column="has_violation"               />
         <result property="status"                      column="status"                      />
+        <result property="approvalStatus"              column="approval_status"             />
         <result property="createTime"                  column="create_time"                 />
         <result property="updateTime"                  column="update_time"                 />
         <result property="remark"                      column="remark"                      />
@@ -47,6 +49,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="idCardNo"                    column="id_card_no"                  />
         <result property="birthday"                    column="birthday"                    />
         <result property="householdRegistration"       column="household_registration"      />
+        <result property="homeAddress"                 column="home_address"                />
         <result property="phone"                       column="phone"                       />
         <result property="isAlive"                     column="is_alive"                    />
         <result property="deathDate"                   column="death_date"                 />
@@ -66,9 +69,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectVillageOfficialList" parameterType="com.ruoyi.shebao.dto.VillageOfficialListReq" resultMap="VillageOfficialListRespResult">
         select vo.id, vo.subsidy_person_id, vo.total_service_years, 
                vo.has_violation, vo.status, vo.create_time, vo.update_time, vo.remark,
-               sp.name, sp.id_card_no, sp.gender, sp.phone
+               sp.name, sp.id_card_no, sp.gender, sp.phone, sp.approval_status,
+               svc.village_name
         from shebao_village_official vo
         left join shebao_subsidy_person sp on vo.subsidy_person_id = sp.id
+        left join shebao_village_committee svc on sp.village_committee_id = svc.id
         <where>
             vo.del_flag = '0'
             <if test="req.name != null and req.name != ''">
@@ -76,6 +81,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="req.idCardNo != null and req.idCardNo != ''">
                 AND sp.id_card_no like concat('%', #{req.idCardNo}, '%')
+            </if>
+            <if test="req.villageCode != null and req.villageCode != ''">
+                AND svc.village_code = #{req.villageCode}
             </if>
             <if test="req.totalServiceYearsMin != null">
                 AND vo.total_service_years >= #{req.totalServiceYearsMin}
@@ -96,7 +104,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectVillageOfficialFormById" parameterType="Long" resultMap="VillageOfficialFormResult">
         select vo.id, vo.subsidy_person_id, vo.total_service_years, 
                vo.has_violation, vo.status as vo_status, vo.remark as vo_remark,
-               sp.name, sp.gender, sp.id_card_no, sp.birthday, sp.household_registration, 
+               sp.name, sp.gender, sp.id_card_no, sp.birthday, sp.household_registration,
+               sp.home_address,
                sp.phone, sp.is_alive, sp.death_date, sp.is_village_coop_member, 
                sp.street_office_id, sp.village_committee_id, sp.user_code
         from shebao_village_official vo

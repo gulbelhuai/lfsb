@@ -20,16 +20,16 @@
     </el-row>
 
     <el-card class="box-card mt20">
-      <div slot="header"><span>账户明细</span></div>
+      <div slot="header"><span>账户快照</span></div>
 
       <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
         <el-form-item label="账户类型">
           <el-select v-model="queryParams.accountType" clearable>
-            <el-option label="失地居民补贴" value="land_loss_resident" />
-            <el-option label="被征地居民补贴" value="expropriatee" />
-            <el-option label="拆迁居民补贴" value="demolition_resident" />
-            <el-option label="村干部补贴" value="village_official" />
-            <el-option label="教龄补助" value="teacher" />
+            <el-option label="失地居民补贴" value="1" />
+            <el-option label="被征地居民补贴" value="2" />
+            <el-option label="拆迁居民补贴" value="3" />
+            <el-option label="村干部补贴" value="4" />
+            <el-option label="教龄补助" value="5" />
           </el-select>
         </el-form-item>
         <el-form-item label="开始日期">
@@ -53,7 +53,8 @@
         <el-table-column label="批次号" prop="batchNo" width="160" />
         <el-table-column label="交易类型" prop="transactionType" width="100">
           <template slot-scope="scope">
-            <el-tag v-if="scope.row.transactionType === 'pay'" type="danger">支出</el-tag>
+            <el-tag v-if="scope.row.transactionType === 'snapshot'" type="info">快照</el-tag>
+            <el-tag v-else-if="scope.row.transactionType === 'pay'" type="danger">支出</el-tag>
             <el-tag v-else type="success">收入</el-tag>
           </template>
         </el-table-column>
@@ -69,7 +70,7 @@
 </template>
 
 <script>
-import { listFinanceAccount, getAccountBalance } from '@/api/shebao/finance'
+import { listFinanceAccount } from '@/api/shebao/finance'
 
 export default {
   name: 'FinanceAccount',
@@ -90,17 +91,40 @@ export default {
   },
   created() {
     this.getAccountList()
-    this.getDetailList()
   },
   methods: {
     getAccountList() {
       listFinanceAccount().then(response => {
-        this.accountList = response.data
+        const rows = (response.data && response.data.rows) ? response.data.rows : []
+        this.accountList = rows
+        this.getDetailList()
       })
     },
     getDetailList() {
       this.loading = true
-      // TODO: 实现账户明细查询API
+      const filtered = this.accountList.filter(item => {
+        if (this.queryParams.accountType && item.accountType !== this.queryParams.accountType) {
+          return false
+        }
+        const snapshotDate = item.updateTime || item.createTime
+        if (this.queryParams.startDate && snapshotDate && snapshotDate < this.queryParams.startDate) {
+          return false
+        }
+        if (this.queryParams.endDate && snapshotDate && snapshotDate > this.queryParams.endDate + ' 23:59:59') {
+          return false
+        }
+        return true
+      })
+      this.detailList = filtered.map(item => ({
+        accountType: item.accountType,
+        batchNo: '-',
+        transactionType: 'snapshot',
+        amount: item.balance,
+        balance: item.balance,
+        transactionTime: item.updateTime || item.createTime,
+        remark: item.remark || item.accountName
+      }))
+      this.detailTotal = this.detailList.length
       this.loading = false
     },
     handleQuery() {
@@ -109,11 +133,16 @@ export default {
     },
     getAccountTypeName(type) {
       const typeMap = {
-        'land_loss_resident': '失地居民补贴',
-        'expropriatee': '被征地居民补贴',
-        'demolition_resident': '拆迁居民补贴',
-        'village_official': '村干部补贴',
-        'teacher': '教师补贴'
+        '1': '失地居民补贴',
+        '2': '被征地居民补贴',
+        '3': '拆迁居民补贴',
+        '4': '村干部补贴',
+        '5': '教师补贴',
+        land_loss_resident: '失地居民补贴',
+        expropriatee: '被征地居民补贴',
+        demolition_resident: '拆迁居民补贴',
+        village_official: '村干部补贴',
+        teacher: '教师补贴'
       }
       return typeMap[type] || type
     }

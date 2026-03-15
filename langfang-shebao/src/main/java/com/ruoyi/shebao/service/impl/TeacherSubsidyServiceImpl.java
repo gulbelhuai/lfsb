@@ -10,7 +10,6 @@ import com.ruoyi.shebao.dto.TeacherSubsidyFormDto;
 import com.ruoyi.shebao.dto.TeacherSubsidyListReq;
 import com.ruoyi.shebao.dto.TeacherSubsidyListResp;
 import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
-import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
 import com.ruoyi.shebao.mapper.TeacherSubsidyMapper;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.TeacherSubsidyService;
@@ -35,9 +34,6 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
 {
     @Autowired
     private TeacherSubsidyMapper teacherSubsidyMapper;
-
-    @Autowired
-    private SubsidyPersonMapper subsidyPersonMapper;
 
     @Autowired
     private SubsidyPersonService subsidyPersonService;
@@ -291,6 +287,7 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
         newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
         newPerson.setUserCode(formDto.getUserCode());
         newPerson.setStatus(StringUtils.defaultIfBlank(formDto.getStatus(), "0"));
+        newPerson.setApprovalStatus("draft");
 
         subsidyPersonService.insertSubsidyPerson(newPerson);
         return newPerson.getId();

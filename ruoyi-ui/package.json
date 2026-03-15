@@ -9,7 +9,16 @@
     "build:prod": "vue-cli-service build",
     "build:stage": "vue-cli-service build --mode staging",
     "preview": "node build/index.js --preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report ../tests/reports/playwright-html",
+    "test:e2e:benefit-notice": "playwright test e2e/flows/benefit-notice*.spec.js",
+    "test:e2e:benefit-notice:smoke": "playwright test e2e/smoke/benefit-notice-pages.spec.js",
+    "test:e2e:benefit-notice:exceptions": "playwright test e2e/exceptions/benefit-notice-exceptions.spec.js",
+    "test:e2e:benefit-notice:generate": "playwright test e2e/flows/benefit-notice-generate.spec.js",
+    "test:e2e:benefit-notice:determination": "playwright test e2e/flows/benefit-notice-determination.spec.js",
+    "test:e2e:benefit-notice:review": "playwright test e2e/flows/benefit-notice-review.spec.js",
+    "test:e2e:benefit-notice:payment": "playwright test e2e/flows/benefit-notice-payment.spec.js"
   },
   "keywords": [
     "vue",

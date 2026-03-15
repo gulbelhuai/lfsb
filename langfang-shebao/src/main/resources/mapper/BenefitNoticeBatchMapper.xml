@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.BenefitNoticeBatchMapper">
+
+    <resultMap id="BenefitNoticeBatchRespResult" type="com.ruoyi.shebao.dto.BenefitNoticeBatchResp">
+        <result property="id" column="id"/>
+        <result property="batchNo" column="batch_no"/>
+        <result property="noticeMonth" column="notice_month"/>
+        <result property="retirementMonth" column="retirement_month"/>
+        <result property="ageThreshold" column="age_threshold"/>
+        <result property="totalCount" column="total_count"/>
+        <result property="pendingReviewCount" column="pending_review_count"/>
+        <result property="approvedCount" column="approved_count"/>
+        <result property="rejectedCount" column="rejected_count"/>
+        <result property="batchStatus" column="batch_status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="BenefitNoticeDetailRespResult" type="com.ruoyi.shebao.dto.BenefitNoticeDetailResp">
+        <result property="id" column="id"/>
+        <result property="batchNo" column="batch_no"/>
+        <result property="subsidyPersonId" column="subsidy_person_id"/>
+        <result property="userCode" column="user_code"/>
+        <result property="name" column="name"/>
+        <result property="idCardNo" column="id_card_no"/>
+        <result property="subsidyType" column="subsidy_type"/>
+        <result property="birthday" column="birthday"/>
+        <result property="retirementDate" column="retirement_date"/>
+        <result property="determinationId" column="determination_id"/>
+        <result property="determinationStatus" column="determination_status"/>
+        <result property="materialStatus" column="material_status"/>
+        <result property="reviewStatus" column="review_status"/>
+        <result property="bankName" column="bank_name"/>
+        <result property="bankAccount" column="bank_account"/>
+    </resultMap>
+
+    <resultMap id="BenefitNoticeExportRowResult" type="com.ruoyi.shebao.dto.BenefitNoticeExportRow">
+        <result property="batchNo" column="batch_no"/>
+        <result property="noticeMonth" column="notice_month"/>
+        <result property="retirementMonth" column="retirement_month"/>
+        <result property="subsidyPersonId" column="subsidy_person_id"/>
+        <result property="userCode" column="user_code"/>
+        <result property="name" column="name"/>
+        <result property="idCardNo" column="id_card_no"/>
+        <result property="subsidyType" column="subsidy_type"/>
+        <result property="retirementDate" column="retirement_date"/>
+        <result property="determinationStatus" column="determination_status"/>
+    </resultMap>
+
+    <select id="selectBatchPage" resultMap="BenefitNoticeBatchRespResult">
+        select id, batch_no, notice_month, retirement_month, age_threshold, total_count,
+               pending_review_count, approved_count, rejected_count, batch_status, create_by, create_time
+        from shebao_benefit_notice_batch
+        where del_flag = '0'
+        <if test="req.noticeMonth != null and req.noticeMonth != ''">
+            and notice_month = #{req.noticeMonth}
+        </if>
+        <if test="req.batchNo != null and req.batchNo != ''">
+            and batch_no like concat('%', #{req.batchNo}, '%')
+        </if>
+        <if test="req.batchStatus != null and req.batchStatus != ''">
+            and batch_status = #{req.batchStatus}
+        </if>
+        order by create_time desc
+    </select>
+
+    <select id="selectBatchByBatchNo" resultMap="BenefitNoticeBatchRespResult">
+        select id, batch_no, notice_month, retirement_month, age_threshold, total_count,
+               pending_review_count, approved_count, rejected_count, batch_status, create_by, create_time
+        from shebao_benefit_notice_batch
+        where batch_no = #{batchNo}
+          and del_flag = '0'
+        limit 1
+    </select>
+
+    <select id="selectDetailList" resultMap="BenefitNoticeDetailRespResult">
+        select nd.id, nd.batch_no, nd.subsidy_person_id, nd.user_code, nd.name, nd.id_card_no,
+               nd.subsidy_type, nd.birthday, nd.retirement_date, nd.determination_id,
+               nd.determination_status, nd.material_status, nd.review_status,
+               bd.bank_name, bd.bank_account
+        from shebao_benefit_notice_detail nd
+        left join benefit_determination bd on nd.determination_id = bd.id
+        where nd.del_flag = '0'
+        <if test="req.batchNo != null and req.batchNo != ''">
+            and nd.batch_no = #{req.batchNo}
+        </if>
+        <if test="req.name != null and req.name != ''">
+            and nd.name like concat('%', #{req.name}, '%')
+        </if>
+        <if test="req.determinationStatus != null and req.determinationStatus != ''">
+            and nd.determination_status = #{req.determinationStatus}
+        </if>
+        order by nd.retirement_date asc, nd.id asc
+    </select>
+
+    <select id="selectExportRows" resultMap="BenefitNoticeExportRowResult">
+        select nb.batch_no, nb.notice_month, nb.retirement_month,
+               nd.subsidy_person_id, nd.user_code, nd.name, nd.id_card_no,
+               nd.subsidy_type, date_format(nd.retirement_date, '%Y-%m-%d') as retirement_date,
+               nd.determination_status
+        from shebao_benefit_notice_batch nb
+        join shebao_benefit_notice_detail nd on nb.id = nd.notice_batch_id
+        where nb.del_flag = '0'
+          and nd.del_flag = '0'
+        <if test="noticeMonth != null and noticeMonth != ''">
+            and nb.notice_month = #{noticeMonth}
+        </if>
+        <if test="batchNo != null and batchNo != ''">
+            and nb.batch_no = #{batchNo}
+        </if>
+        order by nb.create_time desc, nd.retirement_date asc
+    </select>
+</mapper>

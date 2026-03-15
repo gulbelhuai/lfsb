@@ -48,7 +48,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectTeacherSubsidyList" parameterType="com.ruoyi.shebao.dto.TeacherSubsidyListReq" resultMap="TeacherSubsidyListRespResult">
         select ts.id, ts.subsidy_person_id, ts.school_name, ts.teaching_years,
-               'draft' as approval_status,
+               sp.approval_status,
                ts.create_time, ts.update_time, ts.remark,
                sp.name, sp.id_card_no, sp.user_code, sp.street_office_id, sp.village_committee_id
         from shebao_teacher_subsidy ts

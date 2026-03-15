@@ -91,7 +91,7 @@
           <span>{{ scope.row.gender === '1' ? '男' : '女' }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="出生日期" align="center" prop="birthDate" width="120" />
+      <el-table-column label="出生日期" align="center" prop="birthday" width="120" />
       <el-table-column label="街道办事处" align="center" prop="streetOfficeName" width="120" />
       <el-table-column label="村委会" align="center" prop="villageCommitteeName" width="120" />
       <el-table-column label="审批状态" align="center" prop="approvalStatus" width="100">
@@ -162,9 +162,9 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="出生日期" prop="birthDate">
+            <el-form-item label="出生日期" prop="birthday">
               <el-date-picker
-                v-model="form.birthDate"
+                v-model="form.birthday"
                 type="date"
                 placeholder="选择出生日期"
                 value-format="yyyy-MM-dd"
@@ -200,13 +200,13 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="联系电话" prop="contactPhone">
-              <el-input v-model="form.contactPhone" placeholder="请输入联系电话" maxlength="11" />
+            <el-form-item label="联系电话" prop="phone">
+              <el-input v-model="form.phone" placeholder="请输入联系电话" maxlength="11" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="户籍地址" prop="householdAddress">
-              <el-input v-model="form.householdAddress" placeholder="请输入户籍地址" />
+            <el-form-item label="户籍地址" prop="householdRegistration">
+              <el-input v-model="form.householdRegistration" placeholder="请输入户籍地址" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -231,10 +231,10 @@
         <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
         <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
         <el-descriptions-item label="性别">{{ detailData.gender === '1' ? '男' : '女' }}</el-descriptions-item>
-        <el-descriptions-item label="出生日期">{{ detailData.birthDate }}</el-descriptions-item>
+        <el-descriptions-item label="出生日期">{{ detailData.birthday || detailData.birthDate }}</el-descriptions-item>
         <el-descriptions-item label="街道办事处">{{ detailData.streetOfficeName }}</el-descriptions-item>
         <el-descriptions-item label="村委会">{{ detailData.villageCommitteeName }}</el-descriptions-item>
-        <el-descriptions-item label="联系电话">{{ detailData.contactPhone }}</el-descriptions-item>
+        <el-descriptions-item label="联系电话">{{ detailData.phone || detailData.contactPhone }}</el-descriptions-item>
         <el-descriptions-item label="审批状态">
           <approval-status :status="detailData.approvalStatus" />
         </el-descriptions-item>
@@ -316,7 +316,7 @@ export default {
         gender: [
           { required: true, message: '请选择性别', trigger: 'change' }
         ],
-        birthDate: [
+        birthday: [
           { required: true, message: '请选择出生日期', trigger: 'change' }
         ],
         streetOfficeId: [
@@ -370,11 +370,12 @@ export default {
         name: null,
         idCardNo: null,
         gender: null,
-        birthDate: null,
+        birthday: null,
         streetOfficeId: null,
         villageCommitteeId: null,
-        contactPhone: null,
-        householdAddress: null,
+        phone: null,
+        householdRegistration: null,
+        homeAddress: null,
         subsidyType: 'land_loss_resident',
         remark: null
       }
@@ -418,7 +419,7 @@ export default {
       this.detailData = row
       this.detailOpen = true
       // 获取审批历史
-      getApprovalHistory('person_registration', row.id).then(response => {
+      getApprovalHistory('person_register', row.subsidyPersonId || row.id).then(response => {
         this.approvalHistory = response.data
       })
     },
@@ -428,13 +429,13 @@ export default {
         if (valid) {
           if (this.form.id != null) {
             updatePersonRegistration(this.form).then(response => {
-              this.$modal.msgSuccess('修改成功')
+              this.$modal.msgSuccess('修改成功，已进入待复核')
               this.open = false
               this.getList()
             })
           } else {
             addPersonRegistration(this.form).then(response => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess('新增成功，已进入待复核')
               this.open = false
               this.getList()
             })

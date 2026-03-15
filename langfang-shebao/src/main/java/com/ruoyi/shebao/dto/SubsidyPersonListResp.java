@@ -86,6 +86,9 @@ public class SubsidyPersonListResp
     @Excel(name = "状态", sort = 17, readConverterExp = "0=正常,1=停用")
     private String status;
 
+    /** 审批状态 */
+    private String approvalStatus;
+
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Excel(name = "创建时间", sort = 18, dateFormat = "yyyy-MM-dd HH:mm:ss")

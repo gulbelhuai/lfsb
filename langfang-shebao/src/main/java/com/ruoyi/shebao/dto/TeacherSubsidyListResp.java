@@ -43,10 +43,7 @@ public class TeacherSubsidyListResp
     /** 任教年限 */
     private Integer teachingYears;
 
-    /**
-     * 审批状态（预留：人员登记2级审核）
-     * 当前版本后端默认返回 draft
-     */
+    /** 审批状态（来自被补贴人基础信息） */
     private String approvalStatus;
 
     /** 创建时间 */

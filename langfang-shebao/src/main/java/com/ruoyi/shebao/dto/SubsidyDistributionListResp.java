@@ -20,6 +20,15 @@ public class SubsidyDistributionListResp
     /** 主键ID */
     private Long id;
 
+    /** 批次号 */
+    private String batchNo;
+
+    /** 批次类型 */
+    private String batchType;
+
+    /** 审批状态 */
+    private String approvalStatus;
+
     /** 被补贴人ID */
     private Long subsidyPersonId;
 
@@ -58,6 +67,12 @@ public class SubsidyDistributionListResp
     @Excel(name = "发放金额")
     private BigDecimal distributionAmount;
 
+    /** 发放月份 */
+    private String paymentMonth;
+
+    /** 银行账号 */
+    private String bankAccountNo;
+
     /** 发放日期 */
     @Excel(name = "发放日期", dateFormat = "yyyy-MM-dd")
     private LocalDate distributionDate;
@@ -72,6 +87,15 @@ public class SubsidyDistributionListResp
 
     /** 审核说明 */
     private String reviewRemark;
+
+    /** 失败原因 */
+    private String failureReason;
+
+    /** 发放状态别名 */
+    private String paymentStatus;
+
+    /** 重发次数 */
+    private Integer retryCount;
 
     /** 创建时间 */
     @Excel(name = "提交日期", dateFormat = "yyyy-MM-dd HH:mm:ss")

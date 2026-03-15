@@ -33,4 +33,14 @@ public class DistributionBatchListReq extends PageReq
 
     /** 创建时间结束 */
     private LocalDate createTimeEnd;
+
+    public String getApprovalStatus()
+    {
+        return status;
+    }
+
+    public void setApprovalStatus(String approvalStatus)
+    {
+        this.status = approvalStatus;
+    }
 }

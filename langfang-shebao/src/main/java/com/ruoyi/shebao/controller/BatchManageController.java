@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -59,6 +60,16 @@ public class BatchManageController extends BaseController
     public AjaxResult getInfo(@PathVariable("id") Long id)
     {
         return AjaxResult.success(distributionBatchService.selectDistributionBatchById(id));
+    }
+
+    /**
+     * 根据批次号获取批次详情
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:batch:query')")
+    @GetMapping("/detail/{batchNo}")
+    public AjaxResult getDetail(@PathVariable String batchNo)
+    {
+        return AjaxResult.success(distributionBatchService.getBatchDetailByBatchNo(batchNo));
     }
 
     /**
@@ -108,19 +119,18 @@ public class BatchManageController extends BaseController
     /**
      * 创建批次
      */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:batch:create')")
     @PostMapping("/create")
-    public AjaxResult create(@RequestBody(required = false) java.util.Map<String, Object> params)
+    public AjaxResult create(@RequestBody(required = false) Map<String, Object> params)
     {
-        DistributionBatch batch = new DistributionBatch();
-        String batchNo = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"))
-            + "-" + String.format("%03d", System.currentTimeMillis() % 1000);
-        batch.setBatchNo(batchNo);
-        batch.setBatchType("first");
-        batch.setStatus("draft");
-        batch.setTotalCount(0);
-        batch.setTotalAmount(java.math.BigDecimal.ZERO);
-        batch.setDelFlag("0");
-        return toAjax(distributionBatchService.save(batch));
+        Object planIdsObj = params == null ? null : params.get("planIds");
+        if (!(planIdsObj instanceof List<?> planIdsRaw) || planIdsRaw.isEmpty())
+        {
+            return AjaxResult.error("请选择要创建批次的支付计划");
+        }
+        List<Long> planIds = planIdsRaw.stream().map(item -> Long.valueOf(item.toString())).toList();
+        Long batchId = distributionBatchService.createBatchFromPlanIds(planIds);
+        return AjaxResult.success("批次创建成功", batchId);
     }
 
     /**
@@ -129,9 +139,15 @@ public class BatchManageController extends BaseController
     @PostMapping("/upload/{id}")
     public AjaxResult upload(@PathVariable Long id)
     {
+        DistributionBatch batch = distributionBatchService.getById(id);
+        if (batch == null)
+        {
+            return AjaxResult.error("批次不存在");
+        }
         return toAjax(distributionBatchService.lambdaUpdate()
             .eq(DistributionBatch::getId, id)
-            .set(DistributionBatch::getStatus, "uploaded")
+            .set(DistributionBatch::getFinanceUploadTime, new java.util.Date())
+            .set(DistributionBatch::getStatus, "pending_finance")
             .update());
     }
 }

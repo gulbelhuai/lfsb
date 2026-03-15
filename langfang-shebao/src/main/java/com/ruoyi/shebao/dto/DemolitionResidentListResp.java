@@ -76,6 +76,9 @@ public class DemolitionResidentListResp
     @Excel(name = "用户编号", sort = 15, cellType = Excel.ColumnType.TEXT)
     private String userCode;
 
+    /** 审批状态 */
+    private String approvalStatus;
+
     /** 拆迁事由 */
     @Excel(name = "拆迁事由", sort = 16)
     private String demolitionReason;

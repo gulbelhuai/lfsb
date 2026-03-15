@@ -28,6 +28,9 @@ public class SubsidyDistributionListReq extends PageReq
     /** 补贴类型 */
     private String subsidyType;
 
+    /** 发放月份（yyyy-MM） */
+    private String paymentMonth;
+
     /** 发放日期-开始 */
     private LocalDate distributionDateStart;
 
@@ -39,6 +42,15 @@ public class SubsidyDistributionListReq extends PageReq
 
     /** 发放状态 */
     private String distributionStatus;
+
+    /** 批次号 */
+    private String batchNo;
+
+    /** 审批状态 */
+    private String approvalStatus;
+
+    /** 失败原因 */
+    private String failureReason;
 
     /** 状态（0正常 1停用） */
     private String status;

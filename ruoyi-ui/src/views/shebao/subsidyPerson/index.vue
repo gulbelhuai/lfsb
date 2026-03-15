@@ -81,74 +81,7 @@
       </el-form-item>
     </el-form>
 
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="el-icon-plus"
-          size="mini"
-          @click="handleAdd"
-          v-hasPermi="['shebao:subsidyPerson:add']"
-        >新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="el-icon-edit"
-          size="mini"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['shebao:subsidyPerson:edit']"
-        >修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="mini"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['shebao:subsidyPerson:remove']"
-        >删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="el-icon-close"
-          size="mini"
-          @click="handleCancelRegistration"
-          v-hasPermi="['shebao:subsidyPerson:cancel']"
-        >人员注销登记</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="info"
-          plain
-          icon="el-icon-upload2"
-          size="mini"
-          @click="handleImport"
-          v-hasPermi="['shebao:subsidyPerson:import']"
-        >导入</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="el-icon-download"
-          size="mini"
-          @click="handleExport"
-          v-hasPermi="['shebao:subsidyPerson:export']"
-        >导出</el-button>
-      </el-col>
-      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
-
-    <el-table v-loading="loading" :data="subsidyPersonList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
+    <el-table v-loading="loading" :data="subsidyPersonList">
       <el-table-column label="用户编号" align="center" prop="userCode" width="150" />
       <el-table-column label="姓名" align="center" prop="name" />
       <el-table-column label="性别" align="center" prop="gender">
@@ -173,24 +106,6 @@
       <el-table-column label="所属街道办" align="center" prop="streetOfficeName" width="120" />
       <el-table-column label="所属村委会" align="center" prop="villageCommitteeName" width="150" />
       <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template slot-scope="scope">
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-edit"
-            @click="handleUpdate(scope.row)"
-            v-hasPermi="['shebao:subsidyPerson:edit']"
-          >修改</el-button>
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-delete"
-            @click="handleDelete(scope.row)"
-            v-hasPermi="['shebao:subsidyPerson:remove']"
-          >删除</el-button>
-        </template>
-      </el-table-column>
     </el-table>
 
     <pagination
@@ -779,9 +694,9 @@ export default {
       }
     },
 
-    /** 街道办选择变化处理 */
+    /** 查询条件街道办变化处理 */
     handleStreetOfficeChange(value) {
-      this.form.villageCommitteeId = null
+      this.queryParams.villageCommitteeId = null
       this.villageCommitteeOptions = []
       if (value) {
         this.loadVillageCommitteeOptions(value)

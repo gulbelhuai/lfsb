@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.domain;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseDomain;
 import lombok.Data;
@@ -8,6 +9,7 @@ import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 补贴发放记录对象 shebao_subsidy_distribution
@@ -22,6 +24,38 @@ public class SubsidyDistribution extends BaseDomain
 {
     /** 主键ID */
     private Long id;
+
+    /** 批次号 */
+    private String batchNo;
+
+    /** 批次类型 */
+    private String batchType;
+
+    /** 审批状态 */
+    private String approvalStatus;
+
+    /** 驳回原因 */
+    private String rejectionReason;
+
+    /** 复核时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime reviewTime;
+
+    /** 复核人ID */
+    private Long reviewUserId;
+
+    /** 复核人姓名 */
+    private String reviewUserName;
+
+    /** 审批时间 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime approveTime;
+
+    /** 审批人ID */
+    private Long approveUserId;
+
+    /** 审批人姓名 */
+    private String approveUserName;
 
     /** 被补贴人ID（关联shebao_subsidy_person.id） */
     @Excel(name = "被补贴人ID")

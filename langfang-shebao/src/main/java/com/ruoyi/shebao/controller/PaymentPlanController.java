@@ -6,14 +6,16 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.dto.BenefitPaymentPlanGenerateReq;
 import com.ruoyi.shebao.dto.PaymentPlanListReq;
 import com.ruoyi.shebao.dto.SubsidyDistributionFormDto;
 import com.ruoyi.shebao.dto.SubsidyDistributionListResp;
 import com.ruoyi.shebao.service.SubsidyDistributionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 支付计划生成Controller
@@ -78,9 +80,37 @@ public class PaymentPlanController extends BaseController
     @PreAuthorize("@ss.hasPermi('shebao:payment:plan:generate')")
     @Log(title = "支付计划", businessType = BusinessType.INSERT)
     @PostMapping("/generate")
-    public AjaxResult generate(@Validated @RequestBody SubsidyDistributionFormDto formDto)
+    public AjaxResult generate(@RequestBody Map<String, Object> params)
     {
-        return toAjax(subsidyDistributionService.insertSubsidyDistribution(formDto));
+        if (params.get("subsidyRecordId") != null)
+        {
+            SubsidyDistributionFormDto formDto = new SubsidyDistributionFormDto();
+            formDto.setSubsidyPersonId(params.get("subsidyPersonId") == null ? null : Long.valueOf(params.get("subsidyPersonId").toString()));
+            formDto.setSubsidyType(params.get("subsidyType") == null ? null : params.get("subsidyType").toString());
+            formDto.setSubsidyRecordId(Long.valueOf(params.get("subsidyRecordId").toString()));
+            formDto.setDistributionAmount(params.get("distributionAmount") == null ? null : new java.math.BigDecimal(params.get("distributionAmount").toString()));
+            formDto.setRemark(params.get("remark") == null ? null : params.get("remark").toString());
+            return toAjax(subsidyDistributionService.insertSubsidyDistribution(formDto));
+        }
+        String subsidyType = params.get("subsidyType") == null ? null : params.get("subsidyType").toString();
+        String paymentMonth = params.get("paymentMonth") == null ? null : params.get("paymentMonth").toString();
+        Long streetOfficeId = params.get("streetOfficeId") == null || "".equals(params.get("streetOfficeId").toString())
+                ? null : Long.valueOf(params.get("streetOfficeId").toString());
+        return toAjax(subsidyDistributionService.generatePaymentPlans(subsidyType, paymentMonth, streetOfficeId));
+    }
+
+    /**
+     * 预览统计
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:list')")
+    @PostMapping("/statistics")
+    public AjaxResult statistics(@RequestBody Map<String, Object> params)
+    {
+        String subsidyType = params.get("subsidyType") == null ? null : params.get("subsidyType").toString();
+        String paymentMonth = params.get("paymentMonth") == null ? null : params.get("paymentMonth").toString();
+        Long streetOfficeId = params.get("streetOfficeId") == null || "".equals(params.get("streetOfficeId").toString())
+                ? null : Long.valueOf(params.get("streetOfficeId").toString());
+        return AjaxResult.success(subsidyDistributionService.previewPaymentStatistics(subsidyType, paymentMonth, streetOfficeId));
     }
 
     /**
@@ -124,7 +154,17 @@ public class PaymentPlanController extends BaseController
     @PostMapping("/batchGenerate")
     public AjaxResult batchGenerate(@RequestParam String subsidyType, @RequestParam String month)
     {
-        // TODO: 实现批量生成逻辑
-        return AjaxResult.success("批量生成成功");
+        return toAjax(subsidyDistributionService.generatePaymentPlans(subsidyType, month, null));
+    }
+
+    /**
+     * 按通知批次生成支付计划
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:generate')")
+    @Log(title = "按通知批次生成支付计划", businessType = BusinessType.INSERT)
+    @PostMapping("/generateByNoticeBatch")
+    public AjaxResult generateByNoticeBatch(@RequestBody BenefitPaymentPlanGenerateReq req)
+    {
+        return toAjax(subsidyDistributionService.generateFromNoticeBatch(req.getNoticeBatchNo()));
     }
 }
