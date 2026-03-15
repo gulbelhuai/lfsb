@@ -31,7 +31,11 @@
       <el-table-column label="通知批次号" prop="noticeBatchNo" min-width="180" />
       <el-table-column label="姓名" prop="name" width="100" />
       <el-table-column label="身份证号" prop="idCardNo" min-width="180" />
-      <el-table-column label="补贴类型" prop="subsidyType" width="140" />
+      <el-table-column label="补贴类型" width="140">
+        <template slot-scope="scope">
+          <span>{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="补贴标准" prop="subsidyStandard" width="100" />
       <el-table-column label="银行账号" prop="bankAccount" min-width="180" />
       <el-table-column label="材料状态" width="100">
@@ -60,7 +64,7 @@
         <el-descriptions-item label="通知批次号">{{ detailData.noticeBatchNo }}</el-descriptions-item>
         <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
         <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
-        <el-descriptions-item label="补贴类型">{{ detailData.subsidyType }}</el-descriptions-item>
+        <el-descriptions-item label="补贴类型">{{ getSubsidyTypeLabel(detailData.subsidyType) }}</el-descriptions-item>
         <el-descriptions-item label="银行名称">{{ detailData.bankName }}</el-descriptions-item>
         <el-descriptions-item label="银行卡号">{{ detailData.bankAccount }}</el-descriptions-item>
         <el-descriptions-item label="账户名">{{ detailData.bankAccountName }}</el-descriptions-item>
@@ -104,6 +108,15 @@ export default {
     this.getList()
   },
   methods: {
+    getSubsidyTypeLabel(subsidyType) {
+      return {
+        land_loss_resident: '失地居民',
+        demolition_resident: '拆迁居民',
+        village_official: '村干部',
+        expropriatee_subsidy: '被征地居民',
+        teacher_subsidy: '教师'
+      }[subsidyType] || subsidyType || '未知'
+    },
     getList() {
       this.loading = true
       listBenefitReview(this.queryParams).then(response => {

@@ -86,7 +86,6 @@
         <template slot-scope="scope">
           <el-button size="mini" type="text" @click="openDetail(scope.row)" v-hasPermi="['shebao:benefit:notice:list']" :data-testid="`notice-view-${scope.row.batchNo}`">查看明细</el-button>
           <el-button size="mini" type="text" @click="handleExport(scope.row)" v-hasPermi="['shebao:benefit:notice:list']" :data-testid="`notice-export-${scope.row.batchNo}`">导出</el-button>
-          <el-button size="mini" type="text" @click="goDetermination(scope.row)" :data-testid="`notice-go-determination-${scope.row.batchNo}`">去核定</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -106,7 +105,11 @@
         <el-table-column label="用户编号" prop="userCode" width="120" />
         <el-table-column label="姓名" prop="name" width="100" />
         <el-table-column label="身份证号" prop="idCardNo" min-width="180" />
-        <el-table-column label="补贴类型" prop="subsidyType" width="140" />
+        <el-table-column label="补贴类型" width="140">
+          <template slot-scope="scope">
+            <span>{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="到龄日期" prop="retirementDate" width="110" />
         <el-table-column label="核定状态" width="110">
           <template slot-scope="scope">
@@ -207,14 +210,20 @@ export default {
       const name = row ? `预到龄通知_${row.batchNo}.xlsx` : `预到龄通知_${new Date().getTime()}.xlsx`
       this.download('shebao/benefit/notice/export', params, name)
     },
-    goDetermination(row) {
-      this.$router.push({ path: '/shebao/benefit/determination', query: { noticeBatchNo: row.batchNo } })
-    },
     batchStatusText(status) {
       return { generated: '已生成', processing: '处理中', completed: '已完成' }[status] || '未知'
     },
     batchStatusType(status) {
       return { generated: 'info', processing: 'warning', completed: 'success' }[status] || 'info'
+    },
+    getSubsidyTypeLabel(subsidyType) {
+      return {
+        land_loss_resident: '失地居民',
+        demolition_resident: '拆迁居民',
+        village_official: '村干部',
+        expropriatee_subsidy: '被征地居民',
+        teacher_subsidy: '教师'
+      }[subsidyType] || subsidyType || '未知'
     },
     approvalStatusText(status) {
       return { draft: '待录入', pending_review: '待复核', approved: '已通过', rejected: '已驳回', payment_generated: '已进计划' }[status] || '未知'

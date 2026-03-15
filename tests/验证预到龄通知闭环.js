@@ -21,6 +21,7 @@ const NOTICE_MONTH = process.env.NOTICE_TEST_MONTH || "2030-02";
 const DATASET = getBenefitNoticeDataset(NOTICE_MONTH);
 const REPORT_DIR = path.resolve(__dirname, "reports", "benefit-notice");
 const FIXTURE_ID_CARDS = DATASET.fixtureIdCards;
+const POSITIVE_TARGETS = DATASET.positiveTargets || [DATASET.primaryTarget];
 
 const PLAN = [
   "清理预到龄通知专项旧测试数据",
@@ -171,63 +172,78 @@ async function executeFlow() {
       operatorToken
     );
     const details = detailList.data.rows || [];
-    const targetDetail = details.find((item) => item.name === DATASET.primaryTarget.name);
-    if (!targetDetail || !targetDetail.determinationId) {
-      throw new Error(`target detail missing: ${JSON.stringify(details)}`);
-    }
-
-    const determinationResp = await getJson(
-      `${BASE_URL}/shebao/benefit/determination/${targetDetail.determinationId}`,
-      operatorToken
-    );
-    const determination = determinationResp.data.data;
-
-    const updateResp = await requestJson(
-      "PUT",
-      `${BASE_URL}/shebao/benefit/determination`,
-      operatorToken,
-      {
-        id: determination.id,
-        subsidyPersonId: determination.subsidyPersonId,
-        noticeBatchNo: determination.noticeBatchNo,
-        noticeDetailId: determination.noticeDetailId,
-        subsidyType: determination.subsidyType,
-        idCardNo: DATASET.primaryTarget.idCardNo,
-        bankName: "中国银行",
-        bankAccount: DATASET.primaryTarget.bankAccount,
-        bankAccountName: DATASET.primaryTarget.bankAccountName,
-        subsidyStandard: 500,
-        benefitStartYear: DATASET.primaryTarget.benefitStartYear,
-        benefitStartMonth: DATASET.primaryTarget.benefitStartMonth,
+    const processedTargets = [];
+    for (const target of POSITIVE_TARGETS) {
+      const targetDetail = details.find((item) => item.name === target.name);
+      if (!targetDetail || !targetDetail.determinationId) {
+        throw new Error(`target detail missing for ${target.name}: ${JSON.stringify(details)}`);
       }
-    );
 
-    const zipPath = await createZipForUser(determination.subsidyPersonId);
-    const uploadForm = new FormData();
-    uploadForm.set("determinationId", String(determination.id));
-    uploadForm.set(
-      "file",
-      await openAsBlob(zipPath, { type: "application/zip" }),
-      `${determination.subsidyPersonId}.zip`
-    );
-    const uploadResp = await sendForm(
-      `${BASE_URL}/shebao/benefit/determination/attachment/upload`,
-      operatorToken,
-      uploadForm
-    );
+      const determinationResp = await getJson(
+        `${BASE_URL}/shebao/benefit/determination/${targetDetail.determinationId}`,
+        operatorToken
+      );
+      const determination = determinationResp.data.data;
 
-    const submitResp = await requestJson(
-      "POST",
-      `${BASE_URL}/shebao/benefit/determination/submit/${determination.id}`,
-      operatorToken,
-      {}
-    );
+      const updateResp = await requestJson(
+        "PUT",
+        `${BASE_URL}/shebao/benefit/determination`,
+        operatorToken,
+        {
+          id: determination.id,
+          subsidyPersonId: determination.subsidyPersonId,
+          noticeBatchNo: determination.noticeBatchNo,
+          noticeDetailId: determination.noticeDetailId,
+          subsidyType: determination.subsidyType,
+          idCardNo: target.idCardNo,
+          bankName: "中国银行",
+          bankAccount: target.bankAccount,
+          bankAccountName: target.bankAccountName,
+          subsidyStandard: 500,
+          benefitStartYear: target.benefitStartYear,
+          benefitStartMonth: target.benefitStartMonth,
+        }
+      );
+
+      const zipPath = await createZipForUser(determination.subsidyPersonId);
+      const uploadForm = new FormData();
+      uploadForm.set("determinationId", String(determination.id));
+      uploadForm.set(
+        "file",
+        await openAsBlob(zipPath, { type: "application/zip" }),
+        `${determination.subsidyPersonId}.zip`
+      );
+      const uploadResp = await sendForm(
+        `${BASE_URL}/shebao/benefit/determination/attachment/upload`,
+        operatorToken,
+        uploadForm
+      );
+
+      const submitResp = await requestJson(
+        "POST",
+        `${BASE_URL}/shebao/benefit/determination/submit/${determination.id}`,
+        operatorToken,
+        {}
+      );
+
+      processedTargets.push({
+        target,
+        determination,
+        updateResp,
+        uploadResp,
+        submitResp,
+      });
+    }
 
     const batchApproveResp = await requestJson(
       "POST",
       `${BASE_URL}/shebao/benefit/review/batchApprove`,
       reviewerToken,
-      { noticeBatchNo: batch.batchNo, ids: [determination.id], remark: "闭环自动验证通过" }
+      {
+        noticeBatchNo: batch.batchNo,
+        ids: processedTargets.map((item) => item.determination.id),
+        remark: "闭环自动验证通过",
+      }
     );
 
     const paymentResp = await requestJson(
@@ -254,17 +270,20 @@ async function executeFlow() {
     );
     const [distributionRows] = await conn.query(
       `SELECT subsidy_person_id, subsidy_type, subsidy_record_id, distribution_status, remark
-       FROM shebao_subsidy_distribution WHERE subsidy_record_id = ? ORDER BY id DESC`,
-      [determination.id]
+       FROM shebao_subsidy_distribution
+       WHERE subsidy_record_id IN (${processedTargets.map(() => "?").join(",")})
+       ORDER BY id DESC`,
+      processedTargets.map((item) => item.determination.id)
     );
 
     return {
       noticeMonth: NOTICE_MONTH,
       generateResult,
       batch,
-      updateResp,
-      uploadResp,
-      submitResp,
+      processedTargets,
+      updateResp: processedTargets[0]?.updateResp,
+      uploadResp: processedTargets[0]?.uploadResp,
+      submitResp: processedTargets[0]?.submitResp,
       batchApproveResp,
       paymentResp,
       batchRows,

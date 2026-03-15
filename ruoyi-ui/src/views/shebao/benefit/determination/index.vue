@@ -45,7 +45,11 @@
       <el-table-column label="通知批次号" prop="noticeBatchNo" min-width="180" />
       <el-table-column label="姓名" prop="name" width="100" />
       <el-table-column label="身份证号" prop="idCardNo" min-width="180" />
-      <el-table-column label="补贴类型" prop="subsidyType" width="140" />
+      <el-table-column label="补贴类型" width="140">
+        <template slot-scope="scope">
+          <span>{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="补贴标准" prop="subsidyStandard" width="100" />
       <el-table-column label="银行名称" prop="bankName" width="140" />
       <el-table-column label="银行卡号" prop="bankAccount" min-width="180" />
@@ -93,7 +97,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="补贴类型" prop="subsidyType">
-              <el-input v-model="form.subsidyType" disabled />
+              <el-input :value="getSubsidyTypeLabel(form.subsidyType)" disabled />
             </el-form-item>
           </el-col>
         </el-row>
@@ -157,7 +161,7 @@
         <el-descriptions-item label="通知批次号">{{ detailData.noticeBatchNo }}</el-descriptions-item>
         <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
         <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
-        <el-descriptions-item label="补贴类型">{{ detailData.subsidyType }}</el-descriptions-item>
+        <el-descriptions-item label="补贴类型">{{ getSubsidyTypeLabel(detailData.subsidyType) }}</el-descriptions-item>
         <el-descriptions-item label="银行名称">{{ detailData.bankName }}</el-descriptions-item>
         <el-descriptions-item label="银行卡号">{{ detailData.bankAccount }}</el-descriptions-item>
         <el-descriptions-item label="账户名">{{ detailData.bankAccountName }}</el-descriptions-item>
@@ -283,6 +287,15 @@ export default {
     },
     downloadTemplate() {
       this.download('shebao/benefit/determination/importTemplate', {}, `待遇核定导入模板_${new Date().getTime()}.xlsx`)
+    },
+    getSubsidyTypeLabel(subsidyType) {
+      return {
+        land_loss_resident: '失地居民',
+        demolition_resident: '拆迁居民',
+        village_official: '村干部',
+        expropriatee_subsidy: '被征地居民',
+        teacher_subsidy: '教师'
+      }[subsidyType] || subsidyType || '未知'
     },
     handleEdit(row) {
       this.title = '待遇核定录入'

@@ -1,0 +1,432 @@
+{
+  "batchNo": "NOTICE-FLOW-20260316-001337",
+  "generatedAt": "2026-03-15T16:13:37.925Z",
+  "mode": "execute",
+  "baseUrl": "http://localhost:8087/api",
+  "noticeMonth": "2030-03",
+  "plan": [
+    "清理预到龄通知专项旧测试数据",
+    "导入预到龄通知专项 SQL 样本",
+    "经办人登录并生成通知批次",
+    "按通知月份与批次号回查通知主表与明细",
+    "进入待遇核定录入身份证、银行卡和补贴信息",
+    "上传用户ID.zip 并校验材料解压与预览路径",
+    "提交待遇核定进入复核状态",
+    "复核人按批次检索并批量审核通过",
+    "生成支付计划并校验支付落库结果",
+    "输出 JSON 与 Markdown 测试报告"
+  ],
+  "execution": {
+    "noticeMonth": "2030-03",
+    "generateResult": {
+      "status": 200,
+      "data": {
+        "msg": "预到龄通知批次生成成功",
+        "code": 200,
+        "data": {
+          "id": 9,
+          "createTime": null,
+          "updateTime": null,
+          "createBy": "operator01",
+          "updateBy": "operator01",
+          "delFlag": null,
+          "remark": null,
+          "batchNo": "NT20300318727",
+          "noticeMonth": "2030-03",
+          "retirementMonth": "2030-06",
+          "ageThreshold": 60,
+          "totalCount": 0,
+          "pendingReviewCount": 0,
+          "approvedCount": 0,
+          "rejectedCount": 0,
+          "batchStatus": "generated"
+        }
+      }
+    },
+    "batch": {
+      "id": 9,
+      "batchNo": "NT20300318727",
+      "noticeMonth": "2030-03",
+      "retirementMonth": "2030-06",
+      "ageThreshold": 60,
+      "totalCount": 3,
+      "pendingReviewCount": 0,
+      "approvedCount": 0,
+      "rejectedCount": 0,
+      "batchStatus": "generated",
+      "createBy": "operator01",
+      "createTime": "2026-03-16 00:14:19"
+    },
+    "processedTargets": [
+      {
+        "target": {
+          "name": "脚本正样本-失地",
+          "idCardNo": "130101197006050061",
+          "bankAccountName": "脚本正样本-失地",
+          "bankAccount": "6222000000000002",
+          "benefitStartYear": 2030,
+          "benefitStartMonth": 6
+        },
+        "determination": {
+          "id": 17,
+          "subsidyPersonId": 1000073,
+          "noticeBatchNo": "NT20300318727",
+          "noticeDetailId": 15,
+          "name": "脚本正样本-失地",
+          "userCode": "NT-203003-LL-01",
+          "idCardNo": "130101197006050061",
+          "subsidyType": "land_loss_resident",
+          "eligibleYear": 2030,
+          "eligibleMonth": 6,
+          "benefitStartYear": 2030,
+          "benefitStartMonth": 7,
+          "bankName": null,
+          "bankAccount": null,
+          "bankAccountName": null,
+          "subsidyStandard": null,
+          "benefitMonths": 0,
+          "benefitAmount": 0,
+          "approvalStatus": "draft",
+          "materialStatus": "pending_upload",
+          "materialZipPath": null,
+          "materialImagePaths": null,
+          "submitBy": null,
+          "submitTime": null,
+          "reviewBy": null,
+          "reviewTime": null,
+          "reviewRemark": null
+        },
+        "updateResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200
+          }
+        },
+        "uploadResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200,
+            "data": {
+              "id": 4,
+              "createTime": null,
+              "updateTime": null,
+              "createBy": "operator01",
+              "updateBy": "operator01",
+              "delFlag": null,
+              "remark": null,
+              "businessType": "benefit_determination",
+              "businessId": 17,
+              "noticeBatchNo": "NT20300318727",
+              "subsidyPersonId": 1000073,
+              "originalFileName": "1000073.zip",
+              "zipFilePath": "/profile/benefit/determination/NT20300318727/zip/2026/03/16/1000073_20260316001341A002.zip",
+              "extractDir": "/profile/benefit/determination/NT20300318727/1000073/images",
+              "previewImagePaths": "/profile/benefit/determination/NT20300318727/1000073/images/1000073.png"
+            }
+          }
+        },
+        "submitResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200
+          }
+        }
+      },
+      {
+        "target": {
+          "name": "脚本正样本-拆迁",
+          "idCardNo": "130101197006180077",
+          "bankAccountName": "脚本正样本-拆迁",
+          "bankAccount": "6222000000000003",
+          "benefitStartYear": 2030,
+          "benefitStartMonth": 6
+        },
+        "determination": {
+          "id": 18,
+          "subsidyPersonId": 1000074,
+          "noticeBatchNo": "NT20300318727",
+          "noticeDetailId": 16,
+          "name": "脚本正样本-拆迁",
+          "userCode": "NT-203003-DR-01",
+          "idCardNo": "130101197006180077",
+          "subsidyType": "demolition_resident",
+          "eligibleYear": 2030,
+          "eligibleMonth": 6,
+          "benefitStartYear": 2030,
+          "benefitStartMonth": 7,
+          "bankName": null,
+          "bankAccount": null,
+          "bankAccountName": null,
+          "subsidyStandard": null,
+          "benefitMonths": 0,
+          "benefitAmount": 0,
+          "approvalStatus": "draft",
+          "materialStatus": "pending_upload",
+          "materialZipPath": null,
+          "materialImagePaths": null,
+          "submitBy": null,
+          "submitTime": null,
+          "reviewBy": null,
+          "reviewTime": null,
+          "reviewRemark": null
+        },
+        "updateResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200
+          }
+        },
+        "uploadResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200,
+            "data": {
+              "id": 5,
+              "createTime": null,
+              "updateTime": null,
+              "createBy": "operator01",
+              "updateBy": "operator01",
+              "delFlag": null,
+              "remark": null,
+              "businessType": "benefit_determination",
+              "businessId": 18,
+              "noticeBatchNo": "NT20300318727",
+              "subsidyPersonId": 1000074,
+              "originalFileName": "1000074.zip",
+              "zipFilePath": "/profile/benefit/determination/NT20300318727/zip/2026/03/16/1000074_20260316001344A003.zip",
+              "extractDir": "/profile/benefit/determination/NT20300318727/1000074/images",
+              "previewImagePaths": "/profile/benefit/determination/NT20300318727/1000074/images/1000074.png"
+            }
+          }
+        },
+        "submitResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200
+          }
+        }
+      },
+      {
+        "target": {
+          "name": "脚本正样本-村干",
+          "idCardNo": "13010119700625008X",
+          "bankAccountName": "脚本正样本-村干",
+          "bankAccount": "6222000000000004",
+          "benefitStartYear": 2030,
+          "benefitStartMonth": 6
+        },
+        "determination": {
+          "id": 19,
+          "subsidyPersonId": 1000075,
+          "noticeBatchNo": "NT20300318727",
+          "noticeDetailId": 17,
+          "name": "脚本正样本-村干",
+          "userCode": "NT-203003-VO-01",
+          "idCardNo": "13010119700625008X",
+          "subsidyType": "village_official",
+          "eligibleYear": 2030,
+          "eligibleMonth": 6,
+          "benefitStartYear": 2030,
+          "benefitStartMonth": 7,
+          "bankName": null,
+          "bankAccount": null,
+          "bankAccountName": null,
+          "subsidyStandard": null,
+          "benefitMonths": 0,
+          "benefitAmount": 0,
+          "approvalStatus": "draft",
+          "materialStatus": "pending_upload",
+          "materialZipPath": null,
+          "materialImagePaths": null,
+          "submitBy": null,
+          "submitTime": null,
+          "reviewBy": null,
+          "reviewTime": null,
+          "reviewRemark": null
+        },
+        "updateResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200
+          }
+        },
+        "uploadResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200,
+            "data": {
+              "id": 6,
+              "createTime": null,
+              "updateTime": null,
+              "createBy": "operator01",
+              "updateBy": "operator01",
+              "delFlag": null,
+              "remark": null,
+              "businessType": "benefit_determination",
+              "businessId": 19,
+              "noticeBatchNo": "NT20300318727",
+              "subsidyPersonId": 1000075,
+              "originalFileName": "1000075.zip",
+              "zipFilePath": "/profile/benefit/determination/NT20300318727/zip/2026/03/16/1000075_20260316001348A004.zip",
+              "extractDir": "/profile/benefit/determination/NT20300318727/1000075/images",
+              "previewImagePaths": "/profile/benefit/determination/NT20300318727/1000075/images/1000075.png"
+            }
+          }
+        },
+        "submitResp": {
+          "status": 200,
+          "data": {
+            "msg": "操作成功",
+            "code": 200
+          }
+        }
+      }
+    ],
+    "updateResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "uploadResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200,
+        "data": {
+          "id": 4,
+          "createTime": null,
+          "updateTime": null,
+          "createBy": "operator01",
+          "updateBy": "operator01",
+          "delFlag": null,
+          "remark": null,
+          "businessType": "benefit_determination",
+          "businessId": 17,
+          "noticeBatchNo": "NT20300318727",
+          "subsidyPersonId": 1000073,
+          "originalFileName": "1000073.zip",
+          "zipFilePath": "/profile/benefit/determination/NT20300318727/zip/2026/03/16/1000073_20260316001341A002.zip",
+          "extractDir": "/profile/benefit/determination/NT20300318727/1000073/images",
+          "previewImagePaths": "/profile/benefit/determination/NT20300318727/1000073/images/1000073.png"
+        }
+      }
+    },
+    "submitResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "batchApproveResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "paymentResp": {
+      "status": 200,
+      "data": {
+        "msg": "操作成功",
+        "code": 200
+      }
+    },
+    "batchRows": [
+      {
+        "batch_no": "NT20300318727",
+        "notice_month": "2030-03",
+        "total_count": 3,
+        "pending_review_count": 0,
+        "approved_count": 3,
+        "rejected_count": 0,
+        "batch_status": "completed"
+      }
+    ],
+    "detailRows": [
+      {
+        "subsidy_person_id": 1000073,
+        "name": "脚本正样本-失地",
+        "determination_status": "payment_generated",
+        "material_status": "uploaded",
+        "review_status": "approved"
+      },
+      {
+        "subsidy_person_id": 1000074,
+        "name": "脚本正样本-拆迁",
+        "determination_status": "payment_generated",
+        "material_status": "uploaded",
+        "review_status": "approved"
+      },
+      {
+        "subsidy_person_id": 1000075,
+        "name": "脚本正样本-村干",
+        "determination_status": "payment_generated",
+        "material_status": "uploaded",
+        "review_status": "approved"
+      }
+    ],
+    "determinationRows": [
+      {
+        "id": 17,
+        "notice_batch_no": "NT20300318727",
+        "approval_status": "approved",
+        "bank_name": "中国银行",
+        "bank_account": "6222000000000002",
+        "material_status": "uploaded",
+        "payment_plan_generated": "1"
+      },
+      {
+        "id": 18,
+        "notice_batch_no": "NT20300318727",
+        "approval_status": "approved",
+        "bank_name": "中国银行",
+        "bank_account": "6222000000000003",
+        "material_status": "uploaded",
+        "payment_plan_generated": "1"
+      },
+      {
+        "id": 19,
+        "notice_batch_no": "NT20300318727",
+        "approval_status": "approved",
+        "bank_name": "中国银行",
+        "bank_account": "6222000000000004",
+        "material_status": "uploaded",
+        "payment_plan_generated": "1"
+      }
+    ],
+    "distributionRows": [
+      {
+        "subsidy_person_id": 1000075,
+        "subsidy_type": "4",
+        "subsidy_record_id": 19,
+        "distribution_status": "1",
+        "remark": "来源通知批次：NT20300318727"
+      },
+      {
+        "subsidy_person_id": 1000074,
+        "subsidy_type": "3",
+        "subsidy_record_id": 18,
+        "distribution_status": "1",
+        "remark": "来源通知批次：NT20300318727"
+      },
+      {
+        "subsidy_person_id": 1000073,
+        "subsidy_type": "1",
+        "subsidy_record_id": 17,
+        "distribution_status": "1",
+        "remark": "来源通知批次：NT20300318727"
+      }
+    ]
+  }
+}

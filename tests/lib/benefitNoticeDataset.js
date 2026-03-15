@@ -19,6 +19,16 @@ const DATASETS = {
       benefitStartYear: 2030,
       benefitStartMonth: 5,
     },
+    positiveTargets: [
+      {
+        name: "闭环正样本甲",
+        idCardNo: "130101197005050011",
+        bankAccountName: "闭环正样本甲",
+        bankAccount: "6222000000000001",
+        benefitStartYear: 2030,
+        benefitStartMonth: 5,
+      },
+    ],
   },
   "2030-03": {
     noticeMonth: "2030-03",
@@ -39,6 +49,32 @@ const DATASETS = {
       benefitStartYear: 2030,
       benefitStartMonth: 6,
     },
+    positiveTargets: [
+      {
+        name: "脚本正样本-失地",
+        idCardNo: "130101197006050061",
+        bankAccountName: "脚本正样本-失地",
+        bankAccount: "6222000000000002",
+        benefitStartYear: 2030,
+        benefitStartMonth: 6,
+      },
+      {
+        name: "脚本正样本-拆迁",
+        idCardNo: "130101197006180077",
+        bankAccountName: "脚本正样本-拆迁",
+        bankAccount: "6222000000000003",
+        benefitStartYear: 2030,
+        benefitStartMonth: 6,
+      },
+      {
+        name: "脚本正样本-村干",
+        idCardNo: "13010119700625008X",
+        bankAccountName: "脚本正样本-村干",
+        bankAccount: "6222000000000004",
+        benefitStartYear: 2030,
+        benefitStartMonth: 6,
+      },
+    ],
   },
 };
 
