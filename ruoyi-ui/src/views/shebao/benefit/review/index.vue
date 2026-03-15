@@ -10,6 +10,15 @@
       <el-form-item label="补贴类型">
         <el-input v-model="queryParams.subsidyType" clearable data-testid="review-query-subsidy-type" />
       </el-form-item>
+      <el-form-item label="审批状态">
+        <el-select v-model="queryParams.approvalStatus" placeholder="全部" clearable data-testid="review-query-approval-status">
+          <el-option label="全部" value="" />
+          <el-option label="草稿" value="draft" />
+          <el-option label="待审核" value="pending_review" />
+          <el-option label="已审核通过" value="approved" />
+          <el-option label="已驳回" value="rejected" />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery" data-testid="review-query-search">搜索</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery" data-testid="review-query-reset">重置</el-button>
@@ -101,7 +110,14 @@ export default {
       multiple: true,
       detailOpen: false,
       detailData: {},
-      queryParams: { pageNum: 1, pageSize: 10, noticeBatchNo: null, name: null, subsidyType: null, approvalStatus: 'pending_review' }
+      queryParams: { 
+        pageNum: 1, 
+        pageSize: 10, 
+        noticeBatchNo: null, 
+        name: null, 
+        subsidyType: null, 
+        approvalStatus: null  // 修改：初始值改为null，而不是pending_review
+      }
     }
   },
   created() {
@@ -132,6 +148,8 @@ export default {
     },
     resetQuery() {
       this.resetForm('queryForm')
+      // 重置后保持 null（查询全部），不设置为 'pending_review'
+      this.queryParams.approvalStatus = null
       this.handleQuery()
     },
     handleSelectionChange(selection) {
