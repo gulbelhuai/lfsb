@@ -79,6 +79,29 @@ async function cleanupOldRecords(conn) {
   );
   const personIds = personRows.map((row) => row.id);
   if (personIds.length > 0) {
+    const [villageOfficialRows] = await conn.query(
+      `SELECT id FROM shebao_village_official WHERE subsidy_person_id IN (${personIds.map(() => "?").join(",")})`,
+      personIds
+    ).catch(() => [[]]);
+    const villageOfficialIds = (villageOfficialRows || []).map((row) => row.id);
+    if (villageOfficialIds.length > 0) {
+      await conn.query(
+        `DELETE FROM shebao_village_official_position WHERE village_official_id IN (${villageOfficialIds.map(() => "?").join(",")})`,
+        villageOfficialIds
+      ).catch(() => {});
+    }
+    await conn.query(
+      `DELETE FROM shebao_village_official WHERE subsidy_person_id IN (${personIds.map(() => "?").join(",")})`,
+      personIds
+    ).catch(() => {});
+    await conn.query(
+      `DELETE FROM shebao_demolition_resident WHERE subsidy_person_id IN (${personIds.map(() => "?").join(",")})`,
+      personIds
+    ).catch(() => {});
+    await conn.query(
+      `DELETE FROM shebao_land_loss_resident WHERE subsidy_person_id IN (${personIds.map(() => "?").join(",")})`,
+      personIds
+    ).catch(() => {});
     await conn.query(
       `DELETE FROM shebao_benefit_attachment WHERE subsidy_person_id IN (${personIds.map(() => "?").join(",")})`,
       personIds
@@ -89,6 +112,10 @@ async function cleanupOldRecords(conn) {
     ).catch(() => {});
     await conn.query(
       `DELETE FROM benefit_determination WHERE subsidy_person_id IN (${personIds.map(() => "?").join(",")})`,
+      personIds
+    ).catch(() => {});
+    await conn.query(
+      `DELETE FROM shebao_subsidy_distribution WHERE subsidy_person_id IN (${personIds.map(() => "?").join(",")})`,
       personIds
     ).catch(() => {});
   }
