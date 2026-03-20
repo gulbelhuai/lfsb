@@ -32,7 +32,7 @@
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList" />
     </el-row>
 
-    <el-table v-loading="loading" :data="dataList" @selection-change="handleSelectionChange">
+    <el-table class="rx-table--compact" v-loading="loading" :data="dataList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="序号" type="index" width="50" align="center" />
       <el-table-column label="用户编号" prop="userCode" width="140" />
@@ -237,4 +237,5 @@ export default {
   }
 }
 </script>
+
 

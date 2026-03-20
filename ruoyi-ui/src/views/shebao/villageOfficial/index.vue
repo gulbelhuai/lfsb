@@ -105,7 +105,12 @@
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="villageOfficialList" @selection-change="handleSelectionChange">
+    <el-table
+      class="rx-table--compact"
+      v-loading="loading"
+      :data="villageOfficialList"
+      @selection-change="handleSelectionChange"
+    >
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="姓名" align="center" prop="name" />
       <el-table-column label="身份证号" align="center" prop="idCardNo" />

@@ -23,7 +23,7 @@
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList" />
     </el-row>
 
-    <el-table v-loading="loading" :data="dataList">
+    <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
       <el-table-column type="index" label="序号" width="50" />
       <el-table-column label="用户编号" prop="userCode" />
       <el-table-column label="姓名" prop="name" />

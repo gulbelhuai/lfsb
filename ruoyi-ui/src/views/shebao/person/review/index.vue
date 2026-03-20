@@ -26,7 +26,7 @@
     </el-form>
 
     <!-- 数据表格 -->
-    <el-table v-loading="loading" :data="dataList">
+    <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
       <el-table-column label="序号" type="index" width="50" align="center" />
       <el-table-column label="用户编号" align="center" prop="userCode" width="120" />
       <el-table-column label="姓名" align="center" prop="name" width="100" />
@@ -254,3 +254,4 @@ export default {
   }
 }
 </script>
+
