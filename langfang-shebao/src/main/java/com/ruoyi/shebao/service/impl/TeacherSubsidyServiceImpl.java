@@ -44,8 +44,8 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
     @Override
     public Page<TeacherSubsidyListResp> selectTeacherSubsidyList(TeacherSubsidyListReq req)
     {
-        long pageNum = req.getPageNum() == null ? 1L : req.getPageNum();
-        long pageSize = req.getPageSize() == null ? 10L : req.getPageSize();
+        long pageNum = req.pageNumOrDefault();
+        long pageSize = req.pageSizeOrDefault();
         Page<TeacherSubsidyListResp> page = new Page<>(pageNum, pageSize);
         return teacherSubsidyMapper.selectTeacherSubsidyList(page, req);
     }

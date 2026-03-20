@@ -36,8 +36,8 @@ public class StreetOfficeServiceImpl extends ServiceImpl<StreetOfficeMapper, Str
     public Page<StreetOfficeListResp> selectStreetOfficeList(StreetOfficeListReq req)
     {
         // 设置分页参数默认值
-        Integer pageNum = req.getPageNum() != null ? req.getPageNum() : 1;
-        Integer pageSize = req.getPageSize() != null ? req.getPageSize() : 10;
+        Integer pageNum = req.pageNumOrDefault();
+        Integer pageSize = req.pageSizeOrDefault();
         Page<StreetOffice> page = new Page<>(pageNum, pageSize);
         Page<StreetOffice> entityPage = this.page(page, this.lambdaQuery()
                 .eq(StringUtils.isNotBlank(req.getStreetCode()), StreetOffice::getStreetCode, req.getStreetCode())

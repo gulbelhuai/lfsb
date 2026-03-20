@@ -45,8 +45,8 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
     @Override
     public Page<PersonCancelListResp> selectPersonCancelList(PersonCancelListReq req)
     {
-        long pageNum = req.getPageNum() == null ? 1L : req.getPageNum();
-        long pageSize = req.getPageSize() == null ? 10L : req.getPageSize();
+        long pageNum = req.pageNumOrDefault();
+        long pageSize = req.pageSizeOrDefault();
         Page<PersonCancelListResp> page = new Page<>(pageNum, pageSize);
         return personCancelMapper.selectPersonCancelList(page, req);
     }

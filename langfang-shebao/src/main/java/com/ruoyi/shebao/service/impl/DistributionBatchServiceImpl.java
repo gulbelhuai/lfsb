@@ -54,7 +54,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
     @Override
     public Page<DistributionBatch> selectDistributionBatchList(DistributionBatchListReq req)
     {
-        Page<DistributionBatch> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<DistributionBatch> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
 
         var query = this.lambdaQuery()
                 .like(StringUtils.isNotBlank(req.getBatchNo()), DistributionBatch::getBatchNo, req.getBatchNo())
@@ -329,7 +329,7 @@ public class DistributionBatchServiceImpl extends ServiceImpl<DistributionBatchM
         req.setPageNum(1);
         req.setPageSize(1000);
         List<SubsidyDistributionListResp> details = subsidyDistributionMapper
-                .selectSubsidyDistributionList(new Page<>(req.getPageNum(), req.getPageSize()), req)
+                .selectSubsidyDistributionList(new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault()), req)
                 .getRecords();
         Map<String, Object> result = new HashMap<>();
         result.put("batch", batch);

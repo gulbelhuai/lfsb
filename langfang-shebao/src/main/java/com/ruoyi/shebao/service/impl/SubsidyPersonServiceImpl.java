@@ -61,7 +61,7 @@ public class SubsidyPersonServiceImpl extends ServiceImpl<SubsidyPersonMapper, S
     @Override
     public Page<SubsidyPersonListResp> selectSubsidyPersonList(SubsidyPersonListReq req)
     {
-        Page<SubsidyPerson> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<SubsidyPerson> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         Page<SubsidyPerson> entityPage = this.page(page, this.lambdaQuery()
                 .like(StringUtils.isNotBlank(req.getName()), SubsidyPerson::getName, req.getName())
                 .eq(StringUtils.isNotBlank(req.getIdCardNo()), SubsidyPerson::getIdCardNo, req.getIdCardNo())

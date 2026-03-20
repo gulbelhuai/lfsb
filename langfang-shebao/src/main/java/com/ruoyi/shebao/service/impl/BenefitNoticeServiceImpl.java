@@ -49,7 +49,7 @@ public class BenefitNoticeServiceImpl implements IBenefitNoticeService
     @Override
     public Page<BenefitNoticeBatchResp> selectBatchPage(BenefitNoticeBatchListReq req)
     {
-        Page<BenefitNoticeBatchResp> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<BenefitNoticeBatchResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         return benefitNoticeBatchMapper.selectBatchPage(page, req);
     }
 

@@ -56,8 +56,9 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
     @Override
     public Page<LandLossResidentListResp> selectLandLossResidentList(LandLossResidentListReq req)
     {
-        // 使用默认分页参数
-        Page<LandLossResidentListResp> page = new Page<>(1, 10);
+        long pageNum = req == null ? 1L : req.pageNumOrDefault();
+        long pageSize = req == null ? 10L : req.pageSizeOrDefault();
+        Page<LandLossResidentListResp> page = new Page<>(pageNum, pageSize);
         return landLossResidentMapper.selectLandLossResidentList(page, req);
     }
 

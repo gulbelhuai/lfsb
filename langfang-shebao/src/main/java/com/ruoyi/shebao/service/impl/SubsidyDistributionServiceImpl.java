@@ -86,7 +86,7 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
     @Override
     public Page<SubsidyDistributionListResp> selectSubsidyDistributionList(SubsidyDistributionListReq req)
     {
-        Page<SubsidyDistributionListResp> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<SubsidyDistributionListResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         return subsidyDistributionMapper.selectSubsidyDistributionList(page, req);
     }
 
@@ -772,7 +772,7 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         req.setPageNum(1);
         req.setPageSize(1000);
         Page<SubsidyDistributionListResp> page = subsidyDistributionMapper.selectSubsidyDistributionList(
-                new Page<>(req.getPageNum(), req.getPageSize()), req);
+                new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault()), req);
         return page.getRecords();
     }
 
@@ -817,7 +817,7 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         req.setSubsidyPersonId(subsidyPersonId);
         req.setPageNum(1);
         req.setPageSize(limit != null ? limit : 5);
-        Page<SubsidyDistributionListResp> resultPage = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<SubsidyDistributionListResp> resultPage = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         Page<SubsidyDistributionListResp> result = subsidyDistributionMapper.selectSubsidyDistributionList(resultPage, req);
         return result.getRecords();
     }

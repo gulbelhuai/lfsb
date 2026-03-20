@@ -25,7 +25,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
     public Page<ExpropriateeSubsidyListResp> selectExpropriateeSubsidyList(ExpropriateeSubsidyListReq req)
     {
         // TODO: 实现查询逻辑
-        return new Page<>(1, 10);
+        return new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
     }
 
     @Override

@@ -45,7 +45,7 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
     @Override
     public Page<DemolitionResidentListResp> selectDemolitionResidentList(DemolitionResidentListReq req)
     {
-        Page<DemolitionResidentListResp> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<DemolitionResidentListResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         return demolitionResidentMapper.selectDemolitionResidentList(page, req);
     }
 

@@ -33,7 +33,7 @@ public class PersonKeyInfoModifyServiceImpl extends ServiceImpl<PersonKeyInfoMod
 
     @Override
     public Page<PersonKeyInfoModifyListResp> selectModifyList(PersonKeyInfoModifyListReq req) {
-        Page<PersonKeyInfoModifyListResp> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<PersonKeyInfoModifyListResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         return personKeyInfoModifyMapper.selectModifyList(page, req);
     }
 

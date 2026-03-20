@@ -43,8 +43,8 @@ public class VillageCommitteeServiceImpl extends ServiceImpl<VillageCommitteeMap
     public Page<VillageCommitteeListResp> selectVillageCommitteeList(VillageCommitteeListReq req)
     {
         // 设置分页参数默认值
-        Integer pageNum = req.getPageNum() != null ? req.getPageNum() : 1;
-        Integer pageSize = req.getPageSize() != null ? req.getPageSize() : 10;
+        Integer pageNum = req.pageNumOrDefault();
+        Integer pageSize = req.pageSizeOrDefault();
         Page<VillageCommittee> page = new Page<>(pageNum, pageSize);
         Page<VillageCommittee> entityPage = this.page(page, this.lambdaQuery()
                 .eq(req.getStreetOfficeId() != null, VillageCommittee::getStreetOfficeId, req.getStreetOfficeId())

@@ -23,8 +23,9 @@ public class AdministrativeDivisionServiceImpl extends ServiceImpl<Administrativ
     @Override
     public Page<AdministrativeDivisionListResp> selectAdministrativeDivisionList(AdministrativeDivisionListReq req)
     {
-        // 使用默认分页
-        Page<AdministrativeDivision> page = new Page<>(1, 10);
+        // 预留分页参数（查询逻辑待实现）
+        req.pageNumOrDefault();
+        req.pageSizeOrDefault();
         return null; // TODO: 实现查询逻辑
     }
 

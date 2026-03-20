@@ -78,7 +78,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     @Override
     public Page<BenefitDeterminationListResp> selectBenefitDeterminationList(BenefitDeterminationListReq req)
     {
-        Page<BenefitDeterminationListResp> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<BenefitDeterminationListResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         return this.baseMapper.selectBenefitDeterminationPage(page, req);
     }
 

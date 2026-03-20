@@ -8,7 +8,6 @@ import com.ruoyi.shebao.domain.AdministrativeDivision;
 import com.ruoyi.shebao.domain.Village;
 import com.ruoyi.shebao.dto.VillageListReq;
 import com.ruoyi.shebao.dto.VillageListResp;
-import com.ruoyi.shebao.mapper.AdministrativeDivisionMapper;
 import com.ruoyi.shebao.mapper.VillageMapper;
 import com.ruoyi.shebao.service.AdministrativeDivisionService;
 import com.ruoyi.shebao.service.VillageService;
@@ -39,7 +38,7 @@ public class VillageServiceImpl extends ServiceImpl<VillageMapper, Village> impl
     @Override
     public Page<VillageListResp> selectVillageList(VillageListReq req)
     {
-        Page<VillageListResp> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<VillageListResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         return this.baseMapper.selectVillageList(page, req);
     }
 

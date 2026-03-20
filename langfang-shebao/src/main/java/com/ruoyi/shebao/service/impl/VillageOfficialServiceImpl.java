@@ -63,7 +63,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     @Override
     public Page<VillageOfficialListResp> selectVillageOfficialList(VillageOfficialListReq req)
     {
-        Page<VillageOfficialListResp> page = new Page<>(req.getPageNum(), req.getPageSize());
+        Page<VillageOfficialListResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
         return villageOfficialMapper.selectVillageOfficialList(page, req);
     }
 
