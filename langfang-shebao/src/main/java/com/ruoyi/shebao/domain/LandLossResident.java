@@ -37,4 +37,16 @@ public class LandLossResident extends BaseDomain
     /** 认定为失地居民时间 */
     @Excel(name = "认定为失地居民时间", dateFormat = "yyyy-MM-dd")
     private LocalDate recognitionTime;
+
+    /** 征地批次  */
+    @Excel(name = "征地批次")
+    private String landRequisitionBatch;
+
+    /** 认定时所在村街 */
+    @Excel(name = "认定时所在村街")
+    private String villageStreet;
+
+    /** 是否村合作经济组织成员（0否 1是） */
+    @Excel(name = "是否村合作经济组织成员", readConverterExp = "0=否,1=是")
+    private String isVillageCoopMember;
 }

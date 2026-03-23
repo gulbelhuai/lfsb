@@ -24,6 +24,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="landRequisitionTime"         column="land_requisition_time"       />
         <result property="compensationCompleteTime"    column="compensation_complete_time"  />
         <result property="recognitionTime"             column="recognition_time"            />
+        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
+        <result property="landRequisitionBatch"        column="land_requisition_batch"      />
+        <result property="villageStreet"               column="village_street"              />
         <result property="createTime"                  column="create_time"                 />
         <result property="updateTime"                  column="update_time"                 />
         <result property="remark"                      column="remark"                      />
@@ -34,15 +37,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="gender"                      column="gender"                      />
         <result property="birthday"                    column="birthday"                    />
         <result property="phone"                       column="phone"                       />
-        <result property="isAlive"                      column="is_alive"                    />
-        <result property="deathDate"                   column="death_date"                 />
-        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
         <result property="streetOfficeId"              column="street_office_id"           />
         <result property="villageCommitteeId"          column="village_committee_id"        />
         <result property="userCode"                    column="user_code"                  />
         <result property="streetOfficeName"            column="street_office_name"         />
         <result property="villageCommitteeName"        column="village_committee_name"      />
         <result property="approvalStatus"              column="approval_status"             />
+        <result property="subsidyStatus"               column="subsidy_status"              />
+        <result property="personStatus"                column="person_status"               />
     </resultMap>
 
     <resultMap type="com.ruoyi.shebao.dto.LandLossResidentFormDto" id="LandLossResidentFormResult">
@@ -52,6 +54,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="landRequisitionTime"         column="land_requisition_time"       />
         <result property="compensationCompleteTime"    column="compensation_complete_time"  />
         <result property="recognitionTime"             column="recognition_time"            />
+        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
+        <result property="landRequisitionBatch"        column="land_requisition_batch"      />
+        <result property="villageStreet"               column="village_street"              />
         <result property="remark"                      column="ll_remark"                   />
         <!-- 基础信息字段 -->
         <result property="name"                        column="name"                        />
@@ -61,9 +66,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="householdRegistration"       column="household_registration"      />
         <result property="homeAddress"                column="home_address"               />
         <result property="phone"                       column="phone"                       />
-        <result property="isAlive"                     column="is_alive"                    />
-        <result property="deathDate"                   column="death_date"                 />
-        <result property="isVillageCoopMember"         column="is_village_coop_member"      />
         <result property="streetOfficeId"              column="street_office_id"           />
         <result property="villageCommitteeId"          column="village_committee_id"        />
         <result property="userCode"                    column="user_code"                  />
@@ -73,16 +75,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select ll.id, ll.subsidy_person_id, ll.land_requisition_time, 
                ll.compensation_complete_time, ll.recognition_time, 
                ll.del_flag, ll.create_by, ll.create_time, 
-               ll.update_by, ll.update_time, ll.remark 
+               ll.update_by, ll.update_time, ll.remark ,
+               ll.land_requisition_batch, ll.village_street, ll.is_village_coop_member
         from shebao_land_loss_resident ll
     </sql>
 
     <select id="selectLandLossResidentList" parameterType="com.ruoyi.shebao.dto.LandLossResidentListReq" resultMap="LandLossResidentListRespResult">
         select ll.id, ll.subsidy_person_id, ll.land_requisition_time, 
                ll.compensation_complete_time, ll.recognition_time, 
-               ll.create_time, ll.update_time, ll.remark,
+               ll.create_time, ll.update_time, ll.remark, 
+               ll.land_requisition_batch, ll.village_street, ll.is_village_coop_member,
                sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
-               sp.is_alive, sp.death_date, sp.is_village_coop_member,
+               sp.is_alive, sp.death_date, sp.subsidy_status, sp.person_status,
                sp.street_office_id, sp.village_committee_id, sp.user_code,
                sp.approval_status,
                sso.street_name as street_office_name, svc.village_name as village_committee_name
@@ -105,7 +109,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 AND sp.street_office_id = #{req.streetOfficeId}
             </if>
             <if test="req.villageCommitteeId != null">
-                AND sp.village_committee_id = #{req.villageCommitteeId}
+                AND ll.village_committee_id = #{req.villageCommitteeId}
             </if>
             <if test="req.landRequisitionTimeStart != null">
                 AND ll.land_requisition_time >= #{req.landRequisitionTimeStart}
@@ -129,9 +133,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectLandLossResidentFormById" parameterType="Long" resultMap="LandLossResidentFormResult">
         select ll.id, ll.subsidy_person_id, ll.land_requisition_time, 
                ll.compensation_complete_time, ll.recognition_time, 
-               ll.remark as ll_remark,
+               ll.remark as ll_remark, ll.land_requisition_batch, ll.village_street, ll.is_village_coop_member,
                sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
-               sp.is_alive, sp.death_date, sp.is_village_coop_member,
+               sp.is_alive, sp.death_date, sp.subsidy_status, sp.person_status,
                sp.street_office_id, sp.village_committee_id, sp.user_code,
                 sp.household_registration, sp.home_address
         from shebao_land_loss_resident ll
@@ -148,11 +152,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <insert id="batchInsertLandLossResident" parameterType="java.util.List">
         insert into shebao_land_loss_resident
         (subsidy_person_id, land_requisition_time, compensation_complete_time, 
-         recognition_time, create_by, create_time, remark)
+         recognition_time, land_requisition_batch, village_street, is_village_coop_member, create_by, create_time, remark)
         values
         <foreach collection="list" item="item" separator=",">
             (#{item.subsidyPersonId}, #{item.landRequisitionTime}, #{item.compensationCompleteTime}, 
-             #{item.recognitionTime}, #{item.createBy}, 
+             #{item.recognitionTime}, #{item.landRequisitionBatch}, #{item.villageStreet}, #{item.isVillageCoopMember}, #{item.createBy}, 
              #{item.createTime}, #{item.remark})
         </foreach>
     </insert>

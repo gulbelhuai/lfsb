@@ -45,18 +45,13 @@ public class LandLossResidentListResp
     @Excel(name = "联系电话", sort = 7, cellType = Excel.ColumnType.TEXT)
     private String phone;
 
-    /** 是否健在（来自基础信息）（0否 1是） */
-    @Excel(name = "是否健在", sort = 8, readConverterExp = "0=否,1=是")
-    private String isAlive;
+    /** 参保状态（来自基础信息） */
+    @Excel(name = "参保状态", sort = 8, readConverterExp = "0=在保,1=终止")
+    private String subsidyStatus;
 
-    /** 死亡时间（来自基础信息） */
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    @Excel(name = "死亡时间", sort = 9, dateFormat = "yyyy-MM-dd")
-    private LocalDate deathDate;
-
-    /** 是否村合作经济组织成员（来自基础信息）（0否 1是） */
-    @Excel(name = "是否村合作经济组织成员", sort = 10, readConverterExp = "0=否,1=是")
-    private String isVillageCoopMember;
+    /** 人员状态（来自基础信息） */
+    @Excel(name = "人员状态", sort = 9, readConverterExp = "0=未享受,1=享受")
+    private String personStatus;
 
     /** 所属街道办ID（来自基础信息） */
     private Long streetOfficeId;
@@ -90,6 +85,18 @@ public class LandLossResidentListResp
     @JsonFormat(pattern = "yyyy-MM-dd")
     @Excel(name = "认定为失地居民时间", sort = 18, dateFormat = "yyyy-MM-dd")
     private LocalDate recognitionTime;
+
+    /** 征地批次 */
+    @Excel(name = "征地批次", sort = 19)
+    private String landRequisitionBatch;
+
+    /** 认定时所在村街 */
+    @Excel(name = "认定时所在村街", sort = 20)
+    private String villageStreet;
+
+    /** 是否村合作经济组织成员（来自基础信息）（0否 1是） */
+    @Excel(name = "是否村合作经济组织成员", sort = 10, readConverterExp = "0=否,1=是")
+    private String isVillageCoopMember;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

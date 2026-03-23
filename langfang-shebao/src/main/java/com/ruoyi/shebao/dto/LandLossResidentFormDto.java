@@ -46,16 +46,6 @@ public class LandLossResidentFormDto
     /** 联系电话 */
     private String phone;
 
-    /** 是否健在（0否 1是） */
-    private String isAlive;
-
-    /** 死亡时间 */
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate deathDate;
-
-    /** 是否村合作经济组织成员（0否 1是） */
-    private String isVillageCoopMember;
-
     /** 所属街道办ID */
     private Long streetOfficeId;
 
@@ -77,6 +67,15 @@ public class LandLossResidentFormDto
     /** 认定为失地居民时间 */
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate recognitionTime;
+
+    /** 征地批次 */
+    private String landRequisitionBatch;
+
+    /** 认定时所在村街 */
+    private String villageStreet;
+
+    /** 是否村合作经济组织成员（0否 1是） */
+    private String isVillageCoopMember;
 
     /** 备注 */
     private String remark;

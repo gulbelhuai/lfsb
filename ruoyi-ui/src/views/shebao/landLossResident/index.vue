@@ -135,16 +135,14 @@
       </el-table-column>
       <!-- <el-table-column label="生日" align="center" prop="birthday" width="120" /> -->
       <el-table-column label="联系电话" align="center" prop="phone" width="120" />
-      <el-table-column label="是否健在" align="center" prop="isAlive" width="100">
+      <el-table-column label="参保状态" align="center" prop="subsidyStatus" width="100">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.isAlive === '1'" type="success">是</el-tag>
-          <el-tag v-else type="danger">否</el-tag>
+          <dict-tag :options="dict.type.shebao_subsidy_status" :value="scope.row.subsidyStatus"/>
         </template>
       </el-table-column>
-      <el-table-column label="是否村合成员" align="center" prop="isVillageCoopMember" width="100">
+      <el-table-column label="人员状态" align="center" prop="personStatus" width="100">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.isVillageCoopMember === '1'" type="success">是</el-tag>
-          <el-tag v-else type="info">否</el-tag>
+          <dict-tag :options="dict.type.shebao_person_status" :value="scope.row.personStatus"/>
         </template>
       </el-table-column>
       <el-table-column label="所属街道办" align="center" prop="streetOfficeName" />
@@ -167,6 +165,7 @@
             v-hasPermi="['shebao:landLossResident:edit']"
           >修改</el-button>
           <el-button
+            v-show="false"
             size="mini"
             type="text"
             icon="el-icon-delete"
@@ -288,37 +287,8 @@
 
           <el-row>
             <el-col :span="12">
-              <el-form-item label="是否村合作经济组织成员" prop="isVillageCoopMember">
-                <el-radio-group v-model="form.isVillageCoopMember">
-                  <el-radio label="1">是</el-radio>
-                  <el-radio label="0">否</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="联系电话" prop="phone">
                 <el-input v-model="form.phone" placeholder="请输入联系电话" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="12">
-              <el-form-item label="是否健在" prop="isAlive">
-                <el-radio-group v-model="form.isAlive" @change="handleIsAliveChange">
-                  <el-radio label="1">是</el-radio>
-                  <el-radio label="0">否</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="死亡时间" prop="deathDate" v-show="form.isAlive === '0'">
-                <el-date-picker
-                  v-model="form.deathDate"
-                  type="date"
-                  placeholder="选择死亡时间"
-                  value-format="yyyy-MM-dd"
-                  style="width: 100%"
-                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -367,6 +337,27 @@
                   value-format="yyyy-MM-dd"
                   style="width: 100%"
                 />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="征地批次" prop="landRequisitionBatch">
+                <el-input v-model="form.landRequisitionBatch" placeholder="请输入征地批次" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="认定时所在村街" prop="villageStreet">
+                <el-input v-model="form.villageStreet" placeholder="请输入认定时所在村街" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="是否村合作经济组织成员" prop="isVillageCoopMember">
+                <el-radio-group v-model="form.isVillageCoopMember">
+                  <el-radio label="1">是</el-radio>
+                  <el-radio label="0">否</el-radio>
+                </el-radio-group>
               </el-form-item>
             </el-col>
           </el-row>
@@ -423,13 +414,13 @@
 import { listLandLossResident, getLandLossResident, delLandLossResident, addLandLossResident, updateLandLossResident, getFormDataByIdCardNo } from "@/api/shebao/landLossResident"
 import { getToken } from "@/utils/auth"
 import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
-import { getVillageCommitteeSelectList } from "@/api/shebao/villageCommittee"
+import { getVillageCommitteeByStreetOffice } from "@/api/shebao/villageCommittee"
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
 import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 
 export default {
   name: "LandLossResident",
-  dicts: ['sys_normal_disable', 'sys_user_sex'],
+  dicts: ['sys_normal_disable', 'sys_user_sex', 'shebao_subsidy_status', 'shebao_person_status'],
   components: { ApprovalStatus },
   data() {
     return {
@@ -491,31 +482,6 @@ export default {
         ],
         householdRegistration: [
           { required: true, message: "户籍所在地不能为空", trigger: "blur" }
-        ],
-        homeAddress: [
-          { required: true, message: "家庭住址不能为空", trigger: "blur" }
-        ],
-        phone: [
-          { required: true, message: "联系电话不能为空", trigger: "blur" },
-          { pattern: /^(1[3-9]\d{9}|\d{7,12})$/, message: "请输入正确的手机号或固话", trigger: "blur" }
-        ],
-        isAlive: [
-          { required: true, message: "请选择是否健在", trigger: "change" }
-        ],
-        deathDate: [
-          {
-            validator: (rule, value, callback) => {
-              if (this.form.isAlive === '0' && !value) {
-                callback(new Error('死亡时间不能为空'))
-              } else {
-                callback()
-              }
-            },
-            trigger: "change"
-          }
-        ],
-        isVillageCoopMember: [
-          { required: true, message: "请选择是否村合作经济组织成员", trigger: "change" }
         ],
         streetOfficeId: [
           { required: true, message: "请选择所属街道办", trigger: "change" }
@@ -618,6 +584,7 @@ export default {
       this.reset()
       const id = row.id || this.ids
       getLandLossResident(id).then(response => {
+        this.handleStreetOfficeChange(response.data.streetOfficeId)
         this.form = response.data
         this.open = true
         this.title = "修改失地居民信息"
@@ -724,6 +691,7 @@ export default {
             this.form.gender = data.gender
             this.form.birthday = data.birthday
             this.form.householdRegistration = data.householdRegistration
+            this.form.homeAddress = data.homeAddress
             this.form.phone = data.phone
             this.form.isAlive = data.isAlive
             this.form.deathDate = data.deathDate
@@ -769,7 +737,7 @@ export default {
       this.form.villageCommitteeId = null
       this.villageCommitteeOptions = []
       if (streetOfficeId) {
-        getVillageCommitteeSelectList(streetOfficeId).then(response => {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
           this.villageCommitteeOptions = response.data
         })
       }

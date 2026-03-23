@@ -80,4 +80,12 @@ public class SubsidyPerson extends BaseDomain
 
     /** 审批状态（draft/pending_review/approved/rejected） */
     private String approvalStatus;
+
+    /** 参保状态  */
+    @Excel(name = "参保状态", readConverterExp = "0=在保,1=终止")
+    private String subsidyStatus;
+
+    /** 人员状态 */
+    @Excel(name = "人员状态", readConverterExp = "0=未享受,1=享受")
+    private String personStatus;
 }

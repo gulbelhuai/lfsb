@@ -88,7 +88,7 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int insertLandLossResident(LandLossResidentFormDto formDto)
-    {
+    {        
         // 处理基础信息
         Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
 
@@ -98,6 +98,9 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         landLossResident.setLandRequisitionTime(formDto.getLandRequisitionTime());
         landLossResident.setCompensationCompleteTime(formDto.getCompensationCompleteTime());
         landLossResident.setRecognitionTime(formDto.getRecognitionTime());
+        landLossResident.setLandRequisitionBatch(formDto.getLandRequisitionBatch());
+        landLossResident.setVillageStreet(formDto.getVillageStreet());
+        landLossResident.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
         landLossResident.setRemark(formDto.getRemark());
         landLossResident.setCreateTime(LocalDateTime.now());
         landLossResident.setCreateBy(SecurityUtils.getUsername());
@@ -129,6 +132,9 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         landLossResident.setLandRequisitionTime(formDto.getLandRequisitionTime());
         landLossResident.setCompensationCompleteTime(formDto.getCompensationCompleteTime());
         landLossResident.setRecognitionTime(formDto.getRecognitionTime());
+        landLossResident.setLandRequisitionBatch(formDto.getLandRequisitionBatch());
+        landLossResident.setVillageStreet(formDto.getVillageStreet());
+        landLossResident.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
         landLossResident.setRemark(formDto.getRemark());
         landLossResident.setUpdateTime(LocalDateTime.now());
         landLossResident.setUpdateBy(SecurityUtils.getUsername());
@@ -212,9 +218,7 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
             formDto.setBirthday(subsidyPerson.getBirthday());
             formDto.setHouseholdRegistration(subsidyPerson.getHouseholdRegistration());
             formDto.setPhone(subsidyPerson.getPhone());
-            formDto.setIsAlive(subsidyPerson.getIsAlive());
-            formDto.setDeathDate(subsidyPerson.getDeathDate());
-            formDto.setIsVillageCoopMember(subsidyPerson.getIsVillageCoopMember());
+            formDto.setHomeAddress(subsidyPerson.getHomeAddress());
             formDto.setStreetOfficeId(subsidyPerson.getStreetOfficeId());
             formDto.setVillageCommitteeId(subsidyPerson.getVillageCommitteeId());
             formDto.setUserCode(subsidyPerson.getUserCode());
@@ -305,9 +309,18 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
 
         if (existingPerson != null)
         {
-            if (StringUtils.equals(existingPerson.getIsAlive(), "0"))
+            if (StringUtils.equals(existingPerson.getSubsidyStatus(), "1"))
             {
-                throw new ServiceException("该人员已注销（死亡），不能办理失地居民登记");
+                throw new ServiceException("该人员已注销，不能办理失地居民登记");
+            }
+            // 如果新增人员为已存在人员且已经被认定为失地居民，不允许对该人进行重复补贴，应提示“该人员已被认定为失地居民，请核实后录入”
+            LandLossResident existLandLossResident = this.lambdaQuery()
+                .eq(LandLossResident::getSubsidyPersonId, existingPerson.getId())
+                .ne(Objects.nonNull(formDto.getId()), LandLossResident::getId, formDto.getId()) // 排除当前编辑的记录
+                .one();
+            if (existLandLossResident != null)
+            {
+                throw new ServiceException("该人员已被认定为失地居民，请核实后录入");
             }
             // 基础信息已存在，检查是否需要更新
             if (formDto.getPersonExists() != null && formDto.getPersonExists())
@@ -383,24 +396,6 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
             existingPerson.setPhone(formDto.getPhone());
             needUpdate = true;
         }
-        //  是否健在
-        if (!StringUtils.equals(existingPerson.getIsAlive(), formDto.getIsAlive()))
-        {
-            existingPerson.setIsAlive(formDto.getIsAlive());
-            needUpdate = true;
-        }
-        //  不健在，且死亡时间不相等
-        if (StringUtils.equals(formDto.getIsAlive(), "0") && !Objects.equals(existingPerson.getDeathDate(), formDto.getDeathDate()))
-        {
-            existingPerson.setDeathDate(formDto.getDeathDate());
-            needUpdate = true;
-        }
-        //  是否村合作经济组织成员
-        if (!StringUtils.equals(existingPerson.getIsVillageCoopMember(), formDto.getIsVillageCoopMember()))
-        {
-            existingPerson.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
-            needUpdate = true;
-        }
 
         // 如果有变化，执行更新
         if (needUpdate)
@@ -424,14 +419,13 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         newPerson.setBirthday(formDto.getBirthday());
         newPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
         newPerson.setPhone(formDto.getPhone());
-        newPerson.setIsAlive(formDto.getIsAlive());
-        newPerson.setDeathDate(formDto.getDeathDate());
-        newPerson.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
         newPerson.setStreetOfficeId(formDto.getStreetOfficeId());
         newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
         newPerson.setUserCode(formDto.getUserCode());
         newPerson.setStatus("0");
         newPerson.setApprovalStatus("draft");
+        newPerson.setPersonStatus("0");
+        newPerson.setSubsidyStatus("0");
 
         subsidyPersonService.insertSubsidyPerson(newPerson);
         return newPerson.getId();

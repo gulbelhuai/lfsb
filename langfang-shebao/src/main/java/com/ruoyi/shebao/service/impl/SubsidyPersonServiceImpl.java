@@ -452,7 +452,6 @@ public class SubsidyPersonServiceImpl extends ServiceImpl<SubsidyPersonMapper, S
         }
         return this.lambdaQuery()
                 .eq(SubsidyPerson::getIdCardNo, idCardNo)
-                .eq(SubsidyPerson::getIsAlive, "1")
                 .one();
     }
 
