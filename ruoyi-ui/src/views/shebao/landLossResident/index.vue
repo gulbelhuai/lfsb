@@ -685,6 +685,7 @@ export default {
           const data = response.data
           if (data.personExists) {
             // 基础信息存在，自动填充并标记
+            this.handleStreetOfficeChange(data.streetOfficeId)
             this.form.personExists = true
             this.form.subsidyPersonId = data.subsidyPersonId
             this.form.name = data.name
