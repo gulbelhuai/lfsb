@@ -623,7 +623,7 @@ export default {
     /** 修改按钮操作 */
     handleUpdate(row) {
       this.reset()
-      const id = row.id || this.ids
+      const id = row && row.id != null ? row.id : (Array.isArray(this.ids) ? this.ids[0] : this.ids)
       getExpropriateeSubsidy(id).then(response => {
         this.form = response.data
         this.open = true

@@ -66,4 +66,12 @@ public class ExpropriateeSubsidy extends BaseDomain
     /** 选择参加职工养老（0否 1是） */
     @Excel(name = "选择参加职工养老", readConverterExp = "0=否,1=是")
     private String joinEmployeePension;
+
+    /** 是否已领取职工养老保险待遇（0未领取 1已领取） */
+    @Excel(name = "职工养老保险", readConverterExp = "0=未领取,1=已领取")
+    private String hasEmployeePension;
+
+    /** 状态（0正常 1停用） */
+    @Excel(name = "状态", readConverterExp = "0=正常,1=停用")
+    private String status;
 }

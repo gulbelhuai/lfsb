@@ -63,6 +63,24 @@ public class ExpropriateeSubsidyFormDto
     /** 用户编号（格式：001-002-0001） */
     private String userCode;
 
+    /** 家庭住址 */
+    private String homeAddress;
+
+    /** 前端展示：籍贯（与 householdRegistration 同步） */
+    private String nativePlace;
+
+    /** 前端展示：村委会区划/编码（用于 DivisionSelector） */
+    private String villageCode;
+
+    /** 前端展示：村委会名称 */
+    private String villageName;
+
+    /** 前端展示：户别编号（基础表已移除时可留空） */
+    private String householdNo;
+
+    /** 是否已领取职工养老保险待遇（0未领取 1已领取），存于被征地补贴表 */
+    private String hasEmployeePension;
+
     // ===== 被征地参保补贴特有信息字段 =====
     /** 征地批次 */
     private String landRequisitionBatch;
