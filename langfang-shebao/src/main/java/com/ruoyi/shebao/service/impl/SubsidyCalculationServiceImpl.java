@@ -3,7 +3,7 @@ package com.ruoyi.shebao.service.impl;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.shebao.service.SubsidyCalculationService;
 import com.ruoyi.system.service.ISysConfigService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,7 +20,7 @@ import java.time.Period;
 @Service
 public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
 {
-    @Autowired
+    @Resource
     private ISysConfigService configService;
 
     /** 年平均工资系统参数key */
@@ -98,8 +98,12 @@ public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
                 .multiply(new BigDecimal("0.12"))  // 12%
                 .multiply(subsidyYears);           // 补贴年限
 
-        // 保留2位小数，四舍五入
-        return subsidyAmount.setScale(2, RoundingMode.HALF_UP);
+        // “补贴金额”四舍五入取整，当补贴年限为“1、2、4”时，保留两位小数。
+        int years = subsidyYears.intValue();
+        if (years == 1 || years == 2 || years == 4) {
+            return subsidyAmount.setScale(2, RoundingMode.HALF_UP);
+        }
+        return subsidyAmount.setScale(0, RoundingMode.HALF_UP);
     }
 
     /**

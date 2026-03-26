@@ -15,6 +15,7 @@ import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
 import com.ruoyi.shebao.service.ExpropriateeSubsidyService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.VillageCommitteeService;
+import jakarta.annotation.Resource;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,16 +38,16 @@ import java.util.Objects;
 @Service
 public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubsidyMapper, ExpropriateeSubsidy> implements ExpropriateeSubsidyService
 {
-    @Autowired
+    @Resource
     private ExpropriateeSubsidyMapper expropriateeSubsidyMapper;
 
-    @Autowired
+    @Resource
     private SubsidyPersonService subsidyPersonService;
 
-    @Autowired
+    @Resource
     private SubsidyDistributionMapper subsidyDistributionMapper;
 
-    @Autowired
+    @Resource
     private VillageCommitteeService villageCommitteeService;
 
     @Override
@@ -74,11 +75,14 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
     @Transactional(rollbackFor = Exception.class)
     public int insertExpropriateeSubsidy(ExpropriateeSubsidyFormDto formDto)
     {
+        validateBaseDate(formDto.getBaseDate());
+        validateSubsidyMode(formDto);
         Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
 
         ExpropriateeSubsidy entity = new ExpropriateeSubsidy();
         entity.setSubsidyPersonId(subsidyPersonId);
         entity.setLandRequisitionBatch(formDto.getLandRequisitionBatch());
+        entity.setVillageStreet(formDto.getVillageStreet());
         entity.setBaseDate(formDto.getBaseDate());
         entity.setEmployeePensionMonths(defaultInt(formDto.getEmployeePensionMonths()));
         entity.setFlexibleEmploymentMonths(defaultInt(formDto.getFlexibleEmploymentMonths()));
@@ -106,12 +110,15 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
     @Transactional(rollbackFor = Exception.class)
     public int updateExpropriateeSubsidy(ExpropriateeSubsidyFormDto formDto)
     {
+        validateBaseDate(formDto.getBaseDate());
+        validateSubsidyMode(formDto);
         Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
 
         ExpropriateeSubsidy entity = new ExpropriateeSubsidy();
         entity.setId(formDto.getId());
         entity.setSubsidyPersonId(subsidyPersonId);
         entity.setLandRequisitionBatch(formDto.getLandRequisitionBatch());
+        entity.setVillageStreet(formDto.getVillageStreet());
         entity.setBaseDate(formDto.getBaseDate());
         entity.setEmployeePensionMonths(defaultInt(formDto.getEmployeePensionMonths()));
         entity.setFlexibleEmploymentMonths(defaultInt(formDto.getFlexibleEmploymentMonths()));
@@ -212,7 +219,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
     {
         if (CollectionUtils.isEmpty(subsidyList))
         {
-            throw new RuntimeException("导入被征地参保补贴数据不能为空！");
+            throw new ServiceException("导入被征地参保补贴数据不能为空！");
         }
 
         int successNum = 0;
@@ -239,7 +246,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
         if (failureNum > 0)
         {
             failureMsg.insert(0, "很抱歉，导入失败！共 " + failureNum + " 条数据格式不正确，错误如下：");
-            throw new RuntimeException(failureMsg.toString());
+            throw new ServiceException(failureMsg.toString());
         }
         successMsg.insert(0, "恭喜您，数据已全部导入成功！共 " + successNum + " 条，数据如下：");
         return successMsg.toString();
@@ -251,7 +258,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
 
         if (StringUtils.isEmpty(formDto.getIdCardNo()))
         {
-            throw new RuntimeException("身份证号不能为空");
+            throw new ServiceException("身份证号不能为空");
         }
 
         SubsidyPerson existingPerson = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
@@ -434,5 +441,23 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
     private static String defaultFlag(String v)
     {
         return StringUtils.isNotEmpty(v) ? v : "0";
+    }
+
+    private static void validateBaseDate(LocalDate baseDate)
+    {
+        if (baseDate != null && baseDate.isAfter(LocalDate.now()))
+        {
+            throw new ServiceException("基准日不能晚于当前日期");
+        }
+    }
+
+    private static void validateSubsidyMode(ExpropriateeSubsidyFormDto formDto)
+    {
+        boolean urbanRural = "1".equals(formDto.getJoinUrbanRuralInsurance());
+        boolean employee = "1".equals(formDto.getJoinEmployeePension());
+        if (urbanRural == employee)
+        {
+            throw new ServiceException("补贴方式必须且只能选择一项");
+        }
     }
 }

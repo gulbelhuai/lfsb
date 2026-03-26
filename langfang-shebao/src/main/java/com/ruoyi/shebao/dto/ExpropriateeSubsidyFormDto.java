@@ -85,6 +85,9 @@ public class ExpropriateeSubsidyFormDto
     /** 征地批次 */
     private String landRequisitionBatch;
 
+    /** 征地时所在村街 */
+    private String villageStreet;
+
     /** 基准日 */
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate baseDate;

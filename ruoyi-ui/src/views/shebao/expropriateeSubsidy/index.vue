@@ -142,18 +142,19 @@
           <span>{{ scope.row.subsidyAmount ? scope.row.subsidyAmount.toFixed(2) : '0.00' }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="城乡居保" align="center" prop="joinUrbanRuralInsurance" width="100">
+      <el-table-column label="补贴方式" align="center" width="170">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.joinUrbanRuralInsurance === '1'" type="success">是</el-tag>
-          <el-tag v-else type="info">否</el-tag>
+          <el-tag v-if="scope.row.joinUrbanRuralInsurance === '1'" type="success">参加城乡居民养老保险</el-tag>
+          <el-tag v-else-if="scope.row.joinEmployeePension === '1'" type="warning">参加职工养老保险</el-tag>
+          <el-tag v-else type="info">未选择</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="职工养老" align="center" prop="joinEmployeePension" width="100">
+      <el-table-column label="审批状态" align="center" prop="approvalStatus" width="120">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.joinEmployeePension === '1'" type="success">是</el-tag>
-          <el-tag v-else type="info">否</el-tag>
+          <approval-status :status="scope.row.approvalStatus" />
         </template>
       </el-table-column>
+      <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
       <el-table-column label="状态" align="center" prop="status">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.sys_normal_disable" :value="scope.row.status"/>
@@ -196,7 +197,7 @@
           <div class="section-title">
             <i class="el-icon-user"></i>
             基础信息
-            <el-tag v-if="form.personExists" type="success" size="mini">人员已存在</el-tag>
+            <el-tag v-if="form.personExists" type="success" size="mini">{{ form.userCode }}</el-tag>
             <el-tag v-else type="info" size="mini">新增人员</el-tag>
           </div>
 
@@ -225,7 +226,7 @@
           </el-row>
 
           <el-row>
-            <el-col :span="8">
+            <el-col :span="12">
               <el-form-item label="性别" prop="gender">
                 <el-radio-group v-model="form.gender">
                   <el-radio
@@ -236,7 +237,7 @@
                 </el-radio-group>
               </el-form-item>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="12">
               <el-form-item label="生日" prop="birthday">
                 <el-date-picker
                   v-model="form.birthday"
@@ -244,43 +245,55 @@
                   placeholder="选择生日"
                   value-format="yyyy-MM-dd"
                   style="width: 100%"
-                  @change="calculateAge"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="联系电话" prop="phone">
-                <el-input v-model="form.phone" placeholder="请输入联系电话" />
               </el-form-item>
             </el-col>
           </el-row>
 
           <el-row>
             <el-col :span="12">
-              <el-form-item label="籍贯" prop="nativePlace">
-                <el-input v-model="form.nativePlace" placeholder="请输入籍贯" />
+              <el-form-item label="所属街道办" prop="streetOfficeId">
+                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" @change="handleStreetOfficeChange">
+                  <el-option
+                    v-for="item in streetOfficeOptions"
+                    :key="item.id"
+                    :label="item.streetName"
+                    :value="item.id"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="所属村委会" prop="villageCode">
-                <DivisionSelector
-                  ref="villageSelector"
-                  v-model="form.villageCode"
-                  mode="select"
-                  scenario="village"
-                  placeholder="请选择所属村委会"
-                  filterable
-                  clearable
-                  @change="handleVillageChange"
-                />
+              <el-form-item label="所属村委会" prop="villageCommitteeId">
+                <el-select v-model="form.villageCommitteeId" placeholder="请选择村委会">
+                  <el-option
+                    v-for="item in villageCommitteeOptions"
+                    :key="item.id"
+                    :label="item.villageName"
+                    :value="item.id"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
 
           <el-row>
             <el-col :span="24">
+              <el-form-item label="户籍所在地" prop="householdRegistration">
+                <el-input v-model="form.householdRegistration" placeholder="请输入户籍所在地" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
               <el-form-item label="家庭住址" prop="homeAddress">
                 <el-input v-model="form.homeAddress" placeholder="请输入家庭住址" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话" prop="phone">
+                <el-input v-model="form.phone" placeholder="请输入联系电话" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -294,21 +307,27 @@
           </div>
 
           <el-row>
-            <el-col :span="12">
+            <el-col :span="8">
               <el-form-item label="征地批次" prop="landRequisitionBatch">
                 <el-input v-model="form.landRequisitionBatch" placeholder="请输入征地批次" />
               </el-form-item>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="8">
               <el-form-item label="基准日" prop="baseDate">
                 <el-date-picker
                   v-model="form.baseDate"
                   type="date"
                   placeholder="选择基准日"
                   value-format="yyyy-MM-dd"
+                  :picker-options="baseDatePickerOptions"
                   style="width: 100%"
                   @change="calculateAge"
                 />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="征地时所在村街" prop="villageStreet">
+                <el-input v-model="form.villageStreet" placeholder="请输入征地时所在村街" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -355,41 +374,11 @@
           </el-row>
 
           <el-row>
-            <el-col :span="12">
-              <el-form-item label="选择参加城乡居保" prop="joinUrbanRuralInsurance">
-                <el-radio-group v-model="form.joinUrbanRuralInsurance">
-                  <el-radio label="0">否</el-radio>
-                  <el-radio label="1">是</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="选择参加职工养老" prop="joinEmployeePension">
-                <el-radio-group v-model="form.joinEmployeePension">
-                  <el-radio label="0">否</el-radio>
-                  <el-radio label="1">是</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-row>
-            <el-col :span="12">
-              <el-form-item label="职工养老保险" prop="hasEmployeePension">
-                <el-radio-group v-model="form.hasEmployeePension">
-                  <el-radio label="0">未领取</el-radio>
-                  <el-radio label="1">已领取</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="状态">
-                <el-radio-group v-model="form.status">
-                  <el-radio
-                    v-for="dict in dict.type.sys_normal_disable"
-                    :key="dict.value"
-                    :label="dict.value"
-                  >{{dict.label}}</el-radio>
+            <el-col :span="24">
+              <el-form-item label="补贴方式" prop="subsidyMode">
+                <el-radio-group v-model="form.subsidyMode">
+                  <el-radio label="urban_rural">参加城乡居民养老保险</el-radio>
+                  <el-radio label="employee">参加职工养老保险</el-radio>
                 </el-radio-group>
               </el-form-item>
             </el-col>
@@ -446,13 +435,17 @@
 <script>
 import { listExpropriateeSubsidy, getExpropriateeSubsidy, delExpropriateeSubsidy, addExpropriateeSubsidy, updateExpropriateeSubsidy, getFormDataByIdCardNo, calculateSubsidy } from "@/api/shebao/expropriateeSubsidy"
 import { getToken } from "@/utils/auth"
+import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
+import { getVillageCommitteeByStreetOffice } from "@/api/shebao/villageCommittee"
 import DivisionSelector from "@/components/DivisionSelector"
+import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
 
 export default {
   name: "ExpropriateeSubsidy",
   components: {
-    DivisionSelector
+    DivisionSelector,
+    ApprovalStatus
   },
   dicts: ['sys_normal_disable', 'sys_user_sex'],
   data() {
@@ -471,12 +464,24 @@ export default {
       total: 0,
       // 被征地参保补贴表格数据
       expropriateeSubsidyList: [],
+      // 街道办选项
+      streetOfficeOptions: [],
+      // 村委会选项
+      villageCommitteeOptions: [],
       // 弹出层标题
       title: "",
       // 是否显示弹出层
       open: false,
       // 基准日范围
       baseDateRange: [],
+      // 基准日可选范围（不可晚于今天）
+      baseDatePickerOptions: {
+        disabledDate(time) {
+          const todayEnd = new Date()
+          todayEnd.setHours(23, 59, 59, 999)
+          return time.getTime() > todayEnd.getTime()
+        }
+      },
       // 查询参数
       queryParams: {
         pageNum: 1,
@@ -509,21 +514,17 @@ export default {
         birthday: [
           { required: true, message: "请选择生日", trigger: "change" }
         ],
-        nativePlace: [
-          { required: true, message: "籍贯不能为空", trigger: "blur" }
+        householdRegistration: [
+          { required: true, message: "户籍所在地不能为空", trigger: "blur" }
         ],
-        phone: [
-          { required: true, message: "联系电话不能为空", trigger: "blur" },
-          { pattern: /^(1[3-9]\d{9}|\d{7,12})$/, message: "请输入正确的手机号或固话", trigger: "blur" }
+        streetOfficeId: [
+          { required: true, message: "请选择所属街道办", trigger: "change" }
         ],
-        homeAddress: [
-          { required: true, message: "家庭住址不能为空", trigger: "blur" }
-        ],
-        villageCode: [
+        villageCommitteeId: [
           { required: true, message: "请选择所属村委会", trigger: "change" }
         ],
-        hasEmployeePension: [
-          { required: true, message: "请选择是否已领取职工养老保险待遇", trigger: "change" }
+        subsidyMode: [
+          { required: true, message: "请选择补贴方式", trigger: "change" }
         ]
       },
       // 被征地参保补贴导入参数
@@ -544,6 +545,7 @@ export default {
     }
   },
   created() {
+    this.getStreetOfficeOptions()
     this.getList()
   },
   methods: {
@@ -572,15 +574,17 @@ export default {
         gender: null,
         idCardNo: null,
         birthday: null,
-        nativePlace: null,
+        householdRegistration: null,
         phone: null,
         homeAddress: null,
-        villageCode: null,
-        villageName: null,
-        householdNo: null,
+        streetOfficeId: null,
+        villageCommitteeId: null,
+        userCode: null,
         hasEmployeePension: "0",
+        subsidyMode: "urban_rural",
         // 被征地参保补贴信息
         landRequisitionBatch: null,
+        villageStreet: null,
         baseDate: null,
         employeePensionMonths: 0,
         flexibleEmploymentMonths: 0,
@@ -625,7 +629,9 @@ export default {
       this.reset()
       const id = row && row.id != null ? row.id : (Array.isArray(this.ids) ? this.ids[0] : this.ids)
       getExpropriateeSubsidy(id).then(response => {
+        this.handleStreetOfficeChange(response.data.streetOfficeId)
         this.form = response.data
+        this.syncSubsidyModeFromFlags()
         this.open = true
         this.title = "修改被征地参保补贴"
       })
@@ -634,6 +640,7 @@ export default {
     submitForm() {
       this.$refs["form"].validate(valid => {
         if (valid) {
+          this.syncSubsidyFlagsFromMode()
           if (this.form.id != null) {
             updateExpropriateeSubsidy(this.form).then(response => {
               this.$modal.msgSuccess("修改成功")
@@ -725,17 +732,18 @@ export default {
           const data = response.data
           if (data.personExists) {
             // 基础信息存在，自动填充并标记
+            this.handleStreetOfficeChange(data.streetOfficeId)
             this.form.personExists = true
             this.form.subsidyPersonId = data.subsidyPersonId
             this.form.name = data.name
             this.form.gender = data.gender
             this.form.birthday = data.birthday
-            this.form.nativePlace = data.nativePlace
+            this.form.householdRegistration = data.householdRegistration
             this.form.phone = data.phone
             this.form.homeAddress = data.homeAddress
-            this.form.villageCode = data.villageCode
-            this.form.villageName = data.villageName
-            this.form.householdNo = data.householdNo
+            this.form.streetOfficeId = data.streetOfficeId
+            this.form.villageCommitteeId = data.villageCommitteeId
+            this.form.userCode = data.userCode
             this.form.hasEmployeePension = data.hasEmployeePension
 
             // 重新计算年龄
@@ -757,10 +765,43 @@ export default {
       }
     },
 
-    /** 村委会选择变化处理 */
-    handleVillageChange(villageCode, villageData) {
-      if (villageData) {
-        this.form.villageName = villageData.divisionName
+    /** 获取街道办选项 */
+    getStreetOfficeOptions() {
+      getStreetOfficeSelectList().then(response => {
+        this.streetOfficeOptions = response.data
+      })
+    },
+
+    /** 街道办选择变化处理 */
+    handleStreetOfficeChange(streetOfficeId) {
+      this.form.villageCommitteeId = null
+      this.villageCommitteeOptions = []
+      if (streetOfficeId) {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
+          this.villageCommitteeOptions = response.data
+        })
+      }
+    },
+
+    // 单选补贴方式 -> 后端双字段
+    syncSubsidyFlagsFromMode() {
+      if (this.form.subsidyMode === "urban_rural") {
+        this.form.joinUrbanRuralInsurance = "1"
+        this.form.joinEmployeePension = "0"
+      } else if (this.form.subsidyMode === "employee") {
+        this.form.joinUrbanRuralInsurance = "0"
+        this.form.joinEmployeePension = "1"
+      }
+    },
+
+    // 后端双字段 -> 单选补贴方式
+    syncSubsidyModeFromFlags() {
+      if (this.form.joinUrbanRuralInsurance === "1") {
+        this.form.subsidyMode = "urban_rural"
+      } else if (this.form.joinEmployeePension === "1") {
+        this.form.subsidyMode = "employee"
+      } else {
+        this.form.subsidyMode = "urban_rural"
       }
     },
 

@@ -40,6 +40,9 @@ public class ExpropriateeSubsidyListResp
     /** 征地批次 */
     private String landRequisitionBatch;
 
+    /** 征地时所在村街 */
+    private String villageStreet;
+
     /** 基准日 */
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate baseDate;
@@ -61,6 +64,9 @@ public class ExpropriateeSubsidyListResp
 
     /** 状态（0正常 1停用） */
     private String status;
+
+    /** 审批状态（draft/pending_review/approved/rejected） */
+    private String approvalStatus;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

@@ -31,6 +31,10 @@ public class ExpropriateeSubsidy extends BaseDomain
     @Excel(name = "征地批次")
     private String landRequisitionBatch;
 
+    /** 征地时所在村街 */
+    @Excel(name = "征地时所在村街")
+    private String villageStreet;
+
     /** 基准日 */
     @Excel(name = "基准日", dateFormat = "yyyy-MM-dd")
     private LocalDate baseDate;
