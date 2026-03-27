@@ -702,6 +702,11 @@ export default {
     /** 身份证号输入处理 */
     handleIdCardInputChange(value) {
       this.form.idCardNo = handleIdCardInput(value)
+      if (!this.form.idCardNo || this.form.idCardNo.length < 18) {
+        this.form.userCode = null
+        this.form.subsidyPersonId = null
+        this.form.personExists = false
+      }
     },
 
     /** 身份证号失焦处理 - 智能填充基础信息 */
@@ -751,9 +756,10 @@ export default {
 
             this.$message.success('人员存在，已自动填充该人员的基础信息')
           } else {
-            // 基础信息不存在，保留从身份证提取的信息
+            // 基础信息不存在，保留从身份证提取的信息；清空上一人带来的 userCode，避免新增时重复
             this.form.personExists = false
             this.form.subsidyPersonId = null
+            this.form.userCode = null
 
             // 重新计算年龄
             this.calculateAge()
@@ -761,7 +767,12 @@ export default {
         }).catch(() => {
           this.form.personExists = false
           this.form.subsidyPersonId = null
+          this.form.userCode = null
         })
+      } else {
+        this.form.userCode = null
+        this.form.subsidyPersonId = null
+        this.form.personExists = false
       }
     },
 

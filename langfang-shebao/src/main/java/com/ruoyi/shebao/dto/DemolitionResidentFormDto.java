@@ -77,6 +77,9 @@ public class DemolitionResidentFormDto
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate recognitionTime;
 
+    /** 认定时所在村街 */
+    private String villageStreet;
+
     /** 备注 */
     private String remark;
 }

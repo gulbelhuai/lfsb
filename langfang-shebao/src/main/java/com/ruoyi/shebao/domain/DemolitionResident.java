@@ -37,4 +37,8 @@ public class DemolitionResident extends BaseDomain
     /** 认定为拆迁居民时间 */
     @Excel(name = "认定为拆迁居民时间", dateFormat = "yyyy-MM-dd")
     private LocalDate recognitionTime;
+
+    /** 认定时所在村街 */
+    @Excel(name = "认定时所在村街")
+    private String villageStreet;
 }

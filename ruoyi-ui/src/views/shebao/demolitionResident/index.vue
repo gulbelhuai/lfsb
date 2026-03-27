@@ -26,7 +26,7 @@
         />
       </el-form-item>
       <el-form-item label="所属街道办" prop="streetOfficeId">
-        <el-select v-model="queryParams.streetOfficeId" placeholder="请选择所属街道办" clearable @change="handleStreetOfficeChange">
+        <el-select v-model="queryParams.streetOfficeId" placeholder="请选择所属街道办" clearable @change="handleQueryStreetOfficeChange">
           <el-option
             v-for="item in streetOfficeOptions"
             :key="item.id"
@@ -135,22 +135,15 @@
       </el-table-column>
       <!-- <el-table-column label="生日" align="center" prop="birthday" width="120" /> -->
       <el-table-column label="联系电话" align="center" prop="phone" width="120" />
-      <el-table-column label="是否健在" align="center" prop="isAlive" width="100">
-        <template slot-scope="scope">
-          <el-tag v-if="scope.row.isAlive === '1'" type="success">是</el-tag>
-          <el-tag v-else type="danger">否</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="是否村合成员" align="center" prop="isVillageCoopMember" width="100">
-        <template slot-scope="scope">
-          <el-tag v-if="scope.row.isVillageCoopMember === '1'" type="success">是</el-tag>
-          <el-tag v-else type="info">否</el-tag>
-        </template>
-      </el-table-column>
       <el-table-column label="所属街道办" align="center" prop="streetOfficeName" />
       <el-table-column label="所属村委会" align="center" prop="villageCommitteeName" />
       <el-table-column label="拆迁时间" align="center" prop="demolitionTime" width="120" />
       <el-table-column label="认定时间" align="center" prop="recognitionTime" width="120" />
+      <el-table-column label="审批状态" align="center" prop="approvalStatus" width="100">
+        <template slot-scope="scope">
+          <approval-status :status="scope.row.approvalStatus" />
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
@@ -230,7 +223,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="生日" prop="birthday">
+              <el-form-item label="生日" prop="birthday" v-show="false">
                 <el-date-picker
                   v-model="form.birthday"
                   type="date"
@@ -245,7 +238,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="所属街道办" prop="streetOfficeId">
-                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" @change="handleStreetOfficeChange">
+                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" @change="handleFormStreetOfficeChange">
                   <el-option
                     v-for="item in streetOfficeOptions"
                     :key="item.id"
@@ -282,38 +275,9 @@
           </el-row>
 
           <el-row>
-            <el-col :span="12">
-              <el-form-item label="是否村合作经济组织成员" prop="isVillageCoopMember">
-                <el-radio-group v-model="form.isVillageCoopMember">
-                  <el-radio label="1">是</el-radio>
-                  <el-radio label="0">否</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
+            <el-col :span="24">
               <el-form-item label="联系电话" prop="phone">
                 <el-input v-model="form.phone" placeholder="请输入联系电话" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="12">
-              <el-form-item label="是否健在" prop="isAlive">
-                <el-radio-group v-model="form.isAlive" @change="handleIsAliveChange">
-                  <el-radio label="1">是</el-radio>
-                  <el-radio label="0">否</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="死亡时间" prop="deathDate" v-show="form.isAlive === '0'">
-                <el-date-picker
-                  v-model="form.deathDate"
-                  type="date"
-                  placeholder="选择死亡时间"
-                  value-format="yyyy-MM-dd"
-                  style="width: 100%"
-                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -341,6 +305,7 @@
                   placeholder="选择拆迁时间"
                   value-format="yyyy-MM-dd"
                   style="width: 100%"
+                  @change="handleFormDemolitionTimeChange"
                 />
               </el-form-item>
             </el-col>
@@ -356,6 +321,11 @@
                   value-format="yyyy-MM-dd"
                   style="width: 100%"
                 />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="认定时所在村街" prop="villageStreet">
+                <el-input v-model="form.villageStreet" placeholder="请输入认定时所在村街" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -412,7 +382,7 @@
 import { listDemolitionResident, getDemolitionResident, delDemolitionResident, addDemolitionResident, updateDemolitionResident, getFormDataByIdCardNo } from "@/api/shebao/demolitionResident"
 import { getToken } from "@/utils/auth"
 import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
-import { getVillageCommitteeSelectList } from "@/api/shebao/villageCommittee"
+import { getVillageCommitteeByStreetOffice } from "@/api/shebao/villageCommittee"
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
 import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 
@@ -482,35 +452,45 @@ export default {
           { required: true, message: "户籍所在地不能为空", trigger: "blur" }
         ],
         homeAddress: [
-          { required: true, message: "家庭住址不能为空", trigger: "blur" }
+          { max: 255, message: "家庭住址长度不能超过255个字符", trigger: "blur" }
         ],
         phone: [
-          { required: true, message: "联系电话不能为空", trigger: "blur" },
-          { pattern: /^(1[3-9]\d{9}|\d{7,12})$/, message: "请输入正确的手机号或固话", trigger: "blur" }
-        ],
-        isAlive: [
-          { required: true, message: "请选择是否健在", trigger: "change" }
-        ],
-        deathDate: [
           {
             validator: (rule, value, callback) => {
-              if (this.form.isAlive === '0' && !value) {
-                callback(new Error('死亡时间不能为空'))
+              if (!value) {
+                callback()
+                return
+              }
+              if (!/^(1[3-9]\d{9}|\d{7,12})$/.test(value)) {
+                callback(new Error("请输入正确的手机号或固话"))
               } else {
                 callback()
               }
             },
-            trigger: "change"
+            trigger: "blur"
           }
-        ],
-        isVillageCoopMember: [
-          { required: true, message: "请选择是否村合作经济组织成员", trigger: "change" }
         ],
         streetOfficeId: [
           { required: true, message: "请选择所属街道办", trigger: "change" }
         ],
         villageCommitteeId: [
           { required: true, message: "请选择所属村委会", trigger: "change" }
+        ],
+        recognitionTime: [
+          {
+            validator: (rule, value, callback) => {
+              if (!value || !this.form.demolitionTime) {
+                callback()
+                return
+              }
+              if (new Date(value).getTime() <= new Date(this.form.demolitionTime).getTime()) {
+                callback(new Error("认定为拆迁居民时间应晚于拆迁时间"))
+              } else {
+                callback()
+              }
+            },
+            trigger: "change"
+          }
         ]
       },
       // 拆迁居民导入参数
@@ -573,6 +553,7 @@ export default {
         demolitionReason: null,
         demolitionTime: null,
         recognitionTime: null,
+        villageStreet: null,
         remark: null
       }
       this.resetForm("form")
@@ -607,13 +588,10 @@ export default {
       this.reset()
       const id = row.id || this.ids
       getDemolitionResident(id).then(response => {
+        this.handleFormStreetOfficeChange(response.data.streetOfficeId)
         this.form = response.data
         this.open = true
         this.title = "修改拆迁居民信息"
-        // 加载村委会选项
-        if (this.form.streetOfficeId) {
-          this.loadVillageCommitteeOptions(this.form.streetOfficeId)
-        }
       })
     },
     /** 提交按钮 */
@@ -690,6 +668,12 @@ export default {
     /** 身份证号输入处理 */
     handleIdCardInputChange(value) {
       this.form.idCardNo = handleIdCardInput(value)
+      // 身份证号未凑满 18 位时，清空已关联人员标识，避免从「已存在人员」改成另一身份证后仍带上旧 userCode
+      if (!this.form.idCardNo || this.form.idCardNo.length < 18) {
+        this.form.userCode = null
+        this.form.subsidyPersonId = null
+        this.form.personExists = false
+      }
     },
 
     /** 身份证号失焦处理 - 智能填充基础信息 */
@@ -719,7 +703,8 @@ export default {
         getFormDataByIdCardNo(this.form.idCardNo).then(response => {
           const data = response.data
           if (data.personExists) {
-            // 基础信息存在，自动填充并标记
+            // 基础信息存在，自动填充并标记（先拉取村委会选项再回填）
+            this.handleFormStreetOfficeChange(data.streetOfficeId)
             this.form.personExists = true
             this.form.subsidyPersonId = data.subsidyPersonId
             this.form.name = data.name
@@ -737,25 +722,30 @@ export default {
 
             this.$message.success('人员存在，已自动填充该人员的基础信息')
           } else {
-            // 基础信息不存在，保留从身份证提取的信息
+            // 基础信息不存在：保留身份证解析出的性别/生日等，必须清空上一人带来的 userCode，否则新增会带旧编号导致重复
             this.form.personExists = false
             this.form.subsidyPersonId = null
+            this.form.userCode = null
           }
         }).catch(() => {
           this.form.personExists = false
           this.form.subsidyPersonId = null
+          this.form.userCode = null
         })
+      } else {
+        this.form.userCode = null
+        this.form.subsidyPersonId = null
+        this.form.personExists = false
       }
     },
-    /** 拆迁时间范围变化处理 */
-    handleDemolitionTimeChange(timeRange) {
-      if (timeRange && timeRange.length === 2) {
-        this.queryParams.demolitionTimeStart = timeRange[0]
-        this.queryParams.demolitionTimeEnd = timeRange[1]
-      } else {
-        this.queryParams.demolitionTimeStart = null
-        this.queryParams.demolitionTimeEnd = null
-      }
+
+    /** 表单内：拆迁时间变化后重新校验认定时间 */
+    handleFormDemolitionTimeChange() {
+      this.$nextTick(() => {
+        if (this.$refs.form) {
+          this.$refs.form.validateField("recognitionTime")
+        }
+      })
     },
 
     /** 获取街道办选项 */
@@ -765,33 +755,26 @@ export default {
       })
     },
 
-    /** 街道办选择变化处理 */
-    handleStreetOfficeChange(streetOfficeId) {
-      this.form.villageCommitteeId = null
+    /** 搜索区：街道办变化 */
+    handleQueryStreetOfficeChange(streetOfficeId) {
+      this.queryParams.villageCommitteeId = null
       this.villageCommitteeOptions = []
       if (streetOfficeId) {
-        getVillageCommitteeSelectList(streetOfficeId).then(response => {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
           this.villageCommitteeOptions = response.data
         })
       }
     },
 
-    /** 是否健在选择变化处理 */
-    handleIsAliveChange(value) {
-      if (value === '1') {
-        this.form.deathDate = null
-        // 清除死亡时间字段的验证错误
-        this.$nextTick(() => {
-          this.$refs.form.clearValidate('deathDate')
+    /** 表单：街道办变化 */
+    handleFormStreetOfficeChange(streetOfficeId) {
+      this.form.villageCommitteeId = null
+      this.villageCommitteeOptions = []
+      if (streetOfficeId) {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
+          this.villageCommitteeOptions = response.data
         })
       }
-    },
-
-    /** 加载村委会选项 */
-    loadVillageCommitteeOptions(streetOfficeId) {
-      getVillageCommitteeSelectList(streetOfficeId).then(response => {
-        this.villageCommitteeOptions = response.data
-      })
     }
   }
 }

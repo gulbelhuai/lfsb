@@ -10,6 +10,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="demolitionReason"            column="demolition_reason"           />
         <result property="demolitionTime"              column="demolition_time"             />
         <result property="recognitionTime"             column="recognition_time"            />
+        <result property="villageStreet"               column="village_street"              />
         <result property="delFlag"                     column="del_flag"                    />
         <result property="createBy"                    column="create_by"                   />
         <result property="createTime"                  column="create_time"                 />
@@ -24,6 +25,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="demolitionReason"            column="demolition_reason"           />
         <result property="demolitionTime"              column="demolition_time"             />
         <result property="recognitionTime"             column="recognition_time"            />
+        <result property="villageStreet"               column="village_street"              />
         <result property="createTime"                  column="create_time"                 />
         <result property="updateTime"                  column="update_time"                 />
         <result property="remark"                      column="remark"                      />
@@ -52,6 +54,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="demolitionReason"            column="demolition_reason"           />
         <result property="demolitionTime"              column="demolition_time"             />
         <result property="recognitionTime"             column="recognition_time"            />
+        <result property="villageStreet"               column="village_street"              />
         <result property="remark"                      column="dr_remark"                   />
         <!-- 基础信息字段 -->
         <result property="name"                        column="name"                        />
@@ -70,16 +73,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectDemolitionResidentVo">
-        select dr.id, dr.subsidy_person_id, dr.demolition_reason, 
-               dr.demolition_time, dr.recognition_time, 
+        select dr.id, dr.subsidy_person_id, dr.demolition_reason,
+               dr.demolition_time, dr.recognition_time, dr.village_street,
                dr.status, dr.del_flag, dr.create_by, dr.create_time, 
                dr.update_by, dr.update_time, dr.remark 
         from shebao_demolition_resident dr
     </sql>
 
     <select id="selectDemolitionResidentList" parameterType="com.ruoyi.shebao.dto.DemolitionResidentListReq" resultMap="DemolitionResidentListRespResult">
-        select dr.id, dr.subsidy_person_id, dr.demolition_reason, 
-               dr.demolition_time, dr.recognition_time, 
+        select dr.id, dr.subsidy_person_id, dr.demolition_reason,
+               dr.demolition_time, dr.recognition_time, dr.village_street,
                dr.create_time, dr.update_time, dr.remark,
                 sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
                 sp.is_alive, sp.death_date, sp.is_village_coop_member,
@@ -123,8 +126,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectDemolitionResidentFormById" parameterType="Long" resultMap="DemolitionResidentFormResult">
-        select dr.id, dr.subsidy_person_id, dr.demolition_reason, 
-               dr.demolition_time, dr.recognition_time, 
+        select dr.id, dr.subsidy_person_id, dr.demolition_reason,
+               dr.demolition_time, dr.recognition_time, dr.village_street,
                dr.status as dr_status, dr.remark as dr_remark,
                sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
                sp.is_alive, sp.death_date, sp.is_village_coop_member,
@@ -143,12 +146,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <insert id="batchInsertDemolitionResident" parameterType="java.util.List">
         insert into shebao_demolition_resident
-        (subsidy_person_id, demolition_reason, demolition_time, 
-         recognition_time, status, create_by, create_time, remark)
+        (subsidy_person_id, demolition_reason, demolition_time,
+         recognition_time, village_street, status, create_by, create_time, remark)
         values
         <foreach collection="list" item="item" separator=",">
-            (#{item.subsidyPersonId}, #{item.demolitionReason}, #{item.demolitionTime}, 
-             #{item.recognitionTime}, #{item.status}, #{item.createBy}, 
+            (#{item.subsidyPersonId}, #{item.demolitionReason}, #{item.demolitionTime},
+             #{item.recognitionTime}, #{item.villageStreet}, #{item.status}, #{item.createBy},
              #{item.createTime}, #{item.remark})
         </foreach>
     </insert>

@@ -64,6 +64,7 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
     @Transactional(rollbackFor = Exception.class)
     public int insertDemolitionResident(DemolitionResidentFormDto formDto)
     {
+        validateTimeRelation(formDto);
         Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
 
         DemolitionResident demolitionResident = new DemolitionResident();
@@ -71,6 +72,7 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
         demolitionResident.setDemolitionReason(formDto.getDemolitionReason());
         demolitionResident.setDemolitionTime(formDto.getDemolitionTime());
         demolitionResident.setRecognitionTime(formDto.getRecognitionTime());
+        demolitionResident.setVillageStreet(formDto.getVillageStreet());
         demolitionResident.setRemark(formDto.getRemark());
         demolitionResident.setCreateBy(SecurityUtils.getUsername());
         demolitionResident.setCreateTime(LocalDateTime.now());
@@ -86,6 +88,7 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
     @Transactional(rollbackFor = Exception.class)
     public int updateDemolitionResident(DemolitionResidentFormDto formDto)
     {
+        validateTimeRelation(formDto);
         Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
 
         DemolitionResident demolitionResident = new DemolitionResident();
@@ -94,6 +97,7 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
         demolitionResident.setDemolitionReason(formDto.getDemolitionReason());
         demolitionResident.setDemolitionTime(formDto.getDemolitionTime());
         demolitionResident.setRecognitionTime(formDto.getRecognitionTime());
+        demolitionResident.setVillageStreet(formDto.getVillageStreet());
         demolitionResident.setRemark(formDto.getRemark());
         demolitionResident.setUpdateBy(SecurityUtils.getUsername());
         demolitionResident.setUpdateTime(LocalDateTime.now());
@@ -228,6 +232,15 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
             {
                 throw new ServiceException("该人员已注销（死亡），不能办理拆迁居民登记");
             }
+            DemolitionResident existDemolitionResident = this.lambdaQuery()
+                .eq(DemolitionResident::getSubsidyPersonId, existingPerson.getId())
+                .ne(Objects.nonNull(formDto.getId()), DemolitionResident::getId, formDto.getId())
+                .last("limit 1")
+                .one();
+            if (existDemolitionResident != null)
+            {
+                throw new ServiceException("该人员已被认定为拆迁居民，请核实后录入");
+            }
             if (Boolean.TRUE.equals(formDto.getPersonExists()))
             {
                 updateExistingSubsidyPerson(existingPerson, formDto);
@@ -322,6 +335,16 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
         newPerson.setApprovalStatus("draft");
         subsidyPersonService.insertSubsidyPerson(newPerson);
         return newPerson.getId();
+    }
+
+    private void validateTimeRelation(DemolitionResidentFormDto formDto)
+    {
+        if (formDto.getDemolitionTime() != null
+            && formDto.getRecognitionTime() != null
+            && !formDto.getRecognitionTime().isAfter(formDto.getDemolitionTime()))
+        {
+            throw new ServiceException("认定为拆迁居民时间应晚于拆迁时间");
+        }
     }
 
     private void markPersonPendingReview(Long subsidyPersonId)

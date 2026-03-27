@@ -93,6 +93,10 @@ public class DemolitionResidentListResp
     @Excel(name = "认定为拆迁居民时间", sort = 18, dateFormat = "yyyy-MM-dd")
     private LocalDate recognitionTime;
 
+    /** 认定时所在村街 */
+    @Excel(name = "认定时所在村街", sort = 19)
+    private String villageStreet;
+
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Excel(name = "创建时间", sort = 20, dateFormat = "yyyy-MM-dd HH:mm:ss")
