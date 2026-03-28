@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -114,9 +115,9 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         // 创建村干部信息
         VillageOfficial villageOfficial = new VillageOfficial();
         villageOfficial.setSubsidyPersonId(subsidyPersonId);
-        villageOfficial.setTotalServiceYears(formDto.getTotalServiceYears());
+        villageOfficial.setSubsidyAmount(formDto.getSubsidyAmount());
         villageOfficial.setHasViolation(formDto.getHasViolation());
-        // 删除status字段，不再设置
+        villageOfficial.setVillageStreet(formDto.getVillageStreet());
         villageOfficial.setRemark(formDto.getRemark());
         villageOfficial.setCreateTime(LocalDateTime.now());
         villageOfficial.setCreateBy(SecurityUtils.getUsername());
@@ -150,9 +151,9 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         VillageOfficial villageOfficial = new VillageOfficial();
         villageOfficial.setId(formDto.getId());
         villageOfficial.setSubsidyPersonId(subsidyPersonId);
-        villageOfficial.setTotalServiceYears(formDto.getTotalServiceYears());
+        villageOfficial.setSubsidyAmount(formDto.getSubsidyAmount());
         villageOfficial.setHasViolation(formDto.getHasViolation());
-        // 删除status字段，不再设置
+        villageOfficial.setVillageStreet(formDto.getVillageStreet());
         villageOfficial.setRemark(formDto.getRemark());
         villageOfficial.setUpdateTime(LocalDateTime.now());
         villageOfficial.setUpdateBy(SecurityUtils.getUsername());
@@ -362,6 +363,14 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             {
                 throw new ServiceException("该人员已注销（死亡），不能办理村干部登记");
             }
+            VillageOfficial existOfficial = this.lambdaQuery()
+                .eq(VillageOfficial::getSubsidyPersonId, existingPerson.getId())
+                .ne(Objects.nonNull(formDto.getId()), VillageOfficial::getId, formDto.getId())
+                .one();
+            if (existOfficial != null)
+            {
+                throw new ServiceException("该人员已被认定为村干部，请核实后录入");
+            }
             // 基础信息已存在，检查是否需要更新
             if (formDto.getPersonExists() != null && formDto.getPersonExists())
             {
@@ -396,6 +405,11 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         if (!StringUtils.equals(existingPerson.getGender(), formDto.getGender()))
         {
             existingPerson.setGender(formDto.getGender());
+            needUpdate = true;
+        }
+        if (!Objects.equals(existingPerson.getBirthday(), formDto.getBirthday()))
+        {
+            existingPerson.setBirthday(formDto.getBirthday());
             needUpdate = true;
         }
         if (!StringUtils.equals(existingPerson.getHouseholdRegistration(), formDto.getHouseholdRegistration()))
@@ -467,14 +481,16 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         newPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
         newPerson.setHomeAddress(formDto.getHomeAddress());
         newPerson.setPhone(formDto.getPhone());
-        newPerson.setIsAlive(formDto.getIsAlive());
+        newPerson.setIsAlive(StringUtils.isNotEmpty(formDto.getIsAlive()) ? formDto.getIsAlive() : "1");
         newPerson.setDeathDate(formDto.getDeathDate());
-        newPerson.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
+        newPerson.setIsVillageCoopMember(StringUtils.isNotEmpty(formDto.getIsVillageCoopMember()) ? formDto.getIsVillageCoopMember() : "1");
         newPerson.setStreetOfficeId(formDto.getStreetOfficeId());
         newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
         newPerson.setUserCode(formDto.getUserCode());
         newPerson.setStatus("0");
         newPerson.setApprovalStatus("draft");
+        newPerson.setPersonStatus("0");
+        newPerson.setSubsidyStatus("0");
 
         subsidyPersonService.insertSubsidyPerson(newPerson);
         return newPerson.getId();
@@ -538,6 +554,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             position.setPosition(dto.getPosition());
             position.setStartDate(dto.getStartDate());
             position.setEndDate(dto.getEndDate());
+            position.setServiceYears(computePositionServiceYears(dto.getStartDate(), dto.getEndDate()));
             position.setStatus(dto.getStatus() != null ? dto.getStatus() : "0");
             position.setRemark(dto.getRemark());
             position.setCreateTime(LocalDateTime.now());
@@ -546,6 +563,21 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         }
 
         villageOfficialPositionMapper.batchInsertPositions(positionList);
+    }
+
+    /** 任职年限：上任至卸任（或当前日期）之间的整年数，与 ChronoUnit.YEARS.between 一致 */
+    private static Integer computePositionServiceYears(LocalDate startDate, LocalDate endDate)
+    {
+        if (startDate == null)
+        {
+            return null;
+        }
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        if (end.isBefore(startDate))
+        {
+            return null;
+        }
+        return (int) ChronoUnit.YEARS.between(startDate, end);
     }
 
     /**

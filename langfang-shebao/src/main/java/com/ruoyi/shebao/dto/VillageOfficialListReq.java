@@ -4,8 +4,6 @@ import com.ruoyi.common.core.page.PageReq;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.math.BigDecimal;
-
 /**
  * 村干部信息查询请求
  * 
@@ -22,18 +20,15 @@ public class VillageOfficialListReq extends PageReq
     /** 身份证号 */
     private String idCardNo;
 
-    /** 所属村委会编码 */
-    private String villageCode;
+    /** 用户编号 */
+    private String userCode;
 
-    /** 累计任职年限-最小值 */
-    private BigDecimal totalServiceYearsMin;
+    /** 所属街道办ID */
+    private Long streetOfficeId;
 
-    /** 累计任职年限-最大值 */
-    private BigDecimal totalServiceYearsMax;
+    /** 所属村委会ID */
+    private Long villageCommitteeId;
 
     /** 是否违法乱纪或判刑（0否 1是） */
     private String hasViolation;
-
-    /** 状态（0正常 1停用） */
-    private String status;
 }

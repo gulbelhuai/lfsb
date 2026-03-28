@@ -24,6 +24,9 @@ public class VillageOfficialListResp
     /** 姓名（来自基础信息） */
     private String name;
 
+    /** 用户编号（来自基础信息） */
+    private String userCode;
+
     /** 身份证号（来自基础信息） */
     private String idCardNo;
 
@@ -33,11 +36,17 @@ public class VillageOfficialListResp
     /** 联系电话（来自基础信息） */
     private String phone;
 
+    /** 所属街道办名称（来自基础信息） */
+    private String streetOfficeName;
+
     /** 所属村委会名称（来自基础信息） */
     private String villageName;
 
-    /** 累计任职年限 */
-    private BigDecimal totalServiceYears;
+    /** 认定时所在村街 */
+    private String villageStreet;
+
+    /** 村干部补贴标准（金额，元） */
+    private BigDecimal subsidyAmount;
 
     /** 是否违法乱纪或判刑（0否 1是） */
     private String hasViolation;

@@ -8,7 +8,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="id"                          column="id"                          />
         <result property="subsidyPersonId"             column="subsidy_person_id"           />
         <result property="totalServiceYears"           column="total_service_years"         />
+        <result property="subsidyAmount"               column="subsidy_amount"              />
         <result property="hasViolation"                column="has_violation"               />
+        <result property="villageStreet"               column="village_street"              />
         <result property="status"                      column="status"                      />
         <result property="delFlag"                     column="del_flag"                    />
         <result property="createBy"                    column="create_by"                   />
@@ -22,11 +24,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="id"                          column="id"                          />
         <result property="subsidyPersonId"             column="subsidy_person_id"           />
         <result property="name"                        column="name"                        />
+        <result property="userCode"                    column="user_code"                  />
         <result property="idCardNo"                    column="id_card_no"                  />
         <result property="gender"                      column="gender"                      />
         <result property="phone"                       column="phone"                       />
+        <result property="streetOfficeName"            column="street_office_name"         />
         <result property="villageName"                 column="village_name"                />
-        <result property="totalServiceYears"           column="total_service_years"         />
+        <result property="villageStreet"               column="village_street"              />
+        <result property="subsidyAmount"               column="subsidy_amount"              />
         <result property="hasViolation"                column="has_violation"               />
         <result property="status"                      column="status"                      />
         <result property="approvalStatus"              column="approval_status"             />
@@ -40,7 +45,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="id"                          column="id"                          />
         <result property="subsidyPersonId"             column="subsidy_person_id"           />
         <result property="totalServiceYears"           column="total_service_years"         />
+        <result property="subsidyAmount"               column="subsidy_amount"              />
         <result property="hasViolation"                column="has_violation"               />
+        <result property="villageStreet"               column="village_street"              />
         <result property="status"                      column="vo_status"                   />
         <result property="remark"                      column="vo_remark"                   />
         <!-- 基础信息字段 -->
@@ -60,19 +67,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectVillageOfficialVo">
-        select vo.id, vo.subsidy_person_id, vo.total_service_years, 
-               vo.has_violation, vo.status, vo.del_flag, vo.create_by, vo.create_time, 
-               vo.update_by, vo.update_time, vo.remark 
+        select vo.id, vo.subsidy_person_id, vo.total_service_years, vo.subsidy_amount,
+               vo.has_violation, vo.village_street, vo.status, vo.del_flag, vo.create_by, vo.create_time,
+               vo.update_by, vo.update_time, vo.remark
         from shebao_village_official vo
     </sql>
 
     <select id="selectVillageOfficialList" parameterType="com.ruoyi.shebao.dto.VillageOfficialListReq" resultMap="VillageOfficialListRespResult">
-        select vo.id, vo.subsidy_person_id, vo.total_service_years, 
-               vo.has_violation, vo.status, vo.create_time, vo.update_time, vo.remark,
-               sp.name, sp.id_card_no, sp.gender, sp.phone, sp.approval_status,
-               svc.village_name
+        select vo.id, vo.subsidy_person_id, vo.subsidy_amount,
+               vo.has_violation, vo.village_street, vo.status, vo.create_time, vo.update_time, vo.remark,
+               sp.name, sp.user_code, sp.id_card_no, sp.gender, sp.phone, sp.approval_status,
+               sso.street_name as street_office_name, svc.village_name
         from shebao_village_official vo
         left join shebao_subsidy_person sp on vo.subsidy_person_id = sp.id
+        left join shebao_street_office sso on sp.street_office_id = sso.id
         left join shebao_village_committee svc on sp.village_committee_id = svc.id
         <where>
             vo.del_flag = '0'
@@ -82,28 +90,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="req.idCardNo != null and req.idCardNo != ''">
                 AND sp.id_card_no like concat('%', #{req.idCardNo}, '%')
             </if>
-            <if test="req.villageCode != null and req.villageCode != ''">
-                AND svc.village_code = #{req.villageCode}
+            <if test="req.userCode != null and req.userCode != ''">
+                AND sp.user_code = #{req.userCode}
             </if>
-            <if test="req.totalServiceYearsMin != null">
-                AND vo.total_service_years >= #{req.totalServiceYearsMin}
+            <if test="req.streetOfficeId != null">
+                AND sp.street_office_id = #{req.streetOfficeId}
             </if>
-            <if test="req.totalServiceYearsMax != null">
-                AND vo.total_service_years &lt;= #{req.totalServiceYearsMax}
+            <if test="req.villageCommitteeId != null">
+                AND sp.village_committee_id = #{req.villageCommitteeId}
             </if>
             <if test="req.hasViolation != null and req.hasViolation != ''">
                 AND vo.has_violation = #{req.hasViolation}
-            </if>
-            <if test="req.status != null and req.status != ''">
-                AND vo.status = #{req.status}
             </if>
         </where>
         order by vo.create_time desc
     </select>
 
     <select id="selectVillageOfficialFormById" parameterType="Long" resultMap="VillageOfficialFormResult">
-        select vo.id, vo.subsidy_person_id, vo.total_service_years, 
-               vo.has_violation, vo.status as vo_status, vo.remark as vo_remark,
+        select vo.id, vo.subsidy_person_id, vo.total_service_years, vo.subsidy_amount,
+               vo.has_violation, vo.village_street, vo.status as vo_status, vo.remark as vo_remark,
                sp.name, sp.gender, sp.id_card_no, sp.birthday, sp.household_registration,
                sp.home_address,
                sp.phone, sp.is_alive, sp.death_date, sp.is_village_coop_member, 
@@ -121,11 +126,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <insert id="batchInsertVillageOfficial" parameterType="java.util.List">
         insert into shebao_village_official
-        (subsidy_person_id, total_service_years, has_violation, 
+        (subsidy_person_id, total_service_years, subsidy_amount, has_violation, village_street,
          status, create_by, create_time, remark)
         values
         <foreach collection="list" item="item" separator=",">
-            (#{item.subsidyPersonId}, #{item.totalServiceYears}, #{item.hasViolation}, 
+            (#{item.subsidyPersonId}, #{item.totalServiceYears}, #{item.subsidyAmount}, #{item.hasViolation}, #{item.villageStreet},
              #{item.status}, #{item.createBy}, #{item.createTime}, #{item.remark})
         </foreach>
     </insert>

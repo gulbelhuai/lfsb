@@ -30,9 +30,17 @@ public class VillageOfficial extends BaseDomain
     @Excel(name = "累计任职年限")
     private BigDecimal totalServiceYears;
 
+    /** 村干部补贴标准（金额，元） */
+    @Excel(name = "村干部补贴标准")
+    private BigDecimal subsidyAmount;
+
     /** 是否违法乱纪或判刑（0否 1是） */
     @Excel(name = "是否违法乱纪或判刑", readConverterExp = "0=否,1=是")
     private String hasViolation;
+
+    /** 认定时所在村街 */
+    @Excel(name = "认定时所在村街")
+    private String villageStreet;
 
     /** 状态（0正常 1停用） */
     @Excel(name = "状态", readConverterExp = "0=正常,1=停用")

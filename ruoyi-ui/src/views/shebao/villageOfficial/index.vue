@@ -1,6 +1,14 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
+      <el-form-item label="用户编号" prop="userCode">
+        <el-input
+          v-model="queryParams.userCode"
+          placeholder="请输入用户编号"
+          clearable
+          @keyup.enter.native="handleQuery"
+        />
+      </el-form-item>
       <el-form-item label="姓名" prop="name">
         <el-input
           v-model="queryParams.name"
@@ -17,30 +25,30 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="所属村委会" prop="villageCode">
-        <DivisionSelector
-          v-model="queryParams.villageCode"
-          mode="select"
-          scenario="village"
-          placeholder="请选择所属村委会"
-          filterable
-          clearable
-        />
+      <el-form-item label="所属街道办" prop="streetOfficeId">
+        <el-select v-model="queryParams.streetOfficeId" placeholder="请选择所属街道办" clearable @change="handleQueryStreetOfficeChange">
+          <el-option
+            v-for="item in streetOfficeOptions"
+            :key="item.id"
+            :label="item.streetName"
+            :value="item.id"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="所属村委会" prop="villageCommitteeId">
+        <el-select v-model="queryParams.villageCommitteeId" placeholder="请选择所属村委会" clearable>
+          <el-option
+            v-for="item in villageCommitteeOptions"
+            :key="item.id"
+            :label="item.villageName"
+            :value="item.id"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="违法乱纪" prop="hasViolation">
         <el-select v-model="queryParams.hasViolation" placeholder="是否违法乱纪" clearable>
           <el-option label="否" value="0" />
           <el-option label="是" value="1" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-select v-model="queryParams.status" placeholder="状态" clearable>
-          <el-option
-            v-for="dict in dict.type.sys_normal_disable"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -112,26 +120,30 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="姓名" align="center" prop="name" />
-      <el-table-column label="身份证号" align="center" prop="idCardNo" />
-      <el-table-column label="性别" align="center" prop="gender">
+      <el-table-column label="用户编号" align="center" prop="userCode" width="110" />
+      <el-table-column label="姓名" align="center" prop="name" width="80" />
+      <el-table-column label="身份证号" align="center" prop="idCardNo" width="180" />
+      <el-table-column label="性别" align="center" prop="gender" width="60">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.sys_user_sex" :value="scope.row.gender"/>
         </template>
       </el-table-column>
-      <el-table-column label="联系电话" align="center" prop="phone" />
+      <el-table-column label="联系电话" align="center" prop="phone" width="120" />
+      <el-table-column label="所属街道办" align="center" prop="streetOfficeName" />
       <el-table-column label="所属村委会" align="center" prop="villageName" />
-      <el-table-column label="累计任职年限" align="center" prop="totalServiceYears" />
-      <el-table-column label="违法乱纪" align="center" prop="hasViolation">
+      <el-table-column label="认定时所在村街" align="center" prop="villageStreet" width="120" show-overflow-tooltip />
+      <el-table-column label="补贴标准(元)" align="center" prop="subsidyAmount" width="110" />
+      <el-table-column label="违法乱纪" align="center" prop="hasViolation" width="90">
         <template slot-scope="scope">
           <dict-tag :options="[{label: '否', value: '0'}, {label: '是', value: '1'}]" :value="scope.row.hasViolation"/>
         </template>
       </el-table-column>
-      <el-table-column label="状态" align="center" prop="status">
+      <el-table-column label="审批状态" align="center" prop="approvalStatus" width="100">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.sys_normal_disable" :value="scope.row.status"/>
+          <approval-status :status="scope.row.approvalStatus" />
         </template>
       </el-table-column>
+      <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button
@@ -160,229 +172,233 @@
       @pagination="getList"
     />
 
-    <!-- 添加或修改村干部信息对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="1200px" append-to-body>
+    <el-dialog :title="title" :visible.sync="open" width="1000px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="140px">
 
-        <!-- 基础信息区域 -->
         <div class="form-section">
           <div class="section-title">
             <i class="el-icon-user"></i>
             基础信息
-            <el-tag v-if="form.personExists" type="success" size="mini">人员已存在</el-tag>
+            <el-tag v-if="form.personExists" type="success" size="mini">{{ form.userCode }}</el-tag>
             <el-tag v-else type="info" size="mini">新增人员</el-tag>
           </div>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="身份证号" prop="idCardNo">
-              <el-input
-                v-model="form.idCardNo"
-                placeholder="请输入18位身份证号"
-                maxlength="18"
-                @input="handleIdCardInputChange"
-                @blur="handleIdCardNoBlurChange"
-              >
-                <template slot="suffix">
-                  <i v-if="form.personExists" class="el-icon-success" style="color: #67c23a;" title="人员已存在"></i>
-                  <i v-else class="el-icon-plus" style="color: #909399;" title="新增人员"></i>
-                </template>
-              </el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="姓名" prop="name">
-              <el-input v-model="form.name" placeholder="请输入姓名" maxlength="20" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="性别" prop="gender">
-              <el-radio-group v-model="form.gender">
-                <el-radio
-                  v-for="dict in dict.type.sys_user_sex"
-                  :key="dict.value"
-                  :label="dict.value"
-                >{{dict.label}}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="生日" prop="birthday">
-              <el-date-picker
-                v-model="form.birthday"
-                type="date"
-                placeholder="选择生日"
-                value-format="yyyy-MM-dd"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="籍贯" prop="nativePlace">
-              <el-input v-model="form.nativePlace" placeholder="请输入籍贯" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="phone">
-              <el-input v-model="form.phone" placeholder="请输入联系电话" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="家庭住址" prop="homeAddress">
-              <el-input v-model="form.homeAddress" placeholder="请输入家庭住址" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="所属村委会" prop="villageCode">
-              <DivisionSelector
-                ref="villageSelector"
-                v-model="form.villageCode"
-                mode="select"
-                scenario="village"
-                placeholder="请选择所属村委会"
-                filterable
-                clearable
-                @change="handleVillageChange"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="户别编号" prop="householdNo">
-              <el-input v-model="form.householdNo" placeholder="请输入户别编号" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="职工养老保险" prop="hasEmployeePension">
-              <el-radio-group v-model="form.hasEmployeePension">
-                <el-radio label="0">未领取</el-radio>
-                <el-radio label="1">已领取</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="身份证号" prop="idCardNo">
+                <el-input
+                  v-model="form.idCardNo"
+                  placeholder="请输入18位身份证号"
+                  maxlength="18"
+                  @input="handleIdCardInputChange"
+                  @blur="handleIdCardBlurChange"
+                >
+                  <template slot="suffix">
+                    <i v-if="form.personExists" class="el-icon-success" style="color: #67c23a;" title="人员已存在"></i>
+                    <i v-else class="el-icon-plus" style="color: #909399;" title="新增人员"></i>
+                  </template>
+                </el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="姓名" prop="name">
+                <el-input v-model="form.name" placeholder="请输入姓名" maxlength="20" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="性别" prop="gender">
+                <el-radio-group v-model="form.gender">
+                  <el-radio
+                    v-for="dict in dict.type.sys_user_sex"
+                    :key="dict.value"
+                    :label="dict.value"
+                  >{{dict.label}}</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="生日" prop="birthday" v-show="false">
+                <el-date-picker
+                  v-model="form.birthday"
+                  type="date"
+                  placeholder="选择生日"
+                  value-format="yyyy-MM-dd"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="所属街道办" prop="streetOfficeId">
+                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" @change="handleFormStreetOfficeChange">
+                  <el-option
+                    v-for="item in streetOfficeOptions"
+                    :key="item.id"
+                    :label="item.streetName"
+                    :value="item.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="所属村委会" prop="villageCommitteeId">
+                <el-select v-model="form.villageCommitteeId" placeholder="请选择村委会">
+                  <el-option
+                    v-for="item in villageCommitteeOptions"
+                    :key="item.id"
+                    :label="item.villageName"
+                    :value="item.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="户籍所在地" prop="householdRegistration">
+                <el-input v-model="form.householdRegistration" placeholder="请输入户籍所在地" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item label="家庭住址" prop="homeAddress">
+                <el-input v-model="form.homeAddress" placeholder="请输入家庭住址" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="联系电话" prop="phone">
+                <el-input v-model="form.phone" placeholder="请输入联系电话" />
+              </el-form-item>
+            </el-col>
+          </el-row>
         </div>
 
-        <!-- 村干部信息区域 -->
-        <div class="form-section">
-          <div class="section-title">
-            <i class="el-icon-office-building"></i>
-            村干部信息
-          </div>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="累计任职年限" prop="totalServiceYears">
-              <el-input-number v-model="form.totalServiceYears" :precision="1" :min="0" :max="50" placeholder="请输入累计任职年限" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否违法乱纪" prop="hasViolation">
-              <el-radio-group v-model="form.hasViolation">
-                <el-radio label="0">否</el-radio>
-                <el-radio label="1">是</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="状态" prop="status">
-              <el-radio-group v-model="form.status">
-                <el-radio
-                  v-for="dict in dict.type.sys_normal_disable"
-                  :key="dict.value"
-                  :label="dict.value"
-                >{{dict.label}}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        </div>
-
-        <!-- 任职信息区域 -->
         <div class="form-section">
           <div class="section-title">
             <i class="el-icon-postcard"></i>
-            任职信息
-            <el-button type="primary" size="mini" @click="handleAddPosition" style="margin-left: auto;">添加任职</el-button>
+            村干部任职信息
           </div>
-        <el-row>
-          <el-col :span="24">
-            <el-table :data="form.positionList" style="width: 100%">
-              <el-table-column label="任职职位" align="center">
-                <template slot-scope="scope">
-                  <el-select v-model="scope.row.position" placeholder="请选择职位">
-                    <el-option label="书记或主任" value="1" />
-                    <el-option label="书记兼主任" value="2" />
-                    <el-option label="村两委其他成员" value="3" />
-                  </el-select>
-                </template>
-              </el-table-column>
-              <el-table-column label="上任时间" align="center">
-                <template slot-scope="scope">
-                  <el-date-picker
-                    v-model="scope.row.startDate"
-                    type="date"
-                    placeholder="选择上任时间"
-                    value-format="yyyy-MM-dd"
-                  />
-                </template>
-              </el-table-column>
-              <el-table-column label="卸任时间" align="center">
-                <template slot-scope="scope">
-                  <el-date-picker
-                    v-model="scope.row.endDate"
-                    type="date"
-                    placeholder="选择卸任时间"
-                    value-format="yyyy-MM-dd"
-                  />
-                </template>
-              </el-table-column>
-              <el-table-column label="状态" align="center">
-                <template slot-scope="scope">
-                  <el-select v-model="scope.row.status" placeholder="请选择状态">
-                    <el-option
-                      v-for="dict in dict.type.sys_normal_disable"
-                      :key="dict.value"
-                      :label="dict.label"
-                      :value="dict.value"
+
+          <el-row  style="margin-bottom: 22px;">
+            <el-col :span="24">
+              <div style="margin-bottom: 8px;">
+                <el-button type="primary" size="mini" icon="el-icon-plus" @click="handleAddPosition">添加任职</el-button>
+              </div>
+              <el-table
+                :data="form.positionList"
+                class="village-official-position-table"
+                size="mini"
+                style="width: 100%"
+              >
+                <el-table-column label="任职职位" align="center" width="160">
+                  <template slot-scope="scope">
+                    <el-select
+                      v-model="scope.row.position"
+                      size="mini"
+                      placeholder="职位"
+                      style="width: 100%"
+                    >
+                      <el-option label="书记或主任" value="1" />
+                      <el-option label="书记兼主任" value="2" />
+                      <el-option label="村两委其他成员" value="3" />
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column label="上任时间" align="center" width="150">
+                  <template slot-scope="scope">
+                    <el-date-picker
+                      v-model="scope.row.startDate"
+                      type="date"
+                      size="mini"
+                      placeholder="上任时间"
+                      value-format="yyyy-MM-dd"
+                      style="width: 100%"
+                      @change="syncPositionRowServiceYears(scope.row)"
                     />
-                  </el-select>
-                </template>
-              </el-table-column>
-              <el-table-column label="备注" align="center">
-                <template slot-scope="scope">
-                  <el-input v-model="scope.row.remark" placeholder="请输入备注" />
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" align="center">
-                <template slot-scope="scope">
-                  <el-button
-                    size="mini"
-                    type="text"
-                    icon="el-icon-delete"
-                    @click="handleDeletePosition(scope.$index)"
-                  >删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="备注">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+                  </template>
+                </el-table-column>
+                <el-table-column label="卸任时间" align="center" width="150">
+                  <template slot-scope="scope">
+                    <el-date-picker
+                      v-model="scope.row.endDate"
+                      type="date"
+                      size="mini"
+                      placeholder="卸任时间"
+                      value-format="yyyy-MM-dd"
+                      clearable
+                      style="width: 100%"
+                      @change="syncPositionRowServiceYears(scope.row)"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column label="任职年限" align="center" width="72">
+                  <template slot-scope="scope">
+                    <span>{{ formatPositionServiceYears(scope.row) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="备注" align="center" min-width="150">
+                  <template slot-scope="scope">
+                    <el-input v-model="scope.row.remark" size="mini" placeholder="备注" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" align="center" width="80">
+                  <template slot-scope="scope">
+                    <el-button
+                      size="mini"
+                      type="text"
+                      icon="el-icon-delete"
+                      @click="handleDeletePosition(scope.$index)"
+                    >删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="村干部补贴标准" prop="subsidyAmount">
+                <el-input-number
+                  v-model="form.subsidyAmount"
+                  :precision="2"
+                  :min="0"
+                  :max="99999999"
+                  placeholder="金额（元）"
+                  style="width: 100%"
+                  controls-position="right"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="是否违法乱纪" prop="hasViolation">
+                <el-radio-group v-model="form.hasViolation">
+                  <el-radio label="0">否</el-radio>
+                  <el-radio label="1">是</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="认定时所在村街" prop="villageStreet">
+                <el-input v-model="form.villageStreet" placeholder="请输入认定时所在村街" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="备注" prop="remark">
+                <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
+              </el-form-item>
+            </el-col>
+          </el-row>
         </div>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -391,7 +407,6 @@
       </div>
     </el-dialog>
 
-    <!-- 村干部信息导入对话框 -->
     <el-dialog :title="upload.title" :visible.sync="upload.open" width="400px" append-to-body>
       <el-upload
         ref="upload"
@@ -424,52 +439,41 @@
 </template>
 
 <script>
-import { listVillageOfficial, getVillageOfficial, delVillageOfficial, addVillageOfficial, updateVillageOfficial, getFormDataByIdCardNo } from "@/api/shebao/villageOfficial";
-import DivisionSelector from "@/components/DivisionSelector/index.vue";
-import { getToken } from "@/utils/auth";
-import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard";
+import { listVillageOfficial, getVillageOfficial, delVillageOfficial, addVillageOfficial, updateVillageOfficial, getFormDataByIdCardNo } from "@/api/shebao/villageOfficial"
+import { getToken } from "@/utils/auth"
+import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
+import { getVillageCommitteeByStreetOffice } from "@/api/shebao/villageCommittee"
+import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
+import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 
 export default {
   name: "VillageOfficial",
-  components: {
-    DivisionSelector
-  },
-  dicts: ['sys_normal_disable', 'sys_user_sex'],
+  components: { ApprovalStatus },
+  dicts: ["sys_user_sex"],
   data() {
     return {
-      // 遮罩层
       loading: true,
-      // 选中数组
       ids: [],
-      // 非单个禁用
       single: true,
-      // 非多个禁用
       multiple: true,
-      // 显示搜索条件
       showSearch: true,
-      // 总条数
       total: 0,
-      // 村干部信息表格数据
       villageOfficialList: [],
-      // 弹出层标题
+      streetOfficeOptions: [],
+      villageCommitteeOptions: [],
       title: "",
-      // 是否显示弹出层
       open: false,
-      // 查询参数
       queryParams: {
         pageNum: 1,
         pageSize: 10,
+        userCode: null,
         name: null,
         idCardNo: null,
-        villageCode: null,
-        totalServiceYearsMin: null,
-        totalServiceYearsMax: null,
-        hasViolation: null,
-        status: null
+        streetOfficeId: null,
+        villageCommitteeId: null,
+        hasViolation: null
       },
-      // 表单参数
       form: {},
-      // 表单校验
       rules: {
         idCardNo: [
           { required: true, message: "身份证号不能为空", trigger: "blur" },
@@ -485,51 +489,53 @@ export default {
         birthday: [
           { required: true, message: "请选择生日", trigger: "change" }
         ],
-        nativePlace: [
-          { required: true, message: "籍贯不能为空", trigger: "blur" }
-        ],
-        phone: [
-          { required: true, message: "联系电话不能为空", trigger: "blur" },
-          { pattern: /^(1[3-9]\d{9}|\d{7,12})$/, message: "请输入正确的手机号或固话", trigger: "blur" }
+        householdRegistration: [
+          { required: true, message: "户籍所在地不能为空", trigger: "blur" }
         ],
         homeAddress: [
-          { required: true, message: "家庭住址不能为空", trigger: "blur" }
+          { max: 255, message: "家庭住址长度不能超过255个字符", trigger: "blur" }
         ],
-        villageCode: [
+        phone: [
+          {
+            validator: (rule, value, callback) => {
+              if (!value) {
+                callback()
+                return
+              }
+              if (!/^(1[3-9]\d{9}|\d{7,12})$/.test(value)) {
+                callback(new Error("请输入正确的手机号或固话"))
+              } else {
+                callback()
+              }
+            },
+            trigger: "blur"
+          }
+        ],
+        streetOfficeId: [
+          { required: true, message: "请选择所属街道办", trigger: "change" }
+        ],
+        villageCommitteeId: [
           { required: true, message: "请选择所属村委会", trigger: "change" }
-        ],
-        hasEmployeePension: [
-          { required: true, message: "请选择是否已领取职工养老保险待遇", trigger: "change" }
-        ],
-        totalServiceYears: [
-          { required: true, message: "累计任职年限不能为空", trigger: "blur" }
         ],
         hasViolation: [
           { required: true, message: "请选择是否违法乱纪或判刑", trigger: "change" }
         ]
       },
-      // 村干部导入参数
       upload: {
-        // 是否显示弹出层（村干部导入）
         open: false,
-        // 弹出层标题（村干部导入）
         title: "",
-        // 是否禁用上传
         isUploading: false,
-        // 是否更新已经存在的村干部数据
         updateSupport: 0,
-        // 设置上传的请求头部
         headers: { Authorization: "Bearer " + getToken() },
-        // 上传的地址
         url: process.env.VUE_APP_BASE_API + "/shebao/villageOfficial/importData"
       }
     }
   },
   created() {
+    this.getStreetOfficeOptions()
     this.getList()
   },
   methods: {
-    /** 查询村干部信息列表 */
     getList() {
       this.loading = true
       listVillageOfficial(this.queryParams).then(response => {
@@ -538,68 +544,61 @@ export default {
         this.loading = false
       })
     },
-    // 取消按钮
     cancel() {
       this.open = false
       this.reset()
     },
-    // 表单重置
     reset() {
       this.form = {
         id: null,
         subsidyPersonId: null,
         personExists: false,
-        // 基础信息
         name: null,
         gender: null,
         idCardNo: null,
         birthday: null,
-        nativePlace: null,
-        phone: null,
+        householdRegistration: null,
         homeAddress: null,
-        villageCode: null,
-        villageName: null,
-        householdNo: null,
-        hasEmployeePension: "0",
-        // 村干部信息
-        totalServiceYears: null,
+        phone: null,
+        isAlive: "1",
+        deathDate: null,
+        isVillageCoopMember: "1",
+        streetOfficeId: null,
+        villageCommitteeId: null,
+        userCode: null,
+        subsidyAmount: null,
         hasViolation: "0",
-        status: "0",
+        villageStreet: null,
         remark: null,
-        // 任职信息
         positionList: []
       }
       this.resetForm("form")
     },
-    /** 搜索按钮操作 */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
-    /** 重置按钮操作 */
     resetQuery() {
       this.resetForm("queryForm")
+      this.villageCommitteeOptions = []
       this.handleQuery()
     },
-    // 多选框选中数据
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.id)
       this.single = selection.length !== 1
       this.multiple = !selection.length
     },
-    /** 新增按钮操作 */
     handleAdd() {
       this.reset()
       this.open = true
       this.title = "添加村干部信息"
     },
-    /** 修改按钮操作 */
     handleUpdate(row) {
       this.reset()
       const id = row.id || this.ids
       getVillageOfficial(id).then(response => {
+        this.handleFormStreetOfficeChange(response.data.streetOfficeId)
         this.form = response.data
-        // 确保任职信息列表存在
         if (!this.form.positionList) {
           this.form.positionList = []
         }
@@ -607,18 +606,18 @@ export default {
         this.title = "修改村干部信息"
       })
     },
-    /** 提交按钮 */
     submitForm() {
+      this.syncAllPositionServiceYears()
       this.$refs["form"].validate(valid => {
         if (valid) {
           if (this.form.id != null) {
-            updateVillageOfficial(this.form).then(response => {
+            updateVillageOfficial(this.form).then(() => {
               this.$modal.msgSuccess("修改成功，已进入待复核")
               this.open = false
               this.getList()
             })
           } else {
-            addVillageOfficial(this.form).then(response => {
+            addVillageOfficial(this.form).then(() => {
               this.$modal.msgSuccess("新增成功，已进入待复核")
               this.open = false
               this.getList()
@@ -627,7 +626,6 @@ export default {
         }
       })
     },
-    /** 删除按钮操作 */
     handleDelete(row) {
       const ids = row.id || this.ids
       this.$modal.confirm('是否确认删除村干部编号为"' + ids + '"的数据项？').then(function() {
@@ -637,26 +635,21 @@ export default {
         this.$modal.msgSuccess("删除成功")
       }).catch(() => {})
     },
-    /** 导出按钮操作 */
     handleExport() {
-      this.download('shebao/villageOfficial/export', {
+      this.download("shebao/villageOfficial/export", {
         ...this.queryParams
       }, `village_official_${new Date().getTime()}.xlsx`)
     },
-    /** 导入按钮操作 */
     handleImport() {
       this.upload.title = "村干部信息导入"
       this.upload.open = true
     },
-    /** 下载模板操作 */
     importTemplate() {
-      this.download('shebao/villageOfficial/importTemplate', {}, `village_official_template_${new Date().getTime()}.xlsx`)
+      this.download("shebao/villageOfficial/importTemplate", {}, `village_official_template_${new Date().getTime()}.xlsx`)
     },
-    // 文件上传中处理
-    handleFileUploadProgress(event, file, fileList) {
+    handleFileUploadProgress() {
       this.upload.isUploading = true
     },
-    // 文件上传成功处理
     handleFileSuccess(response, file, fileList) {
       this.upload.open = false
       this.upload.isUploading = false
@@ -664,30 +657,27 @@ export default {
       this.$alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true })
       this.getList()
     },
-    // 提交上传文件
     submitFileForm() {
       this.$refs.upload.submit()
     },
-    /** 身份证号输入处理 */
     handleIdCardInputChange(value) {
       this.form.idCardNo = handleIdCardInput(value)
+      if (!this.form.idCardNo || this.form.idCardNo.length < 18) {
+        this.form.userCode = null
+        this.form.subsidyPersonId = null
+        this.form.personExists = false
+      }
     },
-
-    /** 身份证号失焦处理 - 智能填充基础信息 */
-    handleIdCardNoBlurChange() {
+    handleIdCardBlurChange() {
       if (!this.form.idCardNo) return
 
       const result = handleIdCardBlur(this.form.idCardNo, { showWarning: true })
-
-      // 更新格式化后的身份证号码
       this.form.idCardNo = result.formattedIdCard
 
-      // 如果校验失败，显示提示但不阻断逻辑
       if (result.formattedIdCard && !result.checkResult.valid) {
         this.$message.warning(result.checkResult.message)
       }
 
-      // 自动填充生日和性别
       if (result.birthday) {
         this.form.birthday = result.birthday
       }
@@ -695,56 +685,110 @@ export default {
         this.form.gender = result.gender
       }
 
-      // 如果身份证格式正确，调用后端接口获取基础信息
       if (this.form.idCardNo && this.form.idCardNo.length === 18) {
         getFormDataByIdCardNo(this.form.idCardNo).then(response => {
           const data = response.data
           if (data.personExists) {
-            // 基础信息存在，自动填充并标记
+            this.handleFormStreetOfficeChange(data.streetOfficeId)
             this.form.personExists = true
             this.form.subsidyPersonId = data.subsidyPersonId
             this.form.name = data.name
             this.form.gender = data.gender
             this.form.birthday = data.birthday
-            this.form.nativePlace = data.nativePlace
-            this.form.phone = data.phone
+            this.form.householdRegistration = data.householdRegistration
             this.form.homeAddress = data.homeAddress
-            this.form.villageCode = data.villageCode
-            this.form.villageName = data.villageName
-            this.form.householdNo = data.householdNo
-            this.form.hasEmployeePension = data.hasEmployeePension
-
-            this.$message.success('人员存在，已自动填充该人员的基础信息')
+            this.form.phone = data.phone
+            this.form.isAlive = data.isAlive
+            this.form.deathDate = data.deathDate
+            this.form.isVillageCoopMember = data.isVillageCoopMember
+            this.form.streetOfficeId = data.streetOfficeId
+            this.form.villageCommitteeId = data.villageCommitteeId
+            this.form.userCode = data.userCode
+            this.$message.success("人员存在，已自动填充该人员的基础信息")
           } else {
-            // 基础信息不存在，保留从身份证提取的信息
             this.form.personExists = false
             this.form.subsidyPersonId = null
+            this.form.userCode = null
           }
         }).catch(() => {
           this.form.personExists = false
           this.form.subsidyPersonId = null
+          this.form.userCode = null
+        })
+      } else {
+        this.form.userCode = null
+        this.form.subsidyPersonId = null
+        this.form.personExists = false
+      }
+    },
+    getStreetOfficeOptions() {
+      getStreetOfficeSelectList().then(response => {
+        this.streetOfficeOptions = response.data
+      })
+    },
+    handleQueryStreetOfficeChange(streetOfficeId) {
+      this.queryParams.villageCommitteeId = null
+      this.villageCommitteeOptions = []
+      if (streetOfficeId) {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
+          this.villageCommitteeOptions = response.data
         })
       }
     },
-    /** 村委会选择变化处理 */
-    handleVillageChange(villageCode, villageData) {
-      if (villageData) {
-        this.form.villageName = villageData.divisionName
+    handleFormStreetOfficeChange(streetOfficeId) {
+      this.form.villageCommitteeId = null
+      this.villageCommitteeOptions = []
+      if (streetOfficeId) {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
+          this.villageCommitteeOptions = response.data
+        })
       }
     },
-    // 添加任职信息
     handleAddPosition() {
       this.form.positionList.push({
         position: null,
         startDate: null,
         endDate: null,
+        serviceYears: null,
         status: "0",
         remark: null
       })
     },
-    // 删除任职信息
     handleDeletePosition(index) {
       this.form.positionList.splice(index, 1)
+    },
+    /** 与后端 ChronoUnit.YEARS.between 一致的整年数 */
+    computePositionServiceYears(startDate, endDate) {
+      if (!startDate || typeof startDate !== "string") return null
+      const p = startDate.split("-").map(Number)
+      if (p.length !== 3 || p.some(n => Number.isNaN(n))) return null
+      const [sy, sm, sd] = p
+      let ey; let em; let ed
+      if (endDate && typeof endDate === "string") {
+        const pe = endDate.split("-").map(Number)
+        if (pe.length !== 3 || pe.some(n => Number.isNaN(n))) return null
+        ;[ey, em, ed] = pe
+      } else {
+        const now = new Date()
+        ey = now.getFullYear()
+        em = now.getMonth() + 1
+        ed = now.getDate()
+      }
+      if (ey < sy || (ey === sy && (em < sm || (em === sm && ed < sd)))) return null
+      let years = ey - sy
+      if (em < sm || (em === sm && ed < sd)) years--
+      return years
+    },
+    formatPositionServiceYears(row) {
+      const y = this.computePositionServiceYears(row.startDate, row.endDate)
+      return y === null ? "—" : String(y)
+    },
+    syncPositionRowServiceYears(row) {
+      row.serviceYears = this.computePositionServiceYears(row.startDate, row.endDate)
+    },
+    syncAllPositionServiceYears() {
+      if (!this.form.positionList) return
+      this.form.positionList.forEach(row => this.syncPositionRowServiceYears(row))
     }
   }
 }
@@ -773,5 +817,11 @@ export default {
 
 .section-title i {
   color: #409eff;
+}
+
+/* 表格内日期/下拉默认约 220px，列窄时右边框被裁切；强制铺满单元格 */
+.village-official-position-table >>> .el-date-editor.el-input,
+.village-official-position-table >>> .el-date-editor.el-input__inner {
+  width: 100% !important;
 }
 </style>

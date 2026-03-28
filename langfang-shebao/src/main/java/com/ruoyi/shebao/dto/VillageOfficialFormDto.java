@@ -86,8 +86,14 @@ public class VillageOfficialFormDto
     /** 累计任职年限 */
     private BigDecimal totalServiceYears;
 
+    /** 村干部补贴标准（金额，元） */
+    private BigDecimal subsidyAmount;
+
     /** 是否违法乱纪或判刑（0否 1是） */
     private String hasViolation;
+
+    /** 认定时所在村街 */
+    private String villageStreet;
 
     /** 状态（0正常 1停用） */
     private String status;
@@ -121,6 +127,9 @@ public class VillageOfficialFormDto
         /** 卸任时间 */
         @JsonFormat(pattern = "yyyy-MM-dd")
         private LocalDate endDate;
+
+        /** 任职年限（按周年取整，可与服务端根据起止日期计算结果一致） */
+        private Integer serviceYears;
 
         /** 状态（0正常 1停用） */
         private String status;
