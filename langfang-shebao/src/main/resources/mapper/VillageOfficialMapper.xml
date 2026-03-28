@@ -102,6 +102,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="req.hasViolation != null and req.hasViolation != ''">
                 AND vo.has_violation = #{req.hasViolation}
             </if>
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND sp.approval_status = #{req.approvalStatus}
+            </if>
         </where>
         order by vo.create_time desc
     </select>

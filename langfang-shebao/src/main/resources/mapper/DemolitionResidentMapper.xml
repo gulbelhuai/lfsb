@@ -121,6 +121,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="req.recognitionTimeEnd != null">
                 AND dr.recognition_time &lt;= #{req.recognitionTimeEnd}
             </if>
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND sp.approval_status = #{req.approvalStatus}
+            </if>
         </where>
         order by dr.create_time desc
     </select>

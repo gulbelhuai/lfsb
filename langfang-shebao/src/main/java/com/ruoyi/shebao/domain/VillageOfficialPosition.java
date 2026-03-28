@@ -6,6 +6,7 @@ import com.ruoyi.common.core.domain.BaseDomain;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -37,6 +38,10 @@ public class VillageOfficialPosition extends BaseDomain
     /** 卸任时间 */
     @Excel(name = "卸任时间", dateFormat = "yyyy-MM-dd")
     private LocalDate endDate;
+
+    /** 任职年限：整年数 + 余下天数/365，保留两位小数 */
+    @Excel(name = "任职年限")
+    private BigDecimal serviceYears;
 
     /** 状态（0正常 1停用） */
     @Excel(name = "状态", readConverterExp = "0=正常,1=停用")

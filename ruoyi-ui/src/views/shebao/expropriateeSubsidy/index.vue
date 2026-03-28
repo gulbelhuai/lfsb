@@ -1,6 +1,14 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
+      <el-form-item label="用户编号" prop="userCode">
+        <el-input
+          v-model="queryParams.userCode"
+          placeholder="请输入用户编号"
+          clearable
+          @keyup.enter.native="handleQuery"
+        />
+      </el-form-item>
       <el-form-item label="姓名" prop="name">
         <el-input
           v-model="queryParams.name"
@@ -16,6 +24,34 @@
           clearable
           @keyup.enter.native="handleQuery"
         />
+      </el-form-item>
+      <el-form-item label="所属街道办" prop="streetOfficeId">
+        <el-select v-model="queryParams.streetOfficeId" placeholder="请选择所属街道办" clearable @change="handleQueryStreetOfficeChange">
+          <el-option
+            v-for="item in streetOfficeOptions"
+            :key="item.id"
+            :label="item.streetName"
+            :value="item.id"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="所属村委会" prop="villageCommitteeId">
+        <el-select v-model="queryParams.villageCommitteeId" placeholder="请选择所属村委会" clearable>
+          <el-option
+            v-for="item in queryVillageCommitteeOptions"
+            :key="item.id"
+            :label="item.villageName"
+            :value="item.id"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="审核状态" prop="approvalStatus">
+        <el-select v-model="queryParams.approvalStatus" placeholder="请选择" clearable>
+          <el-option label="草稿" value="draft" />
+          <el-option label="待复核" value="pending_review" />
+          <el-option label="已通过" value="approved" />
+          <el-option label="已驳回" value="rejected" />
+        </el-select>
       </el-form-item>
       <el-form-item label="征地批次" prop="landRequisitionBatch">
         <el-input
@@ -86,7 +122,7 @@
           v-hasPermi="['shebao:expropriateeSubsidy:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-show="false" :span="1.5">
         <el-button
           type="danger"
           plain
@@ -170,6 +206,7 @@
             v-hasPermi="['shebao:expropriateeSubsidy:edit']"
           >修改</el-button>
           <el-button
+            v-show="false"
             size="mini"
             type="text"
             icon="el-icon-delete"
@@ -466,8 +503,10 @@ export default {
       expropriateeSubsidyList: [],
       // 街道办选项
       streetOfficeOptions: [],
-      // 村委会选项
+      // 弹窗表单：村委会选项
       villageCommitteeOptions: [],
+      // 列表查询：村委会选项
+      queryVillageCommitteeOptions: [],
       // 弹出层标题
       title: "",
       // 是否显示弹出层
@@ -486,8 +525,12 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
+        userCode: null,
         name: null,
         idCardNo: null,
+        streetOfficeId: null,
+        villageCommitteeId: null,
+        approvalStatus: null,
         landRequisitionBatch: null,
         baseDateStart: null,
         baseDateEnd: null,
@@ -609,6 +652,7 @@ export default {
       this.baseDateRange = []
       this.queryParams.baseDateStart = null
       this.queryParams.baseDateEnd = null
+      this.queryVillageCommitteeOptions = []
       this.resetForm("queryForm")
       this.handleQuery()
     },
@@ -783,7 +827,18 @@ export default {
       })
     },
 
-    /** 街道办选择变化处理 */
+    /** 列表查询：街道办变化 */
+    handleQueryStreetOfficeChange(streetOfficeId) {
+      this.queryParams.villageCommitteeId = null
+      this.queryVillageCommitteeOptions = []
+      if (streetOfficeId) {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
+          this.queryVillageCommitteeOptions = response.data
+        })
+      }
+    },
+
+    /** 弹窗表单：街道办变化 */
     handleStreetOfficeChange(streetOfficeId) {
       this.form.villageCommitteeId = null
       this.villageCommitteeOptions = []

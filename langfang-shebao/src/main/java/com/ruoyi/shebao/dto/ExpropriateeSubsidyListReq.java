@@ -16,11 +16,23 @@ import java.time.LocalDate;
 @EqualsAndHashCode(callSuper = true)
 public class ExpropriateeSubsidyListReq extends PageReq
 {
+    /** 用户编号 */
+    private String userCode;
+
     /** 姓名 */
     private String name;
 
     /** 身份证号 */
     private String idCardNo;
+
+    /** 所属街道办ID */
+    private Long streetOfficeId;
+
+    /** 所属村委会ID */
+    private Long villageCommitteeId;
+
+    /** 审批状态（draft/pending_review/approved/rejected） */
+    private String approvalStatus;
 
     /** 征地批次 */
     private String landRequisitionBatch;

@@ -38,11 +38,19 @@
       <el-form-item label="所属村委会" prop="villageCommitteeId">
         <el-select v-model="queryParams.villageCommitteeId" placeholder="请选择所属村委会" clearable>
           <el-option
-            v-for="item in villageCommitteeOptions"
+            v-for="item in queryVillageCommitteeOptions"
             :key="item.id"
             :label="item.villageName"
             :value="item.id"
           />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="审核状态" prop="approvalStatus">
+        <el-select v-model="queryParams.approvalStatus" placeholder="请选择" clearable>
+          <el-option label="草稿" value="draft" />
+          <el-option label="待复核" value="pending_review" />
+          <el-option label="已通过" value="approved" />
+          <el-option label="已驳回" value="rejected" />
         </el-select>
       </el-form-item>
       <el-form-item label="违法乱纪" prop="hasViolation">
@@ -79,7 +87,7 @@
           v-hasPermi="['shebao:villageOfficial:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-show="false" :span="1.5">
         <el-button
           type="danger"
           plain
@@ -154,6 +162,7 @@
             v-hasPermi="['shebao:villageOfficial:edit']"
           >修改</el-button>
           <el-button
+            v-show="false"
             size="mini"
             type="text"
             icon="el-icon-delete"
@@ -446,6 +455,30 @@ import { getVillageCommitteeByStreetOffice } from "@/api/shebao/villageCommittee
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
 import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 
+/** 与 Java LocalDate.plusYears 一致：日过大时压到当月末日 */
+function pad2(n) {
+  return n < 10 ? "0" + n : String(n)
+}
+function daysInMonth(y, m) {
+  return new Date(Date.UTC(y, m, 0)).getUTCDate()
+}
+function plusYearsStr(ymd, delta) {
+  const parts = ymd.split("-").map(Number)
+  if (parts.length !== 3 || parts.some(x => Number.isNaN(x))) return ymd
+  const [y, m, d] = parts
+  const ty = y + delta
+  const dim = daysInMonth(ty, m)
+  const dd = Math.min(d, dim)
+  return `${ty}-${pad2(m)}-${pad2(dd)}`
+}
+function epochDayFromStr(s) {
+  const [y, m, d] = s.split("-").map(Number)
+  return Math.floor(Date.UTC(y, m - 1, d) / 86400000)
+}
+function diffDaysStr(s1, s2) {
+  return epochDayFromStr(s2) - epochDayFromStr(s1)
+}
+
 export default {
   name: "VillageOfficial",
   components: { ApprovalStatus },
@@ -461,6 +494,7 @@ export default {
       villageOfficialList: [],
       streetOfficeOptions: [],
       villageCommitteeOptions: [],
+      queryVillageCommitteeOptions: [],
       title: "",
       open: false,
       queryParams: {
@@ -471,6 +505,7 @@ export default {
         idCardNo: null,
         streetOfficeId: null,
         villageCommitteeId: null,
+        approvalStatus: null,
         hasViolation: null
       },
       form: {},
@@ -579,8 +614,8 @@ export default {
       this.getList()
     },
     resetQuery() {
+      this.queryVillageCommitteeOptions = []
       this.resetForm("queryForm")
-      this.villageCommitteeOptions = []
       this.handleQuery()
     },
     handleSelectionChange(selection) {
@@ -728,10 +763,10 @@ export default {
     },
     handleQueryStreetOfficeChange(streetOfficeId) {
       this.queryParams.villageCommitteeId = null
-      this.villageCommitteeOptions = []
+      this.queryVillageCommitteeOptions = []
       if (streetOfficeId) {
         getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
-          this.villageCommitteeOptions = response.data
+          this.queryVillageCommitteeOptions = response.data
         })
       }
     },
@@ -757,31 +792,37 @@ export default {
     handleDeletePosition(index) {
       this.form.positionList.splice(index, 1)
     },
-    /** 与后端 ChronoUnit.YEARS.between 一致的整年数 */
+    /** 与后端一致：整周年数 + 余下日历天数/365，保留两位小数 */
     computePositionServiceYears(startDate, endDate) {
       if (!startDate || typeof startDate !== "string") return null
-      const p = startDate.split("-").map(Number)
-      if (p.length !== 3 || p.some(n => Number.isNaN(n))) return null
-      const [sy, sm, sd] = p
-      let ey; let em; let ed
-      if (endDate && typeof endDate === "string") {
-        const pe = endDate.split("-").map(Number)
-        if (pe.length !== 3 || pe.some(n => Number.isNaN(n))) return null
-        ;[ey, em, ed] = pe
-      } else {
-        const now = new Date()
-        ey = now.getFullYear()
-        em = now.getMonth() + 1
-        ed = now.getDate()
+      const ps = startDate.split("-").map(Number)
+      if (ps.length !== 3 || ps.some(n => Number.isNaN(n))) return null
+      const todayStr = () => {
+        const n = new Date()
+        return `${n.getFullYear()}-${pad2(n.getMonth() + 1)}-${pad2(n.getDate())}`
       }
-      if (ey < sy || (ey === sy && (em < sm || (em === sm && ed < sd)))) return null
-      let years = ey - sy
-      if (em < sm || (em === sm && ed < sd)) years--
-      return years
+      const endStr = endDate && typeof endDate === "string" ? endDate : todayStr()
+      const pe = endStr.split("-").map(Number)
+      if (pe.length !== 3 || pe.some(n => Number.isNaN(n))) return null
+      if (endStr < startDate) return null
+      let full = 0
+      let cur = startDate
+      for (;;) {
+        const next = plusYearsStr(cur, 1)
+        if (next <= endStr) {
+          full++
+          cur = next
+        } else {
+          break
+        }
+      }
+      const remainderDays = diffDaysStr(cur, endStr)
+      const total = full + remainderDays / 365
+      return Number.parseFloat(total.toFixed(2))
     },
     formatPositionServiceYears(row) {
       const y = this.computePositionServiceYears(row.startDate, row.endDate)
-      return y === null ? "—" : String(y)
+      return y === null ? "—" : y.toFixed(2)
     },
     syncPositionRowServiceYears(row) {
       row.serviceYears = this.computePositionServiceYears(row.startDate, row.endDate)

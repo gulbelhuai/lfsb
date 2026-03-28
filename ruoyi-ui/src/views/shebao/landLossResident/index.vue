@@ -26,7 +26,7 @@
         />
       </el-form-item>
       <el-form-item label="所属街道办" prop="streetOfficeId">
-        <el-select v-model="queryParams.streetOfficeId" placeholder="请选择所属街道办" clearable @change="handleStreetOfficeChange">
+        <el-select v-model="queryParams.streetOfficeId" placeholder="请选择所属街道办" clearable @change="handleQueryStreetOfficeChange">
           <el-option
             v-for="item in streetOfficeOptions"
             :key="item.id"
@@ -38,11 +38,19 @@
       <el-form-item label="所属村委会" prop="villageCommitteeId">
         <el-select v-model="queryParams.villageCommitteeId" placeholder="请选择所属村委会" clearable>
           <el-option
-            v-for="item in villageCommitteeOptions"
+            v-for="item in queryVillageCommitteeOptions"
             :key="item.id"
             :label="item.villageName"
             :value="item.id"
           />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="审核状态" prop="approvalStatus">
+        <el-select v-model="queryParams.approvalStatus" placeholder="请选择" clearable>
+          <el-option label="草稿" value="draft" />
+          <el-option label="待复核" value="pending_review" />
+          <el-option label="已通过" value="approved" />
+          <el-option label="已驳回" value="rejected" />
         </el-select>
       </el-form-item>
       <el-form-item label="征地时间" v-if="false">
@@ -84,7 +92,7 @@
           v-hasPermi="['shebao:landLossResident:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-show="false" :span="1.5">
         <el-button
           type="danger"
           plain
@@ -249,7 +257,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="所属街道办" prop="streetOfficeId">
-                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" @change="handleStreetOfficeChange">
+                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" @change="handleFormStreetOfficeChange">
                   <el-option
                     v-for="item in streetOfficeOptions"
                     :key="item.id"
@@ -440,8 +448,10 @@ export default {
       landLossResidentList: [],
       // 街道办选项
       streetOfficeOptions: [],
-      // 村委会选项
+      // 弹窗表单：村委会选项
       villageCommitteeOptions: [],
+      // 列表查询：村委会选项（与表单隔离，避免联动串扰）
+      queryVillageCommitteeOptions: [],
       // 弹出层标题
       title: "",
       // 是否显示弹出层
@@ -460,7 +470,8 @@ export default {
         landRequisitionTimeEnd: null,
         recognitionTimeStart: null,
         recognitionTimeEnd: null,
-        userCode: null
+        userCode: null,
+        approvalStatus: null
       },
       // 表单参数
       form: {},
@@ -564,6 +575,7 @@ export default {
       this.landRequisitionTimeRange = []
       this.queryParams.landRequisitionTimeStart = null
       this.queryParams.landRequisitionTimeEnd = null
+      this.queryVillageCommitteeOptions = []
       this.resetForm("queryForm")
       this.handleQuery()
     },
@@ -584,7 +596,7 @@ export default {
       this.reset()
       const id = row.id || this.ids
       getLandLossResident(id).then(response => {
-        this.handleStreetOfficeChange(response.data.streetOfficeId)
+        this.handleFormStreetOfficeChange(response.data.streetOfficeId)
         this.form = response.data
         this.open = true
         this.title = "修改失地居民信息"
@@ -690,7 +702,7 @@ export default {
           const data = response.data
           if (data.personExists) {
             // 基础信息存在，自动填充并标记
-            this.handleStreetOfficeChange(data.streetOfficeId)
+            this.handleFormStreetOfficeChange(data.streetOfficeId)
             this.form.personExists = true
             this.form.subsidyPersonId = data.subsidyPersonId
             this.form.name = data.name
@@ -744,8 +756,19 @@ export default {
       })
     },
 
-    /** 街道办选择变化处理 */
-    handleStreetOfficeChange(streetOfficeId) {
+    /** 列表查询：街道办变化 */
+    handleQueryStreetOfficeChange(streetOfficeId) {
+      this.queryParams.villageCommitteeId = null
+      this.queryVillageCommitteeOptions = []
+      if (streetOfficeId) {
+        getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
+          this.queryVillageCommitteeOptions = response.data
+        })
+      }
+    },
+
+    /** 弹窗表单：街道办变化 */
+    handleFormStreetOfficeChange(streetOfficeId) {
       this.form.villageCommitteeId = null
       this.villageCommitteeOptions = []
       if (streetOfficeId) {

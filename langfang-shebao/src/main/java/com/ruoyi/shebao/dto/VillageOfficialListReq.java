@@ -31,4 +31,7 @@ public class VillageOfficialListReq extends PageReq
 
     /** 是否违法乱纪或判刑（0否 1是） */
     private String hasViolation;
+
+    /** 审批状态（draft/pending_review/approved/rejected） */
+    private String approvalStatus;
 }

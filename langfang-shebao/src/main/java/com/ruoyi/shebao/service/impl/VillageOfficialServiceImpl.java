@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -565,8 +567,10 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         villageOfficialPositionMapper.batchInsertPositions(positionList);
     }
 
-    /** 任职年限：上任至卸任（或当前日期）之间的整年数，与 ChronoUnit.YEARS.between 一致 */
-    private static Integer computePositionServiceYears(LocalDate startDate, LocalDate endDate)
+    /**
+     * 任职年限：完整周年数（与 ChronoUnit.YEARS.between 一致）+ 余下日历天数/365，结果保留两位小数。
+     */
+    private static BigDecimal computePositionServiceYears(LocalDate startDate, LocalDate endDate)
     {
         if (startDate == null)
         {
@@ -577,7 +581,13 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         {
             return null;
         }
-        return (int) ChronoUnit.YEARS.between(startDate, end);
+        long fullYears = ChronoUnit.YEARS.between(startDate, end);
+        LocalDate afterFullYears = startDate.plusYears(fullYears);
+        long remainderDays = ChronoUnit.DAYS.between(afterFullYears, end);
+        BigDecimal full = BigDecimal.valueOf(fullYears);
+        BigDecimal fraction = BigDecimal.valueOf(remainderDays)
+            .divide(BigDecimal.valueOf(365), 8, RoundingMode.HALF_UP);
+        return full.add(fraction).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**

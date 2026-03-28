@@ -113,6 +113,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="req.idCardNo != null and req.idCardNo != ''">
                 AND sp.id_card_no like concat('%', #{req.idCardNo}, '%')
             </if>
+            <if test="req.userCode != null and req.userCode != ''">
+                AND sp.user_code = #{req.userCode}
+            </if>
+            <if test="req.streetOfficeId != null">
+                AND sp.street_office_id = #{req.streetOfficeId}
+            </if>
+            <if test="req.villageCommitteeId != null">
+                AND sp.village_committee_id = #{req.villageCommitteeId}
+            </if>
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND sp.approval_status = #{req.approvalStatus}
+            </if>
             <if test="req.landRequisitionBatch != null and req.landRequisitionBatch != ''">
                 AND es.land_requisition_batch like concat('%', #{req.landRequisitionBatch}, '%')
             </if>

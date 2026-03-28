@@ -38,11 +38,19 @@
       <el-form-item label="所属村委会" prop="villageCommitteeId">
         <el-select v-model="queryParams.villageCommitteeId" placeholder="请选择所属村委会" clearable>
           <el-option
-            v-for="item in villageCommitteeOptions"
+            v-for="item in queryVillageCommitteeOptions"
             :key="item.id"
             :label="item.villageName"
             :value="item.id"
           />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="审核状态" prop="approvalStatus">
+        <el-select v-model="queryParams.approvalStatus" placeholder="请选择" clearable>
+          <el-option label="草稿" value="draft" />
+          <el-option label="待复核" value="pending_review" />
+          <el-option label="已通过" value="approved" />
+          <el-option label="已驳回" value="rejected" />
         </el-select>
       </el-form-item>
       <el-form-item label="拆迁时间" v-if="false">
@@ -84,7 +92,7 @@
           v-hasPermi="['shebao:demolitionResident:edit', 'shebao:person:demolition:edit']"
         >修改</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <el-col v-show="false" :span="1.5">
         <el-button
           type="danger"
           plain
@@ -155,6 +163,7 @@
             v-hasPermi="['shebao:demolitionResident:edit', 'shebao:person:demolition:edit']"
           >修改</el-button>
           <el-button
+            v-show="false"
             size="mini"
             type="text"
             icon="el-icon-delete"
@@ -408,8 +417,10 @@ export default {
       demolitionResidentList: [],
       // 街道办选项
       streetOfficeOptions: [],
-      // 村委会选项
+      // 弹窗表单：村委会选项
       villageCommitteeOptions: [],
+      // 列表查询：村委会选项
+      queryVillageCommitteeOptions: [],
       // 弹出层标题
       title: "",
       // 是否显示弹出层
@@ -428,7 +439,8 @@ export default {
         demolitionTimeEnd: null,
         recognitionTimeStart: null,
         recognitionTimeEnd: null,
-        userCode: null
+        userCode: null,
+        approvalStatus: null
       },
       // 表单参数
       form: {},
@@ -568,6 +580,7 @@ export default {
       this.demolitionTimeRange = []
       this.queryParams.demolitionTimeStart = null
       this.queryParams.demolitionTimeEnd = null
+      this.queryVillageCommitteeOptions = []
       this.resetForm("queryForm")
       this.handleQuery()
     },
@@ -758,10 +771,10 @@ export default {
     /** 搜索区：街道办变化 */
     handleQueryStreetOfficeChange(streetOfficeId) {
       this.queryParams.villageCommitteeId = null
-      this.villageCommitteeOptions = []
+      this.queryVillageCommitteeOptions = []
       if (streetOfficeId) {
         getVillageCommitteeByStreetOffice(streetOfficeId).then(response => {
-          this.villageCommitteeOptions = response.data
+          this.queryVillageCommitteeOptions = response.data
         })
       }
     },

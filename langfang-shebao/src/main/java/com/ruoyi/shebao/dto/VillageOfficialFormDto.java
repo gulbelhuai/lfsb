@@ -128,8 +128,8 @@ public class VillageOfficialFormDto
         @JsonFormat(pattern = "yyyy-MM-dd")
         private LocalDate endDate;
 
-        /** 任职年限（按周年取整，可与服务端根据起止日期计算结果一致） */
-        private Integer serviceYears;
+        /** 任职年限：整年数 + 余下天数/365，两位小数（服务端会按起止日期重算） */
+        private BigDecimal serviceYears;
 
         /** 状态（0正常 1停用） */
         private String status;
