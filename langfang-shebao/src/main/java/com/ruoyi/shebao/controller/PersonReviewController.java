@@ -13,6 +13,7 @@ import com.ruoyi.shebao.domain.LandLossResident;
 import com.ruoyi.shebao.domain.SubsidyPerson;
 import com.ruoyi.shebao.domain.TeacherSubsidy;
 import com.ruoyi.shebao.domain.VillageOfficial;
+import com.ruoyi.shebao.dto.ResidentDetailInfoDto;
 import com.ruoyi.shebao.dto.SubsidyPersonListReq;
 import com.ruoyi.shebao.dto.SubsidyPersonListResp;
 import com.ruoyi.shebao.mapper.DemolitionResidentMapper;
@@ -21,6 +22,7 @@ import com.ruoyi.shebao.mapper.LandLossResidentMapper;
 import com.ruoyi.shebao.mapper.TeacherSubsidyMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.service.ApprovalLogService;
+import com.ruoyi.shebao.service.ResidentQueryService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -62,6 +64,9 @@ public class PersonReviewController extends BaseController
 
     @Autowired
     private TeacherSubsidyMapper teacherSubsidyMapper;
+
+    @Autowired
+    private ResidentQueryService residentQueryService;
 
     /**
      * 查询待复核人员列表
@@ -170,19 +175,8 @@ public class PersonReviewController extends BaseController
         {
             return AjaxResult.error("记录不存在");
         }
-        SubsidyPersonListResp resp = new SubsidyPersonListResp();
-        resp.setId(person.getId());
-        resp.setName(person.getName());
-        resp.setGender(person.getGender());
-        resp.setIdCardNo(person.getIdCardNo());
-        resp.setBirthday(person.getBirthday());
-        resp.setPhone(person.getPhone());
-        resp.setStreetOfficeId(person.getStreetOfficeId());
-        resp.setVillageCommitteeId(person.getVillageCommitteeId());
-        resp.setUserCode(person.getUserCode());
-        resp.setApprovalStatus(person.getApprovalStatus());
-        resp.setUpdateTime(person.getUpdateTime());
-        return AjaxResult.success(buildRow(resp, resolveSubsidyType(person.getId())));
+        ResidentDetailInfoDto detailInfo = residentQueryService.getResidentDetailInfo(null, id);
+        return AjaxResult.success(detailInfo);
     }
 
     private Map<String, Object> buildRow(SubsidyPersonListResp item, String subsidyType)

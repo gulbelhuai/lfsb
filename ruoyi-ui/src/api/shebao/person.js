@@ -61,6 +61,14 @@ export function listPersonReview(query) {
   })
 }
 
+// 查询待复核人员详情
+export function getPersonReviewDetail(id) {
+  return request({
+    url: '/shebao/person/review/' + id,
+    method: 'get'
+  })
+}
+
 // 复核通过
 export function reviewPersonPass(id, remark) {
   return request({

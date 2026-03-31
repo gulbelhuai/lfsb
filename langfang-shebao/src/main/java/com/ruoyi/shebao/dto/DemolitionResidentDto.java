@@ -3,6 +3,7 @@ package com.ruoyi.shebao.dto;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 拆迁居民补贴DTO
@@ -13,6 +14,9 @@ import java.time.LocalDate;
 @Data
 public class DemolitionResidentDto
 {
+    /** 认定时所在村街 */
+    private String villageStreet;
+
     /** 认定时间 */
     private LocalDate recognitionTime;
 
@@ -24,4 +28,7 @@ public class DemolitionResidentDto
 
     /** 备注 */
     private String remark;
+
+    /** 提交时间 */
+    private LocalDateTime createTime;
 }

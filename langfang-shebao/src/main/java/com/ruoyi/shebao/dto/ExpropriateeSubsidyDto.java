@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 被征地居民补贴DTO
@@ -16,6 +17,9 @@ public class ExpropriateeSubsidyDto
 {
     /** 征地批次 */
     private String landRequisitionBatch;
+
+    /** 征地时所在村街 */
+    private String villageStreet;
 
     /** 基准时间 */
     private LocalDate baseDate;
@@ -44,6 +48,12 @@ public class ExpropriateeSubsidyDto
     /** 参加职工养老 */
     private String joinEmployeePension;
 
+    /** 已领取职工养老待遇 */
+    private String hasEmployeePension;
+
     /** 备注 */
     private String remark;
+
+    /** 提交时间 */
+    private LocalDateTime createTime;
 }

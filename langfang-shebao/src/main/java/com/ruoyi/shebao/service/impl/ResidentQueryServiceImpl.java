@@ -150,10 +150,13 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
         List<LandLossResidentDto> landLossDtos = new ArrayList<>();
         for (LandLossResident resident : landLossResidents) {
             LandLossResidentDto dto = new LandLossResidentDto();
+            dto.setLandRequisitionBatch(resident.getLandRequisitionBatch());
+            dto.setVillageStreet(resident.getVillageStreet());
             dto.setRecognitionTime(resident.getRecognitionTime());
             dto.setLandRequisitionTime(resident.getLandRequisitionTime());
             dto.setCompensationCompleteTime(resident.getCompensationCompleteTime());
             dto.setRemark(resident.getRemark());
+            dto.setCreateTime(resident.getCreateTime());
             landLossDtos.add(dto);
         }
         subsidyInfo.setLandLossResidents(landLossDtos);
@@ -167,6 +170,7 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
         for (ExpropriateeSubsidy subsidy : expropriateeSubsidies) {
             ExpropriateeSubsidyDto dto = new ExpropriateeSubsidyDto();
             dto.setLandRequisitionBatch(subsidy.getLandRequisitionBatch());
+            dto.setVillageStreet(subsidy.getVillageStreet());
             dto.setBaseDate(subsidy.getBaseDate());
             dto.setEmployeePensionMonths(subsidy.getEmployeePensionMonths());
             dto.setFlexibleEmploymentMonths(subsidy.getFlexibleEmploymentMonths());
@@ -176,7 +180,9 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
             dto.setSubsidyAmount(subsidy.getSubsidyAmount());
             dto.setJoinUrbanRuralInsurance(subsidy.getJoinUrbanRuralInsurance());
             dto.setJoinEmployeePension(subsidy.getJoinEmployeePension());
+            dto.setHasEmployeePension(subsidy.getHasEmployeePension());
             dto.setRemark(subsidy.getRemark());
+            dto.setCreateTime(subsidy.getCreateTime());
             expropriateeDtos.add(dto);
         }
         subsidyInfo.setExpropriateeSubsidies(expropriateeDtos);
@@ -189,10 +195,12 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
         List<DemolitionResidentDto> demolitionDtos = new ArrayList<>();
         for (DemolitionResident resident : demolitionResidents) {
             DemolitionResidentDto dto = new DemolitionResidentDto();
+            dto.setVillageStreet(resident.getVillageStreet());
             dto.setRecognitionTime(resident.getRecognitionTime());
             dto.setDemolitionTime(resident.getDemolitionTime());
             dto.setDemolitionReason(resident.getDemolitionReason());
             dto.setRemark(resident.getRemark());
+            dto.setCreateTime(resident.getCreateTime());
             demolitionDtos.add(dto);
         }
         subsidyInfo.setDemolitionResidents(demolitionDtos);
@@ -205,9 +213,12 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
         List<VillageOfficialDto> villageOfficialDtos = new ArrayList<>();
         for (VillageOfficial official : villageOfficials) {
             VillageOfficialDto dto = new VillageOfficialDto();
-            dto.setTotalServiceYears(official.getTotalServiceYears() != null ? official.getTotalServiceYears().intValue() : null);
+            dto.setTotalServiceYears(official.getTotalServiceYears());
+            dto.setSubsidyAmount(official.getSubsidyAmount());
             dto.setHasViolation(official.getHasViolation());
+            dto.setVillageStreet(official.getVillageStreet());
             dto.setRemark(official.getRemark());
+            dto.setCreateTime(official.getCreateTime());
             villageOfficialDtos.add(dto);
         }
         subsidyInfo.setVillageOfficials(villageOfficialDtos);
