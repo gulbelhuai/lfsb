@@ -39,7 +39,7 @@
       <el-table-column label="街道办事处" align="center" prop="streetOfficeName" width="120" />
       <el-table-column label="村委会" align="center" prop="villageCommitteeName" width="120" />
       <el-table-column label="提交时间" align="center" prop="submitTime" width="160" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="250">
+      <el-table-column label="操作" align="center" width="250">
         <template slot-scope="scope">
           <el-button
             size="mini"
@@ -50,14 +50,12 @@
           <el-button
             size="mini"
             type="success"
-            icon="el-icon-check"
             @click="handlePass(scope.row)"
             v-hasPermi="['shebao:person:review:approve']"
           >通过</el-button>
           <el-button
             size="mini"
             type="danger"
-            icon="el-icon-close"
             @click="handleReject(scope.row)"
             v-hasPermi="['shebao:person:review:reject']"
           >不通过</el-button>

@@ -15,9 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 人员关键信息修改Controller
- * 关键信息：姓名、身份证号、户籍所在地、所属街道办、所属村委会
- * 流程：经办-复核-审批 三级
+ * 人员信息变更：basic（两级：复核通过即回写）、key（三级：复核→审批后回写含姓名/身份证）
  *
  * @author ruoyi
  */
@@ -29,7 +27,7 @@ public class PersonModifyController extends BaseController {
     private PersonKeyInfoModifyService personKeyInfoModifyService;
 
     /**
-     * 查询关键信息修改申请列表
+     * 查询人员信息变更申请列表
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:list')")
     @GetMapping("/list")
@@ -41,7 +39,18 @@ public class PersonModifyController extends BaseController {
     }
 
     /**
-     * 获取关键信息修改申请详情
+     * 是否存在未办结的人员信息变更（用于按身份证拉取人员前校验）
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:person:modify:add')")
+    @GetMapping("/checkUnfinished")
+    public AjaxResult checkUnfinished(@RequestParam Long subsidyPersonId,
+                                      @RequestParam(required = false) Long excludeModifyId) {
+        boolean blocked = personKeyInfoModifyService.hasUnfinishedModifyForPerson(subsidyPersonId, excludeModifyId);
+        return AjaxResult.success(blocked);
+    }
+
+    /**
+     * 获取人员信息变更申请详情
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:query')")
     @GetMapping("/{id}")
@@ -53,7 +62,7 @@ public class PersonModifyController extends BaseController {
      * 新增/保存草稿（经办人）
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:add')")
-    @Log(title = "人员关键信息修改", businessType = BusinessType.INSERT)
+    @Log(title = "人员信息变更", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@Validated @RequestBody PersonKeyInfoModifyFormDto form) {
         long id = personKeyInfoModifyService.saveOrUpdateDraft(form);
@@ -64,7 +73,7 @@ public class PersonModifyController extends BaseController {
      * 修改草稿（经办人）
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:edit')")
-    @Log(title = "人员关键信息修改", businessType = BusinessType.UPDATE)
+    @Log(title = "人员信息变更", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody PersonKeyInfoModifyFormDto form) {
         personKeyInfoModifyService.saveOrUpdateDraft(form);
@@ -75,27 +84,27 @@ public class PersonModifyController extends BaseController {
      * 提交：草稿 -> 待复核（经办人）
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:submit')")
-    @Log(title = "人员关键信息修改提交", businessType = BusinessType.UPDATE)
+    @Log(title = "人员信息变更提交", businessType = BusinessType.UPDATE)
     @PostMapping("/submit/{id}")
     public AjaxResult submit(@PathVariable Long id) {
         return toAjax(personKeyInfoModifyService.submit(id));
     }
 
     /**
-     * 复核：待复核 -> 待审批 或 驳回（复核人）
+     * 复核：basic 通过即已通过；key 通过 -> 待审批；不通过 -> 已驳回
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:review')")
-    @Log(title = "人员关键信息修改复核", businessType = BusinessType.UPDATE)
+    @Log(title = "人员信息变更复核", businessType = BusinessType.UPDATE)
     @PostMapping("/review/{id}")
     public AjaxResult review(@PathVariable Long id, @RequestParam Boolean approved, @RequestParam(required = false) String remark) {
         return toAjax(personKeyInfoModifyService.review(id, approved, remark));
     }
 
     /**
-     * 审批：待审批 -> 已通过 或 驳回（审批人）
+     * 审批（仅关键信息）：待审批 -> 已通过；驳回 -> 已驳回
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:approve')")
-    @Log(title = "人员关键信息修改审批", businessType = BusinessType.UPDATE)
+    @Log(title = "人员信息变更审批", businessType = BusinessType.UPDATE)
     @PostMapping("/approve/{id}")
     public AjaxResult approve(@PathVariable Long id, @RequestParam Boolean approved, @RequestParam(required = false) String remark) {
         return toAjax(personKeyInfoModifyService.approve(id, approved, remark));
@@ -105,7 +114,7 @@ public class PersonModifyController extends BaseController {
      * 驳回（兼容旧前端）
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:reject')")
-    @Log(title = "人员关键信息修改驳回", businessType = BusinessType.UPDATE)
+    @Log(title = "人员信息变更驳回", businessType = BusinessType.UPDATE)
     @PostMapping("/reject/{id}")
     public AjaxResult reject(@PathVariable Long id, @RequestParam(required = false) String reason) {
         return toAjax(personKeyInfoModifyService.review(id, false, reason != null ? reason : "驳回"));

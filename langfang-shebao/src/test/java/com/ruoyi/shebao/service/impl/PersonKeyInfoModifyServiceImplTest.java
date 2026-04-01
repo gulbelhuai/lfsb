@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -142,5 +143,99 @@ class PersonKeyInfoModifyServiceImplTest {
         assertEquals(22L, updated.getVillageCommitteeId());
         assertEquals("tester", updated.getUpdateBy());
         assertTrue(updated.getUpdateTime() != null);
+    }
+
+    @Test
+    @DisplayName("基本信息变更复核通过应直接已通过并回写非关键字段")
+    void review_basicApproved_shouldApproveAndPatchPerson() {
+        PersonKeyInfoModify entity = new PersonKeyInfoModify();
+        entity.setId(50L);
+        entity.setSubsidyPersonId(99L);
+        entity.setModifyType("basic");
+        entity.setApprovalStatus("pending_review");
+        entity.setHouseholdRegistration("新户籍");
+        entity.setStreetOfficeId(5L);
+        entity.setVillageCommitteeId(6L);
+        entity.setHomeAddress("住址");
+        entity.setPhone("13800000000");
+
+        SubsidyPerson person = new SubsidyPerson();
+        person.setId(99L);
+
+        doReturn(entity).when(service).getById(50L);
+        doReturn(true).when(service).updateById(any(PersonKeyInfoModify.class));
+        when(subsidyPersonMapper.selectById(99L)).thenReturn(person);
+
+        ArgumentCaptor<SubsidyPerson> personCaptor = ArgumentCaptor.forClass(SubsidyPerson.class);
+
+        int result = service.review(50L, true, "ok");
+
+        assertEquals(1, result);
+        assertEquals("approved", entity.getApprovalStatus());
+        verify(subsidyPersonMapper).updateById(personCaptor.capture());
+        SubsidyPerson updated = personCaptor.getValue();
+        assertEquals("新户籍", updated.getHouseholdRegistration());
+        assertEquals(5L, updated.getStreetOfficeId());
+        assertEquals(6L, updated.getVillageCommitteeId());
+        assertEquals("住址", updated.getHomeAddress());
+        assertEquals("13800000000", updated.getPhone());
+    }
+
+    @Test
+    @DisplayName("关键信息审批驳回应为已驳回且不更新人员")
+    void approve_reject_shouldBeRejected() {
+        PersonKeyInfoModify entity = new PersonKeyInfoModify();
+        entity.setId(60L);
+        entity.setModifyType("key");
+        entity.setApprovalStatus("pending_approve");
+        entity.setSubsidyPersonId(1L);
+
+        doReturn(entity).when(service).getById(60L);
+        doReturn(true).when(service).updateById(any(PersonKeyInfoModify.class));
+
+        int result = service.approve(60L, false, "打回");
+
+        assertEquals(1, result);
+        assertEquals("rejected", entity.getApprovalStatus());
+        assertEquals("打回", entity.getRejectReason());
+        verify(subsidyPersonMapper, never()).updateById(any());
+    }
+
+    @Test
+    @DisplayName("同一人员已有未办结申请时不允许再保存新草稿")
+    void saveOrUpdateDraft_new_shouldRejectWhenUnfinishedExists() {
+        PersonKeyInfoModifyFormDto form = new PersonKeyInfoModifyFormDto();
+        form.setModifyType("key");
+        form.setSubsidyPersonId(77L);
+        form.setName("n");
+        form.setIdCardNo("110101199001011234");
+
+        doReturn(1L).when(service).count(any());
+
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.saveOrUpdateDraft(form));
+
+        assertEquals("存在未完成的业务", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("关键信息提交时若身份证已被他人占用应拦截")
+    void submit_keyShouldRejectDuplicateIdCard() {
+        PersonKeyInfoModify entity = new PersonKeyInfoModify();
+        entity.setId(70L);
+        entity.setModifyType("key");
+        entity.setSubsidyPersonId(200L);
+        entity.setIdCardNo("110101199001011111");
+        entity.setApprovalStatus("draft");
+
+        SubsidyPerson duplicated = new SubsidyPerson();
+        duplicated.setId(201L);
+        duplicated.setIdCardNo("110101199001011111");
+
+        doReturn(entity).when(service).getById(70L);
+        when(subsidyPersonMapper.selectOne(any())).thenReturn(duplicated);
+
+        ServiceException ex = assertThrows(ServiceException.class, () -> service.submit(70L));
+
+        assertEquals("相同的身份证号码已存在", ex.getMessage());
     }
 }

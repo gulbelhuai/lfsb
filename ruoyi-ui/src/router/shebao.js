@@ -63,12 +63,12 @@ export default {
       meta: { title: '人员登记审核', icon: 'education' },
       hidden: false
     },
-    // 1.7 人员信息修改审核
+    // 1.7 人员信息变更（基本/关键信息变更与审核）
     {
       path: 'person/modify',
       component: () => import('@/views/shebao/person/modify/index'),
       name: 'PersonModify',
-      meta: { title: '人员信息修改审核', icon: 'edit' },
+      meta: { title: '人员信息变更', icon: 'edit' },
       hidden: false
     },
 

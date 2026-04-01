@@ -87,7 +87,20 @@ export function reviewPersonReject(id, remark) {
   })
 }
 
-// 查询关键信息修改申请列表
+// 是否存在未办结的人员信息变更（data 为 true 表示不可再发起）
+export function checkPersonModifyUnfinished(subsidyPersonId, excludeModifyId) {
+  const params = { subsidyPersonId }
+  if (excludeModifyId != null && excludeModifyId !== '') {
+    params.excludeModifyId = excludeModifyId
+  }
+  return request({
+    url: '/shebao/person/modify/checkUnfinished',
+    method: 'get',
+    params
+  })
+}
+
+// 人员信息变更申请列表（含 basic / key）
 export function listPersonModify(query) {
   return request({
     url: '/shebao/person/modify/list',
@@ -96,7 +109,7 @@ export function listPersonModify(query) {
   })
 }
 
-// 获取关键信息修改申请详情
+// 人员信息变更申请详情
 export function getPersonModify(id) {
   return request({
     url: '/shebao/person/modify/' + id,
@@ -104,7 +117,7 @@ export function getPersonModify(id) {
   })
 }
 
-// 新增/保存草稿（关键信息修改）
+// 新增/保存草稿（modifyType: basic | key）
 export function savePersonModify(data) {
   return request({
     url: '/shebao/person/modify',
@@ -113,7 +126,7 @@ export function savePersonModify(data) {
   })
 }
 
-// 提交关键信息修改（经办人：草稿 -> 待复核）
+// 提交（草稿 -> 待复核）
 export function submitPersonModify(id) {
   return request({
     url: '/shebao/person/modify/submit/' + id,
@@ -121,7 +134,7 @@ export function submitPersonModify(id) {
   })
 }
 
-// 复核关键信息修改（复核人：待复核 -> 待审批 或 驳回）
+// 复核：basic 通过即已通过；key 通过 -> 待审批
 export function reviewPersonModify(id, approved, remark) {
   return request({
     url: '/shebao/person/modify/review/' + id,
@@ -130,7 +143,7 @@ export function reviewPersonModify(id, approved, remark) {
   })
 }
 
-// 审批关键信息修改（审批人：待审批 -> 已通过 或 驳回）
+// 审批（仅 key：待审批 -> 已通过；驳回 -> 已驳回）
 export function approvePersonModify(id, approved, remark) {
   return request({
     url: '/shebao/person/modify/approve/' + id,

@@ -331,18 +331,30 @@ DROP TABLE IF EXISTS `person_key_info_modify`;
 CREATE TABLE `person_key_info_modify` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `subsidy_person_id` bigint NOT NULL COMMENT '被补贴人ID',
+  `modify_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'key' COMMENT '变更类型 basic-基本信息(2级) key-关键信息(3级)',
   `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '姓名',
+  `old_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '变更前姓名',
   `id_card_no` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '身份证号',
+  `old_id_card_no` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '变更前身份证号',
   `household_registration` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '户籍所在地',
+  `old_household_registration` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '变更前户籍所在地',
   `street_office_id` bigint DEFAULT NULL COMMENT '所属街道办ID',
+  `old_street_office_id` bigint DEFAULT NULL COMMENT '变更前所属街道办ID',
   `village_committee_id` bigint DEFAULT NULL COMMENT '所属村委会ID',
+  `old_village_committee_id` bigint DEFAULT NULL COMMENT '变更前所属村委会ID',
+  `home_address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '家庭住址',
+  `old_home_address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '变更前家庭住址',
+  `phone` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '联系电话',
+  `old_phone` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '变更前联系电话',
   `approval_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'draft' COMMENT '审批状态(draft-草稿 pending_review-待复核 pending_approve-待审批 approved-已通过 rejected-已驳回)',
   `submit_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '提交人',
   `submit_time` datetime DEFAULT NULL COMMENT '提交时间',
   `review_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '复核人',
   `review_time` datetime DEFAULT NULL COMMENT '复核时间',
+  `review_remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '复核意见',
   `approve_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '审批人',
   `approve_time` datetime DEFAULT NULL COMMENT '审批时间',
+  `approve_remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '审批意见',
   `reject_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '驳回原因',
   `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '删除标志(0正常 2删除)',
   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '' COMMENT '创建者',
@@ -355,7 +367,7 @@ CREATE TABLE `person_key_info_modify` (
   KEY `idx_approval_status` (`approval_status`) USING BTREE,
   KEY `idx_id_card_no` (`id_card_no`) USING BTREE,
   KEY `idx_create_time` (`create_time`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='人员关键信息修改申请表';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='人员信息变更申请表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -364,7 +376,7 @@ CREATE TABLE `person_key_info_modify` (
 
 LOCK TABLES `person_key_info_modify` WRITE;
 /*!40000 ALTER TABLE `person_key_info_modify` DISABLE KEYS */;
-INSERT INTO `person_key_info_modify` VALUES (1,1000001,'刘三娘','131131198411120021','廊坊',1,2,'approved','admin','2026-02-03 18:53:15','admin','2026-02-03 18:54:16','admin','2026-02-03 18:54:29',NULL,'0','admin','2026-02-03 18:53:14','admin','2026-02-03 18:54:29',NULL),(2,1000025,'陈建国','130105196803152847','河北省廊坊市安次区光明路街道(更正)',3,1,'pending_approve','operator01','2026-03-03 16:18:48','reviewer01','2026-03-03 16:18:48',NULL,NULL,NULL,'0','operator01','2026-03-03 16:18:48','reviewer01','2026-03-03 16:18:48','户籍信息更正'),(3,1000025,'陈建国','130105196803152847','河北省坊市安次区光明路街道(更正后)',2,3,'pending_review','operator01','2026-03-03 16:29:07',NULL,NULL,NULL,NULL,NULL,'0','operator01','2026-03-03 16:29:07','operator01','2026-03-03 16:29:07','户籍地址更正申请');
+INSERT INTO `person_key_info_modify` (`id`,`subsidy_person_id`,`modify_type`,`name`,`old_name`,`id_card_no`,`old_id_card_no`,`household_registration`,`old_household_registration`,`street_office_id`,`old_street_office_id`,`village_committee_id`,`old_village_committee_id`,`home_address`,`old_home_address`,`phone`,`old_phone`,`approval_status`,`submit_by`,`submit_time`,`review_by`,`review_time`,`review_remark`,`approve_by`,`approve_time`,`approve_remark`,`reject_reason`,`del_flag`,`create_by`,`create_time`,`update_by`,`update_time`,`remark`) VALUES (1,1000001,'key','刘三娘',NULL,'131131198411120021',NULL,'廊坊',NULL,1,NULL,2,NULL,NULL,NULL,NULL,NULL,'approved','admin','2026-02-03 18:53:15','admin','2026-02-03 18:54:16',NULL,'admin','2026-02-03 18:54:29',NULL,NULL,'0','admin','2026-02-03 18:53:14','admin','2026-02-03 18:54:29',NULL),(2,1000025,'key','陈建国',NULL,'130105196803152847',NULL,'河北省廊坊市安次区光明路街道(更正)',NULL,3,NULL,1,NULL,NULL,NULL,NULL,NULL,'pending_approve','operator01','2026-03-03 16:18:48','reviewer01','2026-03-03 16:18:48',NULL,NULL,NULL,NULL,NULL,'0','operator01','2026-03-03 16:18:48','reviewer01','2026-03-03 16:18:48','户籍信息更正'),(3,1000025,'key','陈建国',NULL,'130105196803152847',NULL,'河北省坊市安次区光明路街道(更正后)',NULL,2,NULL,3,NULL,NULL,NULL,NULL,NULL,'pending_review','operator01','2026-03-03 16:29:07',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'0','operator01','2026-03-03 16:29:07','operator01','2026-03-03 16:29:07','户籍地址更正申请');
 /*!40000 ALTER TABLE `person_key_info_modify` ENABLE KEYS */;
 UNLOCK TABLES;
 

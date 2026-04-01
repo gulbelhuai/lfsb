@@ -19,6 +19,11 @@ public interface PersonKeyInfoModifyService extends IService<PersonKeyInfoModify
 
     PersonKeyInfoModifyFormDto selectFormById(Long id);
 
+    /**
+     * 该被补贴人是否存在未办结的人员信息变更：只要审批状态不是「已通过」即算未完成；排除指定申请单 id 后判断（编辑自身时用）
+     */
+    boolean hasUnfinishedModifyForPerson(Long subsidyPersonId, Long excludeModifyId);
+
     /** 保存或新增（草稿） */
     long saveOrUpdateDraft(PersonKeyInfoModifyFormDto form);
 
@@ -28,6 +33,6 @@ public interface PersonKeyInfoModifyService extends IService<PersonKeyInfoModify
     /** 复核：待复核 -> 待审批 或 草稿（驳回） */
     int review(Long id, boolean approved, String remark);
 
-    /** 审批：待审批 -> 已通过 或 待复核（驳回）；通过时回写 subsidy_person */
+    /** 审批：待审批 -> 已通过 或 已驳回；通过时回写 subsidy_person */
     int approve(Long id, boolean approved, String remark);
 }

@@ -20,15 +20,22 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd" v-hasPermi="['shebao:person:modify:add']">新增申请</el-button>
+        <el-button type="primary" plain icon="el-icon-edit" size="mini" @click="handleAddBasic" v-hasPermi="['shebao:person:modify:add']">基本信息变更</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="warning" plain icon="el-icon-warning-outline" size="mini" @click="handleAddKey" v-hasPermi="['shebao:person:modify:add']">关键信息变更</el-button>
       </el-col>
     </el-row>
 
     <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
       <el-table-column type="index" label="序号" width="50" />
+      <el-table-column label="变更类型" align="center" width="110">
+        <template slot-scope="scope">
+          <span>{{ modifyTypeLabel(scope.row.modifyType) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="姓名" prop="name" width="100" />
       <el-table-column label="身份证号" prop="idCardNo" width="180" />
-      <el-table-column label="户籍所在地" prop="householdRegistration" min-width="140" show-overflow-tooltip />
       <el-table-column label="所属街道办" prop="streetOfficeName" width="120" show-overflow-tooltip />
       <el-table-column label="所属村委会" prop="villageCommitteeName" width="120" show-overflow-tooltip />
       <el-table-column label="审批状态" align="center" width="100">
@@ -36,7 +43,7 @@
           <approval-status :status="scope.row.approvalStatus" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="320" fixed="right">
+      <el-table-column label="操作" align="center" width="240">
         <template slot-scope="scope">
           <el-button size="mini" type="text" @click="handleView(scope.row)">详情</el-button>
           <template v-if="scope.row.approvalStatus === 'draft' || scope.row.approvalStatus === 'rejected'">
@@ -57,16 +64,36 @@
 
     <pagination v-show="total>0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
 
-    <!-- 新增/编辑 关键信息修改 -->
-    <el-dialog :title="formTitle" :visible.sync="formOpen" width="600px" append-to-body>
+    <el-dialog :title="formTitle" :visible.sync="formOpen" width="640px" append-to-body>
+      <el-alert
+        v-if="form.modifyType === 'basic'"
+        title="基本信息变更：不可改姓名、身份证号；复核通过即生效（两级审核）。"
+        type="info"
+        :closable="false"
+        show-icon
+        class="mb12"
+      />
+      <el-alert
+        v-else-if="form.modifyType === 'key'"
+        title="关键信息变更：可改姓名、身份证号；需复核与所长审批（三级审核）。"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="mb12"
+      />
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="120px">
         <el-form-item label="身份证号" prop="idCardNo">
-          <el-input v-model="form.idCardNo" placeholder="输入身份证号后回车查询人员" @keyup.enter.native="handleSearchPerson" :disabled="!!form.id">
-            <el-button slot="append" icon="el-icon-search" @click="handleSearchPerson" :disabled="!!form.id">查询</el-button>
+          <el-input
+            v-model="form.idCardNo"
+            placeholder="输入身份证号后回车查询人员"
+            @keyup.enter.native="handleSearchPerson"
+            :disabled="!!form.id || identityLocked"
+          >
+            <el-button slot="append" icon="el-icon-search" @click="handleSearchPerson" :disabled="!!form.id || identityLocked">查询</el-button>
           </el-input>
         </el-form-item>
         <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" placeholder="姓名" />
+          <el-input v-model="form.name" placeholder="姓名" :disabled="identityLocked" />
         </el-form-item>
         <el-form-item label="户籍所在地" prop="householdRegistration">
           <el-input v-model="form.householdRegistration" placeholder="户籍所在地" />
@@ -81,6 +108,12 @@
             <el-option v-for="item in villageCommitteeOptions" :key="item.id" :label="item.villageName" :value="item.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="家庭住址" prop="homeAddress">
+          <el-input v-model="form.homeAddress" placeholder="选填" />
+        </el-form-item>
+        <el-form-item label="联系电话" prop="phone">
+          <el-input v-model="form.phone" placeholder="选填" maxlength="32" />
+        </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="选填" />
         </el-form-item>
@@ -92,21 +125,40 @@
       </div>
     </el-dialog>
 
-    <!-- 详情 -->
-    <el-dialog title="关键信息修改详情" :visible.sync="detailOpen" width="600px" append-to-body>
+    <el-dialog title="人员信息变更详情" :visible.sync="detailOpen" width="640px" append-to-body>
       <el-descriptions :column="1" border v-if="detailData.id">
-        <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
-        <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
-        <el-descriptions-item label="户籍所在地">{{ detailData.householdRegistration || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="所属街道办">{{ detailData.streetOfficeName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="所属村委会">{{ detailData.villageCommitteeName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="变更类型">{{ modifyTypeLabel(detailData.modifyType) }}</el-descriptions-item>
+        <el-descriptions-item label="姓名">
+          <span :class="compareValueClass(detailData.oldName, detailData.name)">{{ compareValueText(detailData.oldName, detailData.name) }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="身份证号">
+          <span :class="compareValueClass(detailData.oldIdCardNo, detailData.idCardNo)">{{ compareValueText(detailData.oldIdCardNo, detailData.idCardNo) }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="所属街道办">
+          <span :class="compareValueClass(detailData.oldStreetOfficeName, detailData.streetOfficeName)">{{ compareValueText(detailData.oldStreetOfficeName, detailData.streetOfficeName) }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="所属村委会">
+          <span :class="compareValueClass(detailData.oldVillageCommitteeName, detailData.villageCommitteeName)">{{ compareValueText(detailData.oldVillageCommitteeName, detailData.villageCommitteeName) }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="户籍所在地">
+          <span :class="compareValueClass(detailData.oldHouseholdRegistration, detailData.householdRegistration)">{{ compareValueText(detailData.oldHouseholdRegistration, detailData.householdRegistration) }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="家庭住址">
+          <span :class="compareValueClass(detailData.oldHomeAddress, detailData.homeAddress)">{{ compareValueText(detailData.oldHomeAddress, detailData.homeAddress) }}</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="联系电话">
+          <span :class="compareValueClass(detailData.oldPhone, detailData.phone)">{{ compareValueText(detailData.oldPhone, detailData.phone) }}</span>
+        </el-descriptions-item>
         <el-descriptions-item label="审批状态"><approval-status :status="detailData.approvalStatus" /></el-descriptions-item>
         <el-descriptions-item label="提交人">{{ detailData.submitBy || '-' }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ detailData.submitTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="提交备注">{{ detailData.remark || '-' }}</el-descriptions-item>
         <el-descriptions-item label="复核人">{{ detailData.reviewBy || '-' }}</el-descriptions-item>
         <el-descriptions-item label="复核时间">{{ detailData.reviewTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="复核意见">{{ detailData.reviewRemark || '-' }}</el-descriptions-item>
         <el-descriptions-item label="审批人">{{ detailData.approveBy || '-' }}</el-descriptions-item>
         <el-descriptions-item label="审批时间">{{ detailData.approveTime || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="审批意见">{{ detailData.approveRemark || '-' }}</el-descriptions-item>
         <el-descriptions-item label="驳回原因" v-if="detailData.rejectReason">{{ detailData.rejectReason }}</el-descriptions-item>
       </el-descriptions>
       <div slot="footer"><el-button @click="detailOpen = false">关闭</el-button></div>
@@ -115,7 +167,7 @@
 </template>
 
 <script>
-import { listPersonModify, getPersonModify, savePersonModify, submitPersonModify, reviewPersonModify, approvePersonModify } from '@/api/shebao/person'
+import { listPersonModify, getPersonModify, savePersonModify, submitPersonModify, reviewPersonModify, approvePersonModify, checkPersonModifyUnfinished } from '@/api/shebao/person'
 import { getSubsidyPersonByIdCardNo } from '@/api/shebao/subsidyPerson'
 import { getStreetOfficeSelectList } from '@/api/shebao/streetOffice'
 import { getVillageCommitteeByStreetOffice } from '@/api/shebao/villageCommittee'
@@ -131,20 +183,26 @@ export default {
       dataList: [],
       queryParams: { pageNum: 1, pageSize: 10, name: null, idCardNo: null, approvalStatus: null },
       formOpen: false,
-      formTitle: '新增关键信息修改',
+      formTitle: '人员信息变更',
       form: {
         id: null,
+        modifyType: 'key',
         subsidyPersonId: null,
         name: null,
         idCardNo: null,
         householdRegistration: null,
         streetOfficeId: null,
         villageCommitteeId: null,
+        homeAddress: null,
+        phone: null,
         remark: null
       },
       formRules: {
         name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-        idCardNo: [{ required: true, message: '请输入身份证号', trigger: 'blur' }]
+        idCardNo: [{ required: true, message: '请输入身份证号', trigger: 'blur' }],
+        householdRegistration: [{ required: true, message: '请输入户籍所在地', trigger: 'blur' }],
+        streetOfficeId: [{ required: true, message: '请选择街道办', trigger: 'change' }],
+        villageCommitteeId: [{ required: true, message: '请选择村委会', trigger: 'change' }]
       },
       streetOfficeOptions: [],
       villageCommitteeOptions: [],
@@ -152,11 +210,33 @@ export default {
       detailData: {}
     }
   },
+  computed: {
+    identityLocked() {
+      return this.form.modifyType === 'basic' && !!this.form.subsidyPersonId
+    }
+  },
   created() {
     this.getList()
     this.loadStreetOfficeOptions()
   },
   methods: {
+    normalizeCompareValue(v) {
+      return v === null || v === undefined || v === '' ? '-' : String(v)
+    },
+    compareValueText(oldV, newV) {
+      const ov = this.normalizeCompareValue(oldV)
+      const nv = this.normalizeCompareValue(newV)
+      return ov === nv ? nv : `${ov} -> ${nv}`
+    },
+    compareValueClass(oldV, newV) {
+      const ov = this.normalizeCompareValue(oldV)
+      const nv = this.normalizeCompareValue(newV)
+      return ov !== nv ? 'changed-value' : ''
+    },
+    modifyTypeLabel(t) {
+      if (t === 'basic') return '基本信息'
+      return '关键信息'
+    },
     getList() {
       this.loading = true
       listPersonModify(this.queryParams).then(response => {
@@ -191,9 +271,16 @@ export default {
         this.villageCommitteeOptions = Array.isArray(d) ? d : (d && d.list ? d.list : [])
       }).catch(() => { this.villageCommitteeOptions = []; return [] })
     },
-    handleAdd() {
+    handleAddBasic() {
       this.resetForm()
-      this.formTitle = '新增关键信息修改'
+      this.form.modifyType = 'basic'
+      this.formTitle = '基本信息变更'
+      this.formOpen = true
+    },
+    handleAddKey() {
+      this.resetForm()
+      this.form.modifyType = 'key'
+      this.formTitle = '关键信息变更'
       this.formOpen = true
     },
     handleEdit(row) {
@@ -201,16 +288,25 @@ export default {
         const d = res.data || {}
         this.form = {
           id: d.id,
+          modifyType: d.modifyType || 'key',
           subsidyPersonId: d.subsidyPersonId,
           name: d.name,
           idCardNo: d.idCardNo,
           householdRegistration: d.householdRegistration,
           streetOfficeId: d.streetOfficeId,
           villageCommitteeId: d.villageCommitteeId,
+          homeAddress: d.homeAddress,
+          phone: d.phone,
           remark: d.remark
         }
-        if (d.streetOfficeId) this.onStreetOfficeChange(d.streetOfficeId)
-        this.formTitle = '编辑关键信息修改'
+        if (d.streetOfficeId) {
+          this.onStreetOfficeChange(d.streetOfficeId).then(() => {
+            this.form.villageCommitteeId = d.villageCommitteeId != null ? d.villageCommitteeId : null
+          })
+        } else {
+          this.villageCommitteeOptions = []
+        }
+        this.formTitle = (this.form.modifyType === 'basic' ? '编辑基本信息变更' : '编辑关键信息变更')
         this.formOpen = true
       })
     },
@@ -223,28 +319,57 @@ export default {
         const p = res.data
         if (!p) {
           this.$modal.msgWarning('未找到该人员')
-          return
+          return undefined
         }
-        this.form.subsidyPersonId = p.id
-        this.form.name = p.name
-        this.form.idCardNo = p.idCardNo
-        this.form.householdRegistration = p.householdRegistration || null
-        this.form.streetOfficeId = p.streetOfficeId || null
-        this.form.villageCommitteeId = p.villageCommitteeId || null
-        if (p.streetOfficeId) this.onStreetOfficeChange(p.streetOfficeId)
+        return checkPersonModifyUnfinished(p.id, this.form.id || undefined).then(checkRes => {
+          const blocked = checkRes.data === true
+          if (blocked) {
+            this.form.subsidyPersonId = null
+            this.form.name = null
+            this.form.householdRegistration = null
+            this.form.streetOfficeId = null
+            this.form.villageCommitteeId = null
+            this.villageCommitteeOptions = []
+            this.form.homeAddress = null
+            this.form.phone = null
+            this.$modal.msgWarning('存在未完成的业务')
+            return
+          }
+          this.form.subsidyPersonId = p.id
+          this.form.name = p.name
+          this.form.idCardNo = p.idCardNo
+          this.form.householdRegistration = p.householdRegistration || null
+          this.form.streetOfficeId = p.streetOfficeId || null
+          this.form.homeAddress = p.homeAddress || null
+          this.form.phone = p.phone || null
+          if (p.streetOfficeId) {
+            return this.onStreetOfficeChange(p.streetOfficeId).then(() => {
+              this.form.villageCommitteeId = p.villageCommitteeId != null ? p.villageCommitteeId : null
+            })
+          }
+          this.form.villageCommitteeId = p.villageCommitteeId != null ? p.villageCommitteeId : null
+          this.villageCommitteeOptions = []
+        })
       }).catch(() => this.$modal.msgError('查询人员失败'))
     },
     submitForm(action) {
       this.$refs.formRef.validate(valid => {
         if (!valid) return
+        if (!this.form.subsidyPersonId) {
+          this.$modal.msgWarning('请先通过身份证号查询并关联人员')
+          return
+        }
         const data = {
           id: this.form.id,
+          modifyType: this.form.modifyType,
           subsidyPersonId: this.form.subsidyPersonId,
           name: this.form.name,
           idCardNo: this.form.idCardNo,
           householdRegistration: this.form.householdRegistration,
           streetOfficeId: this.form.streetOfficeId,
           villageCommitteeId: this.form.villageCommitteeId,
+          homeAddress: this.form.homeAddress || null,
+          phone: this.form.phone || null,
           remark: this.form.remark
         }
         savePersonModify(data).then(res => {
@@ -307,12 +432,15 @@ export default {
     resetForm() {
       this.form = {
         id: null,
+        modifyType: 'key',
         subsidyPersonId: null,
         name: null,
         idCardNo: null,
         householdRegistration: null,
         streetOfficeId: null,
         villageCommitteeId: null,
+        homeAddress: null,
+        phone: null,
         remark: null
       }
       this.villageCommitteeOptions = []
@@ -322,3 +450,13 @@ export default {
 }
 </script>
 
+<style scoped>
+.mb12 {
+  margin-bottom: 12px;
+}
+
+.changed-value {
+  color: #e6a23c;
+  font-weight: 600;
+}
+</style>

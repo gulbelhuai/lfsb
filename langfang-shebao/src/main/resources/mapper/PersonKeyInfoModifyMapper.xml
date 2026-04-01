@@ -7,20 +7,34 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="com.ruoyi.shebao.dto.PersonKeyInfoModifyListResp" id="PersonKeyInfoModifyListRespResult">
         <result property="id" column="id" />
         <result property="subsidyPersonId" column="subsidy_person_id" />
+        <result property="modifyType" column="modify_type" />
         <result property="name" column="name" />
+        <result property="oldName" column="old_name" />
         <result property="idCardNo" column="id_card_no" />
+        <result property="oldIdCardNo" column="old_id_card_no" />
         <result property="householdRegistration" column="household_registration" />
+        <result property="oldHouseholdRegistration" column="old_household_registration" />
         <result property="streetOfficeId" column="street_office_id" />
         <result property="streetOfficeName" column="street_office_name" />
+        <result property="oldStreetOfficeId" column="old_street_office_id" />
+        <result property="oldStreetOfficeName" column="old_street_office_name" />
         <result property="villageCommitteeId" column="village_committee_id" />
         <result property="villageCommitteeName" column="village_committee_name" />
+        <result property="oldVillageCommitteeId" column="old_village_committee_id" />
+        <result property="oldVillageCommitteeName" column="old_village_committee_name" />
+        <result property="homeAddress" column="home_address" />
+        <result property="oldHomeAddress" column="old_home_address" />
+        <result property="phone" column="phone" />
+        <result property="oldPhone" column="old_phone" />
         <result property="approvalStatus" column="approval_status" />
         <result property="submitBy" column="submit_by" />
         <result property="submitTime" column="submit_time" />
         <result property="reviewBy" column="review_by" />
         <result property="reviewTime" column="review_time" />
+        <result property="reviewRemark" column="review_remark" />
         <result property="approveBy" column="approve_by" />
         <result property="approveTime" column="approve_time" />
+        <result property="approveRemark" column="approve_remark" />
         <result property="rejectReason" column="reject_reason" />
         <result property="createTime" column="create_time" />
     </resultMap>
@@ -28,13 +42,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="com.ruoyi.shebao.dto.PersonKeyInfoModifyFormDto" id="PersonKeyInfoModifyFormResult">
         <result property="id" column="id" />
         <result property="subsidyPersonId" column="subsidy_person_id" />
+        <result property="modifyType" column="modify_type" />
         <result property="name" column="name" />
+        <result property="oldName" column="old_name" />
         <result property="idCardNo" column="id_card_no" />
+        <result property="oldIdCardNo" column="old_id_card_no" />
         <result property="householdRegistration" column="household_registration" />
+        <result property="oldHouseholdRegistration" column="old_household_registration" />
         <result property="streetOfficeId" column="street_office_id" />
         <result property="streetOfficeName" column="street_office_name" />
+        <result property="oldStreetOfficeId" column="old_street_office_id" />
+        <result property="oldStreetOfficeName" column="old_street_office_name" />
         <result property="villageCommitteeId" column="village_committee_id" />
         <result property="villageCommitteeName" column="village_committee_name" />
+        <result property="oldVillageCommitteeId" column="old_village_committee_id" />
+        <result property="oldVillageCommitteeName" column="old_village_committee_name" />
+        <result property="homeAddress" column="home_address" />
+        <result property="oldHomeAddress" column="old_home_address" />
+        <result property="phone" column="phone" />
+        <result property="oldPhone" column="old_phone" />
         <result property="approvalStatus" column="approval_status" />
         <result property="submitBy" column="submit_by" />
         <result property="submitTime" column="submit_time" />
@@ -49,8 +75,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <select id="selectModifyList" resultMap="PersonKeyInfoModifyListRespResult">
-        select m.id, m.subsidy_person_id, m.name, m.id_card_no, m.household_registration,
-               m.street_office_id, m.village_committee_id,
+        select m.id, m.subsidy_person_id, m.modify_type, m.name, m.id_card_no, m.household_registration,
+               m.street_office_id, m.village_committee_id, m.home_address, m.phone,
                sso.street_name as street_office_name,
                svc.village_name as village_committee_name,
                m.approval_status, m.submit_by, m.submit_time, m.review_by, m.review_time,
@@ -72,15 +98,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectFormById" resultMap="PersonKeyInfoModifyFormResult">
-        select m.id, m.subsidy_person_id, m.name, m.id_card_no, m.household_registration,
-               m.street_office_id, m.village_committee_id,
+        select m.id, m.subsidy_person_id, m.modify_type, m.name, m.old_name, m.id_card_no, m.old_id_card_no,
+               m.household_registration, m.old_household_registration,
+               m.street_office_id, m.old_street_office_id, m.village_committee_id, m.old_village_committee_id,
+               m.home_address, m.old_home_address, m.phone, m.old_phone,
                sso.street_name as street_office_name,
+               osso.street_name as old_street_office_name,
                svc.village_name as village_committee_name,
-               m.approval_status, m.submit_by, m.submit_time, m.review_by, m.review_time,
-               m.approve_by, m.approve_time, m.reject_reason, m.remark, m.create_time, m.update_time
+               osvc.village_name as old_village_committee_name,
+               m.approval_status, m.submit_by, m.submit_time, m.review_by, m.review_time, m.review_remark,
+               m.approve_by, m.approve_time, m.approve_remark, m.reject_reason, m.remark, m.create_time, m.update_time
         from person_key_info_modify m
         left join shebao_street_office sso on m.street_office_id = sso.id
+        left join shebao_street_office osso on m.old_street_office_id = osso.id
         left join shebao_village_committee svc on m.village_committee_id = svc.id
+        left join shebao_village_committee osvc on m.old_village_committee_id = osvc.id
         where m.id = #{id} and m.del_flag = '0'
     </select>
 </mapper>
