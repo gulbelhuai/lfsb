@@ -27,6 +27,8 @@ public interface PersonCancelService extends IService<PersonCancel>
 
     int updatePersonCancel(PersonCancelFormDto formDto);
 
+    int review(Long id, boolean approved, String remark);
+
     int deletePersonCancelByIds(Long[] ids);
 }
 

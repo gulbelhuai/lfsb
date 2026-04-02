@@ -78,6 +78,17 @@ public class PersonCancelController extends BaseController
     }
 
     /**
+     * 复核（通过/不通过）
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:person:cancel:review')")
+    @Log(title = "人员注销登记复核", businessType = BusinessType.UPDATE)
+    @PostMapping("/review/{id}")
+    public AjaxResult review(@PathVariable Long id, @RequestParam Boolean approved, @RequestParam(required = false) String remark)
+    {
+        return toAjax(personCancelService.review(id, approved, remark));
+    }
+
+    /**
      * 删除人员注销登记
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:cancel:remove')")

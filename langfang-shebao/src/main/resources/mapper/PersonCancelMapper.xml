@@ -7,7 +7,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="com.ruoyi.shebao.dto.PersonCancelListResp" id="PersonCancelListRespResult">
         <result property="id"               column="id"/>
         <result property="subsidyPersonId"  column="subsidy_person_id"/>
-        <result property="deathDate"        column="death_date"/>
+        <result property="cancelTime"       column="death_date"/>
+        <result property="cancelReason"     column="cancel_reason"/>
+        <result property="approvalStatus"   column="approval_status"/>
+        <result property="rejectReason"     column="reject_reason"/>
         <result property="createTime"       column="create_time"/>
         <result property="remark"           column="remark"/>
         <result property="name"             column="name"/>
@@ -18,7 +21,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="com.ruoyi.shebao.dto.PersonCancelFormDto" id="PersonCancelFormResult">
         <result property="id"               column="id"/>
         <result property="subsidyPersonId"  column="subsidy_person_id"/>
+        <result property="cancelTime"       column="death_date"/>
         <result property="deathDate"        column="death_date"/>
+        <result property="cancelReason"     column="cancel_reason"/>
+        <result property="approvalStatus"   column="approval_status"/>
+        <result property="rejectReason"     column="reject_reason"/>
         <result property="createTime"       column="create_time"/>
         <result property="remark"           column="pc_remark"/>
         <result property="name"             column="name"/>
@@ -35,7 +42,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <sql id="selectPersonCancelListSql">
-        select pc.id, pc.subsidy_person_id, pc.death_date, pc.create_time, pc.remark,
+        select pc.id, pc.subsidy_person_id, pc.death_date, pc.cancel_reason, pc.approval_status, pc.reject_reason,
+               pc.create_time, pc.remark,
                sp.name, sp.id_card_no, sp.user_code
         from shebao_person_cancel pc
         left join shebao_subsidy_person sp on pc.subsidy_person_id = sp.id
@@ -61,7 +69,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </sql>
 
     <select id="selectPersonCancelFormById" parameterType="Long" resultMap="PersonCancelFormResult">
-        select pc.id, pc.subsidy_person_id, pc.death_date, pc.create_time,
+        select pc.id, pc.subsidy_person_id, pc.death_date, pc.cancel_reason, pc.approval_status, pc.reject_reason,
+               pc.create_time,
                pc.remark as pc_remark,
                sp.name, sp.id_card_no, sp.user_code
         from shebao_person_cancel pc
@@ -72,13 +81,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="countActiveByPersonId" resultType="int">
         select count(1)
         from shebao_person_cancel
-        where del_flag = '0' and subsidy_person_id = #{subsidyPersonId}
+        where del_flag = '0'
+          and approval_status = 'approved'
+          and subsidy_person_id = #{subsidyPersonId}
     </select>
 
     <select id="selectMaxDeathDateByPersonId" resultType="java.time.LocalDate">
         select max(death_date)
         from shebao_person_cancel
-        where del_flag = '0' and subsidy_person_id = #{subsidyPersonId}
+        where del_flag = '0'
+          and approval_status = 'approved'
+          and subsidy_person_id = #{subsidyPersonId}
     </select>
 
 </mapper>

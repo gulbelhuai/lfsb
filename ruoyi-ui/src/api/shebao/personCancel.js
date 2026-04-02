@@ -43,3 +43,12 @@ export function delPersonCancel(ids) {
   })
 }
 
+// 复核人员注销登记（通过/驳回）
+export function reviewPersonCancel(id, approved, remark) {
+  return request({
+    url: `/shebao/personCancel/review/${id}`,
+    method: 'post',
+    params: { approved, remark }
+  })
+}
+

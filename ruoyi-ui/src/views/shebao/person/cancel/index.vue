@@ -21,10 +21,10 @@
         <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd" v-hasPermi="['shebao:person:cancel:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="success" plain icon="el-icon-edit" size="mini" :disabled="single" @click="handleUpdate" v-hasPermi="['shebao:person:cancel:edit']">修改</el-button>
+        <el-button v-if="showToolbarEdit" type="success" plain icon="el-icon-edit" size="mini" @click="handleUpdate" v-hasPermi="['shebao:person:cancel:edit']">修改</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="multiple" @click="handleDelete" v-hasPermi="['shebao:person:cancel:remove']">删除</el-button>
+        <el-button v-if="showToolbarDelete" type="danger" plain icon="el-icon-delete" size="mini" @click="handleDelete" v-hasPermi="['shebao:person:cancel:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="warning" plain icon="el-icon-download" size="mini" @click="handleExport" v-hasPermi="['shebao:person:cancel:export']">导出</el-button>
@@ -38,14 +38,40 @@
       <el-table-column label="用户编号" prop="userCode" width="140" />
       <el-table-column label="姓名" prop="name" width="120" />
       <el-table-column label="身份证号" prop="idCardNo" width="180" />
-      <el-table-column label="死亡时间" prop="deathDate" width="120" />
+      <el-table-column label="注销时间" prop="cancelTime" width="120" />
+      <el-table-column label="注销原因" prop="cancelReason" width="120">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.cancel_reason" :value="scope.row.cancelReason" />
+        </template>
+      </el-table-column>
+      <el-table-column label="审核状态" prop="approvalStatus" width="100">
+        <template slot-scope="scope">
+          <el-tag v-if="scope.row.approvalStatus === 'pending_review'" type="warning">待复核</el-tag>
+          <el-tag v-else-if="scope.row.approvalStatus === 'approved'" type="success">通过</el-tag>
+          <el-tag v-else-if="scope.row.approvalStatus === 'rejected'" type="danger">驳回</el-tag>
+          <el-tag v-else type="info">{{ scope.row.approvalStatus || '-' }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间" prop="createTime" width="180" />
-      <el-table-column label="备注" prop="remark" min-width="180" show-overflow-tooltip />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="180">
+      <el-table-column label="操作" align="center" width="240">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-view" @click="handleView(scope.row)" v-hasPermi="['shebao:person:cancel:query']">详情</el-button>
-          <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)" v-hasPermi="['shebao:person:cancel:edit']">修改</el-button>
-          <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)" v-hasPermi="['shebao:person:cancel:remove']">删除</el-button>
+          <el-button v-if="!isLockedRow(scope.row)" size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)" v-hasPermi="['shebao:person:cancel:edit']">修改</el-button>
+          <el-button
+            v-if="scope.row.approvalStatus === 'pending_review'"
+            size="mini"
+            type="success"
+            @click="handleReview(scope.row, true)"
+            v-hasPermi="['shebao:person:cancel:review']"
+          >通过</el-button>
+          <el-button
+            v-if="scope.row.approvalStatus === 'pending_review'"
+            size="mini"
+            type="danger"
+            @click="handleReview(scope.row, false)"
+            v-hasPermi="['shebao:person:cancel:review']"
+          >不通过</el-button>
+          <el-button v-if="!isLockedRow(scope.row)" size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)" v-hasPermi="['shebao:person:cancel:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -77,8 +103,18 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="死亡时间" prop="deathDate">
-          <el-date-picker v-model="form.deathDate" type="date" value-format="yyyy-MM-dd" placeholder="选择死亡时间" style="width: 100%" />
+        <el-form-item label="注销时间" prop="cancelTime">
+          <el-date-picker v-model="form.cancelTime" type="date" value-format="yyyy-MM-dd" placeholder="选择注销时间" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="注销原因" prop="cancelReason">
+          <el-select v-model="form.cancelReason" placeholder="请选择注销原因" clearable style="width: 100%">
+            <el-option
+              v-for="dict in dict.type.cancel_reason"
+              :key="dict.value"
+              :label="dict.label"
+              :value="dict.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" placeholder="请输入备注（可选）" />
@@ -95,7 +131,17 @@
         <el-descriptions-item label="用户编号">{{ detailData.userCode }}</el-descriptions-item>
         <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
         <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
-        <el-descriptions-item label="死亡时间">{{ detailData.deathDate }}</el-descriptions-item>
+        <el-descriptions-item label="注销时间">{{ detailData.cancelTime }}</el-descriptions-item>
+        <el-descriptions-item label="注销原因">
+          <dict-tag :options="dict.type.cancel_reason" :value="detailData.cancelReason" />
+        </el-descriptions-item>
+        <el-descriptions-item label="审核状态">
+          <el-tag v-if="detailData.approvalStatus === 'pending_review'" type="warning">待复核</el-tag>
+          <el-tag v-else-if="detailData.approvalStatus === 'approved'" type="success">通过</el-tag>
+          <el-tag v-else-if="detailData.approvalStatus === 'rejected'" type="danger">驳回</el-tag>
+          <span v-else>-</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="不通过原因" :span="2">{{ detailData.rejectReason || '-' }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detailData.createTime }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ detailData.remark }}</el-descriptions-item>
       </el-descriptions>
@@ -104,11 +150,12 @@
 </template>
 
 <script>
-import { listPersonCancel, getPersonCancel, addPersonCancel, updatePersonCancel, delPersonCancel } from '@/api/shebao/personCancel'
+import { listPersonCancel, getPersonCancel, addPersonCancel, updatePersonCancel, delPersonCancel, reviewPersonCancel } from '@/api/shebao/personCancel'
 import { getSubsidyPersonByIdCardNo } from '@/api/shebao/subsidyPerson'
 
 export default {
   name: 'PersonCancel',
+  dicts: ['cancel_reason'],
   data() {
     return {
       loading: true,
@@ -136,14 +183,32 @@ export default {
           { required: true, message: '身份证号不能为空', trigger: 'blur' },
           { pattern: /^[0-9]{17}[0-9Xx]$/, message: '请输入正确的18位身份证号', trigger: 'blur' }
         ],
-        deathDate: [{ required: true, message: '死亡时间不能为空', trigger: 'change' }]
+        cancelTime: [{ required: true, message: '注销时间不能为空', trigger: 'change' }],
+        cancelReason: [{ required: true, message: '注销原因不能为空', trigger: 'change' }]
       }
     }
   },
   created() {
     this.getList()
   },
+  computed: {
+    showToolbarEdit() {
+      if (this.ids.length !== 1) return false
+      const selected = this.dataList.find(item => item.id === this.ids[0])
+      return !!selected && !this.isLockedRow(selected)
+    },
+    showToolbarDelete() {
+      if (this.ids.length === 0) return false
+      const selectedRows = this.dataList.filter(item => this.ids.includes(item.id))
+      if (selectedRows.length !== this.ids.length) return false
+      return selectedRows.every(item => !this.isLockedRow(item))
+    }
+  },
   methods: {
+    isLockedRow(row) {
+      // 待复核、已通过状态：不允许修改或删除
+      return row && (row.approvalStatus === 'pending_review' || row.approvalStatus === 'approved')
+    },
     getList() {
       this.loading = true
       listPersonCancel(this.queryParams).then(res => {
@@ -166,7 +231,7 @@ export default {
       this.multiple = !selection.length
     },
     reset() {
-      this.form = { id: null, idCardNo: null, deathDate: null, remark: null }
+      this.form = { id: null, idCardNo: null, cancelTime: null, cancelReason: null, remark: null }
       this.personPreview = { name: null, userCode: null, isAlive: null }
       this.resetForm('form')
     },
@@ -178,8 +243,19 @@ export default {
     handleUpdate(row) {
       this.reset()
       const id = row && row.id ? row.id : this.ids[0]
+      if (row && this.isLockedRow(row)) {
+        this.$modal.msgWarning('待复核、已通过状态不允许修改')
+        return
+      }
       getPersonCancel(id).then(res => {
         this.form = { ...this.form, ...(res.data || {}) }
+        if (!this.form.cancelTime && this.form.deathDate) {
+          this.form.cancelTime = this.form.deathDate
+        }
+        if (this.isLockedRow(this.form)) {
+          this.$modal.msgWarning('待复核、已通过状态不允许修改')
+          return
+        }
         // 回显人员信息
         this.handleIdCardBlur()
         this.open = true
@@ -195,6 +271,10 @@ export default {
     },
     handleDelete(row) {
       const ids = row && row.id ? row.id : this.ids
+      if (row && this.isLockedRow(row)) {
+        this.$modal.msgWarning('待复核、已通过状态不允许删除')
+        return
+      }
       this.$modal.confirm('是否确认删除选中的注销登记记录？').then(() => {
         return delPersonCancel(ids)
       }).then(() => {
@@ -221,7 +301,12 @@ export default {
     submitForm() {
       this.$refs['form'].validate(valid => {
         if (!valid) return
+        if (this.form.approvalStatus === 'approved') {
+          this.$modal.msgWarning('审核通过后的记录不允许修改')
+          return
+        }
         const req = { ...this.form }
+        req.deathDate = req.cancelTime
         const op = req.id ? updatePersonCancel(req) : addPersonCancel(req)
         op.then(() => {
           this.$modal.msgSuccess(req.id ? '修改成功' : '新增成功')
@@ -229,6 +314,28 @@ export default {
           this.getList()
         })
       })
+    },
+    handleReview(row, approved) {
+      if (approved) {
+        this.$modal.confirm('是否确认通过').then(() => {
+          return reviewPersonCancel(row.id, true, '')
+        }).then(() => {
+          this.$modal.msgSuccess('已通过')
+          this.getList()
+        }).catch(() => {})
+        return
+      }
+      this.$prompt('请输入不通过原因', '不通过', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        inputPattern: /.+/,
+        inputErrorMessage: '不通过原因不能为空'
+      }).then(({ value }) => {
+        return reviewPersonCancel(row.id, false, value)
+      }).then(() => {
+        this.$modal.msgSuccess('已驳回')
+        this.getList()
+      }).catch(() => {})
     },
     cancel() {
       this.open = false

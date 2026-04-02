@@ -67,13 +67,14 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
     @Transactional(rollbackFor = Exception.class)
     public int insertPersonCancel(PersonCancelFormDto formDto)
     {
+        LocalDate cancelTime = formDto.getCancelTime() != null ? formDto.getCancelTime() : formDto.getDeathDate();
         if (StringUtils.isBlank(formDto.getIdCardNo()))
         {
             throw new ServiceException("身份证号不能为空");
         }
-        if (formDto.getDeathDate() == null)
+        if (cancelTime == null)
         {
-            throw new ServiceException("死亡时间不能为空");
+            throw new ServiceException("注销时间不能为空");
         }
 
         SubsidyPerson person = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
@@ -82,14 +83,12 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
             throw new ServiceException("未找到该身份证号对应的人员");
         }
 
-        // 同步更新人员基础信息为死亡
-        person.setIsAlive("0");
-        person.setDeathDate(formDto.getDeathDate());
-        subsidyPersonService.updateSubsidyPerson(person);
-
         PersonCancel pc = new PersonCancel();
         pc.setSubsidyPersonId(person.getId());
-        pc.setDeathDate(formDto.getDeathDate());
+        pc.setDeathDate(cancelTime);
+        pc.setCancelReason(formDto.getCancelReason());
+        pc.setApprovalStatus("pending_review");
+        pc.setRejectReason(null);
         pc.setRemark(formDto.getRemark());
         pc.setDelFlag("0"); // 设置删除标志为正常
         pc.setCreateBy(SecurityUtils.getUsername());
@@ -101,13 +100,14 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
     @Transactional(rollbackFor = Exception.class)
     public int updatePersonCancel(PersonCancelFormDto formDto)
     {
+        LocalDate cancelTime = formDto.getCancelTime() != null ? formDto.getCancelTime() : formDto.getDeathDate();
         if (formDto.getId() == null)
         {
             throw new ServiceException("缺少ID，无法修改");
         }
-        if (formDto.getDeathDate() == null)
+        if (cancelTime == null)
         {
-            throw new ServiceException("死亡时间不能为空");
+            throw new ServiceException("注销时间不能为空");
         }
 
         PersonCancelFormDto existing = personCancelMapper.selectPersonCancelFormById(formDto.getId());
@@ -115,24 +115,78 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
         {
             throw new ServiceException("记录不存在或已删除");
         }
-
-        // 同步更新人员基础信息为死亡（以记录对应人员为准）
-        SubsidyPerson person = subsidyPersonService.selectSubsidyPersonById(existing.getSubsidyPersonId());
-        if (person != null)
+        if ("pending_review".equals(existing.getApprovalStatus()) || "approved".equals(existing.getApprovalStatus()))
         {
-            person.setIsAlive("0");
-            person.setDeathDate(formDto.getDeathDate());
-            subsidyPersonService.updateSubsidyPerson(person);
+            throw new ServiceException("待复核、已通过状态不允许修改");
         }
 
         PersonCancel pc = new PersonCancel();
         pc.setId(formDto.getId());
         pc.setSubsidyPersonId(existing.getSubsidyPersonId());
-        pc.setDeathDate(formDto.getDeathDate());
+        pc.setDeathDate(cancelTime);
+        pc.setCancelReason(formDto.getCancelReason());
+        pc.setApprovalStatus("pending_review");
+        pc.setRejectReason(null);
         pc.setRemark(formDto.getRemark());
         pc.setUpdateBy(SecurityUtils.getUsername());
         pc.setUpdateTime(LocalDateTime.now());
         return personCancelMapper.updateById(pc);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int review(Long id, boolean approved, String remark)
+    {
+        PersonCancel entity = getById(id);
+        if (entity == null || !"0".equals(entity.getDelFlag()))
+        {
+            throw new ServiceException("记录不存在或已删除");
+        }
+        if (!"pending_review".equals(entity.getApprovalStatus()))
+        {
+            throw new ServiceException("当前状态不允许复核");
+        }
+        entity.setReviewBy(SecurityUtils.getUsername());
+        entity.setReviewTime(LocalDateTime.now());
+        entity.setReviewRemark(remark);
+        entity.setUpdateBy(SecurityUtils.getUsername());
+        entity.setUpdateTime(LocalDateTime.now());
+
+        if (approved)
+        {
+            entity.setApprovalStatus("approved");
+            entity.setRejectReason(null);
+
+            PersonCancelFormDto form = personCancelMapper.selectPersonCancelFormById(id);
+            SubsidyPerson person = null;
+            if (form != null && StringUtils.isNotBlank(form.getIdCardNo()))
+            {
+                person = subsidyPersonService.selectSubsidyPersonByIdCardNo(form.getIdCardNo());
+            }
+            if (person == null && entity.getSubsidyPersonId() != null)
+            {
+                person = subsidyPersonService.selectSubsidyPersonById(entity.getSubsidyPersonId());
+            }
+            if (person != null)
+            {
+                person.setSubsidyStatus("1");
+                person.setIsAlive("0");
+                person.setDeathDate(entity.getDeathDate());
+                person.setUpdateBy(SecurityUtils.getUsername());
+                person.setUpdateTime(LocalDateTime.now());
+                subsidyPersonService.updateSubsidyPerson(person);
+            }
+        }
+        else
+        {
+            if (StringUtils.isBlank(remark))
+            {
+                throw new ServiceException("不通过原因不能为空");
+            }
+            entity.setApprovalStatus("rejected");
+            entity.setRejectReason(remark);
+        }
+        return updateById(entity) ? 1 : 0;
     }
 
     @Override
@@ -144,6 +198,10 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
         for (Long id : ids)
         {
             PersonCancel existing = this.getById(id);
+            if (existing != null && ("pending_review".equals(existing.getApprovalStatus()) || "approved".equals(existing.getApprovalStatus())))
+            {
+                throw new ServiceException("待复核、已通过状态不允许删除");
+            }
             if (existing != null && existing.getSubsidyPersonId() != null)
             {
                 affectedPersonIds.add(existing.getSubsidyPersonId());

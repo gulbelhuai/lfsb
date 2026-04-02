@@ -34,18 +34,30 @@ public class PersonCancelListResp
     @Excel(name = "身份证号", sort = 3, cellType = Excel.ColumnType.TEXT)
     private String idCardNo;
 
-    /** 死亡时间 */
+    /** 注销时间 */
     @JsonFormat(pattern = "yyyy-MM-dd")
-    @Excel(name = "死亡时间", sort = 4, dateFormat = "yyyy-MM-dd")
-    private LocalDate deathDate;
+    @Excel(name = "注销时间", sort = 4, dateFormat = "yyyy-MM-dd")
+    private LocalDate cancelTime;
+
+    /** 注销原因 */
+    @Excel(name = "注销原因", sort = 5)
+    private String cancelReason;
+
+    /** 审核状态 */
+    @Excel(name = "审核状态", sort = 6)
+    private String approvalStatus;
+
+    /** 驳回原因 */
+    @Excel(name = "驳回原因", sort = 7)
+    private String rejectReason;
 
     /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @Excel(name = "创建时间", sort = 5, dateFormat = "yyyy-MM-dd HH:mm:ss")
+    @Excel(name = "创建时间", sort = 8, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
 
     /** 备注 */
-    @Excel(name = "备注", sort = 6)
+    @Excel(name = "备注", sort = 9)
     private String remark;
 }
 
