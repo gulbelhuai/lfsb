@@ -372,7 +372,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="职工养老月数" prop="employeePensionMonths">
-                <el-input-number v-model="form.employeePensionMonths" :min="0" :max="999" controls-position="right" style="width: 100%" />
+                <el-input-number v-model="form.employeePensionMonths" :min="0" :max="999" controls-position="right" style="width: 100%" @change="calculateAge" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -385,12 +385,12 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="困难补贴月数" prop="difficultySubsidyMonths">
-                <el-input-number v-model="form.difficultySubsidyMonths" :min="0" :max="999" controls-position="right" style="width: 100%" />
+                <el-input-number v-model="form.difficultySubsidyMonths" :min="0" :max="999" controls-position="right" style="width: 100%" @change="calculateAge" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="截至基准日年龄" prop="ageAtBaseDate">
-                <el-input-number v-model="form.ageAtBaseDate" :min="0" :max="120" controls-position="right" style="width: 100%" readonly />
+                <el-input-number v-model="form.ageAtBaseDate" :min="0" :max="120" controls-position="right" style="width: 100%" :disabled="true" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -398,13 +398,13 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="补贴年限" prop="subsidyYears">
-                <el-input-number v-model="form.subsidyYears" :min="0" :max="99.99" :precision="2" controls-position="right" style="width: 100%" readonly />
+                <el-input-number v-model="form.subsidyYears" :min="0" :max="99" :precision="0" controls-position="right" style="width: 100%" :disabled="true" />
                 <div class="field-tip">系统自动计算，不可修改</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="补贴金额" prop="subsidyAmount">
-                <el-input-number v-model="form.subsidyAmount" :min="0" :max="999999.99" :precision="2" controls-position="right" style="width: 100%" readonly />
+                <el-input-number v-model="form.subsidyAmount" :min="0" :max="999999.99" :precision="2" controls-position="right" style="width: 100%" :disabled="true" />
                 <div class="field-tip">系统自动计算，不可修改</div>
               </el-form-item>
             </el-col>
@@ -674,7 +674,7 @@ export default {
       const id = row && row.id != null ? row.id : (Array.isArray(this.ids) ? this.ids[0] : this.ids)
       getExpropriateeSubsidy(id).then(response => {
         this.handleStreetOfficeChange(response.data.streetOfficeId)
-        this.form = response.data
+        this.form = { ...this.form, ...response.data }
         this.syncSubsidyModeFromFlags()
         this.open = true
         this.title = "修改被征地参保补贴"
@@ -888,7 +888,9 @@ export default {
         // 调用后端接口进行计算
         const params = {
           birthday: this.form.birthday,
-          baseDate: this.form.baseDate
+          baseDate: this.form.baseDate,
+          employeePensionMonths: this.form.employeePensionMonths || 0,
+          difficultySubsidyMonths: this.form.difficultySubsidyMonths || 0
         }
 
         calculateSubsidy(params).then(response => {

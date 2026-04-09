@@ -93,6 +93,8 @@ public class ExpropriateeSubsidyController extends BaseController
         {
             LocalDate birthday = null;
             LocalDate baseDate = null;
+            Integer employeePensionMonths = parseIntegerOrDefault(params.get("employeePensionMonths"), 0);
+            Integer difficultySubsidyMonths = parseIntegerOrDefault(params.get("difficultySubsidyMonths"), 0);
             
             if (params.get("birthday") != null)
             {
@@ -112,7 +114,8 @@ public class ExpropriateeSubsidyController extends BaseController
                 result.put("ageAtBaseDate", ageAtBaseDate);
                 
                 // 计算补贴年限
-                BigDecimal subsidyYears = subsidyCalculationService.calculateSubsidyYears(ageAtBaseDate);
+                BigDecimal subsidyYears = subsidyCalculationService.calculateSubsidyYears(
+                        ageAtBaseDate, employeePensionMonths, difficultySubsidyMonths);
                 result.put("subsidyYears", subsidyYears);
                 
                 // 计算补贴金额
@@ -191,4 +194,21 @@ public class ExpropriateeSubsidyController extends BaseController
         String message = expropriateeSubsidyService.importExpropriateeSubsidy(expropriateeSubsidyList, updateSupport, operName);
         return AjaxResult.success(message);
     }
+
+    private static Integer parseIntegerOrDefault(Object value, Integer defaultValue)
+    {
+        if (value == null)
+        {
+            return defaultValue;
+        }
+        try
+        {
+            return Integer.valueOf(value.toString());
+        }
+        catch (Exception e)
+        {
+            return defaultValue;
+        }
+    }
+
 }

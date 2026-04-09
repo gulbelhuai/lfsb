@@ -99,7 +99,7 @@ public class ExpropriateeSubsidyFormDto
     private Integer flexibleEmploymentMonths;
 
     /** 已领取困难人员社会保险补贴月数 */
-    private BigDecimal difficultySubsidyMonths;
+    private Integer difficultySubsidyMonths;
 
     /** 截至基准日的年龄 */
     private Integer ageAtBaseDate;

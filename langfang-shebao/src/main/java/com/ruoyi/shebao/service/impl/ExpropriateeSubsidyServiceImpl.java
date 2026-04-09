@@ -85,7 +85,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
         entity.setBaseDate(formDto.getBaseDate());
         entity.setEmployeePensionMonths(defaultInt(formDto.getEmployeePensionMonths()));
         entity.setFlexibleEmploymentMonths(defaultInt(formDto.getFlexibleEmploymentMonths()));
-        entity.setDifficultySubsidyMonths(defaultDecimal(formDto.getDifficultySubsidyMonths()));
+        entity.setDifficultySubsidyMonths(defaultInt(formDto.getDifficultySubsidyMonths()));
         entity.setAgeAtBaseDate(formDto.getAgeAtBaseDate());
         entity.setSubsidyYears(defaultDecimal(formDto.getSubsidyYears()));
         entity.setSubsidyAmount(defaultDecimal(formDto.getSubsidyAmount()));
@@ -121,7 +121,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
         entity.setBaseDate(formDto.getBaseDate());
         entity.setEmployeePensionMonths(defaultInt(formDto.getEmployeePensionMonths()));
         entity.setFlexibleEmploymentMonths(defaultInt(formDto.getFlexibleEmploymentMonths()));
-        entity.setDifficultySubsidyMonths(defaultDecimal(formDto.getDifficultySubsidyMonths()));
+        entity.setDifficultySubsidyMonths(defaultInt(formDto.getDifficultySubsidyMonths()));
         entity.setAgeAtBaseDate(formDto.getAgeAtBaseDate());
         entity.setSubsidyYears(defaultDecimal(formDto.getSubsidyYears()));
         entity.setSubsidyAmount(defaultDecimal(formDto.getSubsidyAmount()));

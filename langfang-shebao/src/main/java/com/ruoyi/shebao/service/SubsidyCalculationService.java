@@ -16,9 +16,11 @@ public interface SubsidyCalculationService
      * 根据截至基准日的年龄计算补贴年限
      * 
      * @param ageAtBaseDate 截至基准日的年龄
+     * @param employeePensionMonths 职工养老月数
+     * @param difficultySubsidyMonths 困难补贴月数
      * @return 补贴年限
      */
-    BigDecimal calculateSubsidyYears(Integer ageAtBaseDate);
+    BigDecimal calculateSubsidyYears(Integer ageAtBaseDate, Integer employeePensionMonths, Integer difficultySubsidyMonths);
 
     /**
      * 计算被征地参保补贴金额

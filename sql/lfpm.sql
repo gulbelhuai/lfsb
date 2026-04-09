@@ -892,7 +892,7 @@ CREATE TABLE `shebao_expropriatee_subsidy` (
   `base_date` date DEFAULT NULL COMMENT '基准日',
   `employee_pension_months` int DEFAULT '0' COMMENT '职工身份缴纳职工养老月数',
   `flexible_employment_months` int DEFAULT '0' COMMENT '灵活就业身份缴纳职工养老保险月数',
-  `difficulty_subsidy_months` decimal(5,2) DEFAULT '0.00' COMMENT '已领取困难人员社会保险补贴月数',
+  `difficulty_subsidy_months` int DEFAULT '0' COMMENT '已领取困难人员社会保险补贴月数',
   `age_at_base_date` int DEFAULT NULL COMMENT '截至基准日的年龄',
   `subsidy_years` decimal(5,2) DEFAULT '0.00' COMMENT '被征地参保补贴年限',
   `subsidy_amount` decimal(10,2) DEFAULT '0.00' COMMENT '补贴金额',

@@ -40,34 +40,47 @@ public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
      * @return 补贴年限
      */
     @Override
-    public BigDecimal calculateSubsidyYears(Integer ageAtBaseDate)
+    public BigDecimal calculateSubsidyYears(Integer ageAtBaseDate, Integer employeePensionMonths, Integer difficultySubsidyMonths)
     {
         if (ageAtBaseDate == null)
         {
             return BigDecimal.ZERO;
         }
 
+        BigDecimal baseSubsidyYears;
         if (ageAtBaseDate >= 16 && ageAtBaseDate <= 45)
         {
-            return new BigDecimal("3");
+            baseSubsidyYears = new BigDecimal("3");
         }
         else if (ageAtBaseDate >= 46 && ageAtBaseDate <= 50)
         {
-            return new BigDecimal("5");
+            baseSubsidyYears = new BigDecimal("5");
         }
         else if (ageAtBaseDate >= 51 && ageAtBaseDate < 60)
         {
-            return new BigDecimal(ageAtBaseDate - 45);
+            baseSubsidyYears = new BigDecimal(ageAtBaseDate - 45);
         }
         else if (ageAtBaseDate >= 60)
         {
-            return new BigDecimal("15");
+            baseSubsidyYears = new BigDecimal("15");
         }
         else
         {
             // 16岁以下不符合条件
             return BigDecimal.ZERO;
         }
+
+        // 新规则：补贴年限=向上取整((现有补贴年限*12-职工养老月数-困难补贴月数)/12)
+        int employeeMonths = employeePensionMonths == null ? 0 : Math.max(employeePensionMonths, 0);
+        int difficultyMonths = difficultySubsidyMonths == null ? 0 : Math.max(difficultySubsidyMonths, 0);
+        BigDecimal totalMonths = baseSubsidyYears.multiply(new BigDecimal("12"));
+        BigDecimal deductedMonths = totalMonths
+                .subtract(new BigDecimal(employeeMonths))
+                .subtract(new BigDecimal(difficultyMonths));
+        BigDecimal yearsAfterDeduction = deductedMonths
+                .divide(new BigDecimal("12"), 10, RoundingMode.HALF_UP)
+                .setScale(0, RoundingMode.CEILING);
+        return yearsAfterDeduction.max(BigDecimal.ZERO);
     }
 
     /**

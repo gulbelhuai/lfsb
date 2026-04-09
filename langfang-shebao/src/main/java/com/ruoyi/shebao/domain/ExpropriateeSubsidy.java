@@ -49,15 +49,15 @@ public class ExpropriateeSubsidy extends BaseDomain
 
     /** 已领取困难人员社会保险补贴月数 */
     @Excel(name = "已领取困难人员社会保险补贴月数")
-    private BigDecimal difficultySubsidyMonths;
-
-    /** 截至基准日的年龄 */
-    @Excel(name = "截至基准日的年龄")
-    private Integer ageAtBaseDate;
+    private Integer difficultySubsidyMonths;
 
     /** 被征地参保补贴年限 */
     @Excel(name = "被征地参保补贴年限")
     private BigDecimal subsidyYears;
+
+    /** 截至基准日的年龄 */
+    @Excel(name = "截至基准日的年龄")
+    private Integer ageAtBaseDate;
 
     /** 补贴金额 */
     @Excel(name = "补贴金额")
