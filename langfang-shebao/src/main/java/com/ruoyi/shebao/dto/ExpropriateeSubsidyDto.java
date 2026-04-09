@@ -30,8 +30,8 @@ public class ExpropriateeSubsidyDto
     /** 灵活就业月数 */
     private Integer flexibleEmploymentMonths;
 
-    /** 困难补贴年限 */
-    private Integer difficultySubsidyYears;
+    /** 困难补贴月数 */
+    private Integer difficultySubsidyMonths;
 
     /** 基准时年龄 */
     private Integer ageAtBaseDate;

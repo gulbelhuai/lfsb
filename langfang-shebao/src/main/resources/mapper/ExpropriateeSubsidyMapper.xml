@@ -12,7 +12,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="baseDate"                    column="base_date"                   />
         <result property="employeePensionMonths"       column="employee_pension_months"     />
         <result property="flexibleEmploymentMonths"    column="flexible_employment_months"  />
-        <result property="difficultySubsidyYears"      column="difficulty_subsidy_years"    />
+        <result property="difficultySubsidyMonths"     column="difficulty_subsidy_months"   />
         <result property="ageAtBaseDate"               column="age_at_base_date"            />
         <result property="subsidyYears"                column="subsidy_years"               />
         <result property="subsidyAmount"               column="subsidy_amount"              />
@@ -60,7 +60,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="baseDate"                    column="base_date"                   />
         <result property="employeePensionMonths"       column="employee_pension_months"     />
         <result property="flexibleEmploymentMonths"    column="flexible_employment_months"  />
-        <result property="difficultySubsidyYears"      column="difficulty_subsidy_years"    />
+        <result property="difficultySubsidyMonths"     column="difficulty_subsidy_months"   />
         <result property="ageAtBaseDate"               column="age_at_base_date"            />
         <result property="subsidyYears"                column="subsidy_years"               />
         <result property="subsidyAmount"               column="subsidy_amount"              />
@@ -87,7 +87,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <sql id="selectExpropriateeSubsidyVo">
         select es.id, es.subsidy_person_id, es.land_requisition_batch, es.village_street, es.base_date, 
-               es.employee_pension_months, es.flexible_employment_months, es.difficulty_subsidy_years, 
+               es.employee_pension_months, es.flexible_employment_months, es.difficulty_subsidy_months,
                es.age_at_base_date, es.subsidy_years, es.subsidy_amount, 
                es.join_urban_rural_insurance, es.join_employee_pension, es.has_employee_pension,
                es.status, es.del_flag, es.create_by, es.create_time, 
@@ -152,7 +152,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectExpropriateeSubsidyFormById" parameterType="Long" resultMap="ExpropriateeSubsidyFormResult">
         select es.id, es.subsidy_person_id, es.land_requisition_batch, es.village_street, es.base_date, 
-               es.employee_pension_months, es.flexible_employment_months, es.difficulty_subsidy_years, 
+               es.employee_pension_months, es.flexible_employment_months, es.difficulty_subsidy_months,
                es.age_at_base_date, es.subsidy_years, es.subsidy_amount, 
                es.join_urban_rural_insurance, es.join_employee_pension, es.has_employee_pension,
                es.status as es_status, es.remark as es_remark,
@@ -173,13 +173,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <insert id="batchInsertExpropriateeSubsidy" parameterType="java.util.List">
         insert into shebao_expropriatee_subsidy
         (subsidy_person_id, land_requisition_batch, village_street, base_date, employee_pension_months, 
-         flexible_employment_months, difficulty_subsidy_years, age_at_base_date, 
+         flexible_employment_months, difficulty_subsidy_months, age_at_base_date,
          subsidy_years, subsidy_amount, join_urban_rural_insurance, join_employee_pension, 
          has_employee_pension, status, create_by, create_time, remark)
         values
         <foreach collection="list" item="item" separator=",">
             (#{item.subsidyPersonId}, #{item.landRequisitionBatch}, #{item.villageStreet}, #{item.baseDate}, 
-             #{item.employeePensionMonths}, #{item.flexibleEmploymentMonths}, #{item.difficultySubsidyYears}, 
+             #{item.employeePensionMonths}, #{item.flexibleEmploymentMonths}, #{item.difficultySubsidyMonths},
              #{item.ageAtBaseDate}, #{item.subsidyYears}, #{item.subsidyAmount}, 
              #{item.joinUrbanRuralInsurance}, #{item.joinEmployeePension}, #{item.hasEmployeePension}, #{item.status}, 
              #{item.createBy}, #{item.createTime}, #{item.remark})

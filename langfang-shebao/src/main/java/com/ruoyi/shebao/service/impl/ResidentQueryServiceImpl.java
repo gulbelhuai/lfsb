@@ -174,7 +174,7 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
             dto.setBaseDate(subsidy.getBaseDate());
             dto.setEmployeePensionMonths(subsidy.getEmployeePensionMonths());
             dto.setFlexibleEmploymentMonths(subsidy.getFlexibleEmploymentMonths());
-            dto.setDifficultySubsidyYears(subsidy.getDifficultySubsidyYears() != null ? subsidy.getDifficultySubsidyYears().intValue() : null);
+            dto.setDifficultySubsidyMonths(subsidy.getDifficultySubsidyMonths() != null ? subsidy.getDifficultySubsidyMonths().intValue() : null);
             dto.setAgeAtBaseDate(subsidy.getAgeAtBaseDate());
             dto.setSubsidyYears(subsidy.getSubsidyYears() != null ? subsidy.getSubsidyYears().intValue() : null);
             dto.setSubsidyAmount(subsidy.getSubsidyAmount());

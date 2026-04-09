@@ -47,9 +47,9 @@ public class ExpropriateeSubsidy extends BaseDomain
     @Excel(name = "灵活就业身份缴纳职工养老保险月数")
     private Integer flexibleEmploymentMonths;
 
-    /** 已领取困难人员社会保险补贴年限 */
-    @Excel(name = "已领取困难人员社会保险补贴年限")
-    private BigDecimal difficultySubsidyYears;
+    /** 已领取困难人员社会保险补贴月数 */
+    @Excel(name = "已领取困难人员社会保险补贴月数")
+    private BigDecimal difficultySubsidyMonths;
 
     /** 截至基准日的年龄 */
     @Excel(name = "截至基准日的年龄")

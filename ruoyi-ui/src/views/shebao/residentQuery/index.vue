@@ -100,7 +100,7 @@
             <el-table-column label="基准时间" prop="baseDate" width="120" align="center" />
             <el-table-column label="职工养老月数" prop="employeePensionMonths" width="120" align="center" />
             <el-table-column label="灵活就业月数" prop="flexibleEmploymentMonths" width="120" align="center" />
-            <el-table-column label="困难补贴年限" prop="difficultySubsidyYears" width="120" align="center" />
+            <el-table-column label="困难补贴月数" prop="difficultySubsidyMonths" width="120" align="center" />
             <el-table-column label="基准时年龄" prop="ageAtBaseDate" width="120" align="center" />
             <el-table-column label="补贴年限" prop="subsidyYears" width="100" align="center" />
             <el-table-column label="补贴金额" prop="subsidyAmount" width="120" align="center">

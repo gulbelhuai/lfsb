@@ -384,8 +384,8 @@
 
           <el-row>
             <el-col :span="12">
-              <el-form-item label="困难补贴年限" prop="difficultySubsidyYears">
-                <el-input-number v-model="form.difficultySubsidyYears" :min="0" :max="99.99" :precision="2" controls-position="right" style="width: 100%" />
+              <el-form-item label="困难补贴月数" prop="difficultySubsidyMonths">
+                <el-input-number v-model="form.difficultySubsidyMonths" :min="0" :max="999" controls-position="right" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -631,7 +631,7 @@ export default {
         baseDate: null,
         employeePensionMonths: 0,
         flexibleEmploymentMonths: 0,
-        difficultySubsidyYears: 0,
+        difficultySubsidyMonths: 0,
         ageAtBaseDate: null,
         subsidyYears: 0,
         subsidyAmount: 0,

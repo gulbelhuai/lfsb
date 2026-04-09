@@ -18,7 +18,6 @@ import com.ruoyi.shebao.service.VillageCommitteeService;
 import jakarta.annotation.Resource;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,7 +85,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
         entity.setBaseDate(formDto.getBaseDate());
         entity.setEmployeePensionMonths(defaultInt(formDto.getEmployeePensionMonths()));
         entity.setFlexibleEmploymentMonths(defaultInt(formDto.getFlexibleEmploymentMonths()));
-        entity.setDifficultySubsidyYears(defaultDecimal(formDto.getDifficultySubsidyYears()));
+        entity.setDifficultySubsidyMonths(defaultDecimal(formDto.getDifficultySubsidyMonths()));
         entity.setAgeAtBaseDate(formDto.getAgeAtBaseDate());
         entity.setSubsidyYears(defaultDecimal(formDto.getSubsidyYears()));
         entity.setSubsidyAmount(defaultDecimal(formDto.getSubsidyAmount()));
@@ -122,7 +121,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
         entity.setBaseDate(formDto.getBaseDate());
         entity.setEmployeePensionMonths(defaultInt(formDto.getEmployeePensionMonths()));
         entity.setFlexibleEmploymentMonths(defaultInt(formDto.getFlexibleEmploymentMonths()));
-        entity.setDifficultySubsidyYears(defaultDecimal(formDto.getDifficultySubsidyYears()));
+        entity.setDifficultySubsidyMonths(defaultDecimal(formDto.getDifficultySubsidyMonths()));
         entity.setAgeAtBaseDate(formDto.getAgeAtBaseDate());
         entity.setSubsidyYears(defaultDecimal(formDto.getSubsidyYears()));
         entity.setSubsidyAmount(defaultDecimal(formDto.getSubsidyAmount()));

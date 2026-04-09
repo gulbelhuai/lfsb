@@ -111,7 +111,7 @@
           <el-table-column label="基准日" prop="baseDate" align="center" />
           <el-table-column label="职工养老月数" prop="employeePensionMonths" align="center" />
           <el-table-column label="灵活就业月数" prop="flexibleEmploymentMonths" align="center" />
-          <el-table-column label="困难补贴年限" prop="difficultySubsidyYears" align="center" />
+          <el-table-column label="困难补贴月数" prop="difficultySubsidyMonths" align="center" />
           <el-table-column label="基准日年龄" prop="ageAtBaseDate" align="center" />
           <el-table-column label="补贴年限" prop="subsidyYears" align="center" />
           <el-table-column label="补贴金额" prop="subsidyAmount" align="center" />
