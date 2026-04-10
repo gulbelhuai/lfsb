@@ -43,7 +43,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                vop.end_date, vop.service_years, vop.status, vop.remark
         from shebao_village_official_position vop
         where vop.village_official_id = #{villageOfficialId} and vop.del_flag = '0'
-        order by vop.start_date desc
+        order by vop.id desc
     </select>
 
     <delete id="deleteByVillageOfficialId" parameterType="Long">

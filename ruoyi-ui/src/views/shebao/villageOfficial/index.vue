@@ -313,6 +313,7 @@
                       size="mini"
                       placeholder="职位"
                       style="width: 100%"
+                      @change="handlePositionFieldChange"
                     >
                       <el-option label="书记或主任" value="1" />
                       <el-option label="书记兼主任" value="2" />
@@ -324,12 +325,13 @@
                   <template slot-scope="scope">
                     <el-date-picker
                       v-model="scope.row.startDate"
-                      type="date"
+                      type="month"
                       size="mini"
                       placeholder="上任时间"
-                      value-format="yyyy-MM-dd"
+                      value-format="yyyy-MM"
                       style="width: 100%"
-                      @change="syncPositionRowServiceYears(scope.row)"
+                      @change="handlePositionFieldChange"
+                      @blur="handlePositionFieldChange"
                     />
                   </template>
                 </el-table-column>
@@ -337,13 +339,14 @@
                   <template slot-scope="scope">
                     <el-date-picker
                       v-model="scope.row.endDate"
-                      type="date"
+                      type="month"
                       size="mini"
                       placeholder="卸任时间"
-                      value-format="yyyy-MM-dd"
+                      value-format="yyyy-MM"
                       clearable
                       style="width: 100%"
-                      @change="syncPositionRowServiceYears(scope.row)"
+                      @change="handlePositionFieldChange"
+                      @blur="handlePositionFieldChange"
                     />
                   </template>
                 </el-table-column>
@@ -374,14 +377,10 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="村干部补贴标准" prop="subsidyAmount">
-                <el-input-number
-                  v-model="form.subsidyAmount"
-                  :precision="2"
-                  :min="0"
-                  :max="99999999"
-                  placeholder="金额（元）"
-                  style="width: 100%"
-                  controls-position="right"
+                <el-input
+                  :value="form.subsidyAmount == null ? '' : Number(form.subsidyAmount).toFixed(2)"
+                  placeholder="自动计算"
+                  readonly
                 />
               </el-form-item>
             </el-col>
@@ -448,36 +447,12 @@
 </template>
 
 <script>
-import { listVillageOfficial, getVillageOfficial, delVillageOfficial, addVillageOfficial, updateVillageOfficial, getFormDataByIdCardNo } from "@/api/shebao/villageOfficial"
+import { listVillageOfficial, getVillageOfficial, delVillageOfficial, addVillageOfficial, updateVillageOfficial, getFormDataByIdCardNo, calculateVillageOfficialBenefit } from "@/api/shebao/villageOfficial"
 import { getToken } from "@/utils/auth"
 import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
 import { getVillageCommitteeByStreetOffice } from "@/api/shebao/villageCommittee"
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
 import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
-
-/** 与 Java LocalDate.plusYears 一致：日过大时压到当月末日 */
-function pad2(n) {
-  return n < 10 ? "0" + n : String(n)
-}
-function daysInMonth(y, m) {
-  return new Date(Date.UTC(y, m, 0)).getUTCDate()
-}
-function plusYearsStr(ymd, delta) {
-  const parts = ymd.split("-").map(Number)
-  if (parts.length !== 3 || parts.some(x => Number.isNaN(x))) return ymd
-  const [y, m, d] = parts
-  const ty = y + delta
-  const dim = daysInMonth(ty, m)
-  const dd = Math.min(d, dim)
-  return `${ty}-${pad2(m)}-${pad2(dd)}`
-}
-function epochDayFromStr(s) {
-  const [y, m, d] = s.split("-").map(Number)
-  return Math.floor(Date.UTC(y, m - 1, d) / 86400000)
-}
-function diffDaysStr(s1, s2) {
-  return epochDayFromStr(s2) - epochDayFromStr(s1)
-}
 
 export default {
   name: "VillageOfficial",
@@ -497,6 +472,8 @@ export default {
       queryVillageCommitteeOptions: [],
       title: "",
       open: false,
+      calculatingBenefit: false,
+      benefitPromise: null,
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -637,29 +614,59 @@ export default {
         if (!this.form.positionList) {
           this.form.positionList = []
         }
+        this.form.positionList = this.form.positionList.map(item => ({
+          ...item,
+          startDate: this.toYearMonthStr(item.startDate),
+          endDate: this.toYearMonthStr(item.endDate)
+        }))
         this.open = true
         this.title = "修改村干部信息"
       })
     },
     submitForm() {
-      this.syncAllPositionServiceYears()
-      this.$refs["form"].validate(valid => {
-        if (valid) {
-          if (this.form.id != null) {
-            updateVillageOfficial(this.form).then(() => {
-              this.$modal.msgSuccess("修改成功，已进入待复核")
-              this.open = false
-              this.getList()
-            })
-          } else {
-            addVillageOfficial(this.form).then(() => {
-              this.$modal.msgSuccess("新增成功，已进入待复核")
-              this.open = false
-              this.getList()
-            })
+      if (!this.validatePositionListRequired(true)) {
+        return
+      }
+      this.recalculateByBackend().then(() => {
+        this.$refs["form"].validate(valid => {
+          if (valid) {
+            const req = {
+              ...this.form,
+              positionList: (this.form.positionList || []).map(row => ({
+                ...row,
+                startDate: this.toFirstDayStr(row.startDate),
+                endDate: this.toFirstDayStr(row.endDate)
+              }))
+            }
+            if (this.form.id != null) {
+              updateVillageOfficial(req).then(() => {
+                this.$modal.msgSuccess("修改成功，已进入待复核")
+                this.open = false
+                this.getList()
+              })
+            } else {
+              addVillageOfficial(req).then(() => {
+                this.$modal.msgSuccess("新增成功，已进入待复核")
+                this.open = false
+                this.getList()
+              })
+            }
           }
-        }
+        })
       })
+    },
+    validatePositionListRequired(showMessage = false) {
+      const rows = this.form.positionList || []
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        if (!row.position || !row.startDate || !row.endDate) {
+          if (showMessage) {
+            this.$message.warning(`第${i + 1}行任职信息：任职职位、上任时间、卸任时间均不能为空`)
+          }
+          return false
+        }
+      }
+      return true
     },
     handleDelete(row) {
       const ids = row.id || this.ids
@@ -788,48 +795,56 @@ export default {
         status: "0",
         remark: null
       })
+      this.recalculateByBackend()
     },
     handleDeletePosition(index) {
       this.form.positionList.splice(index, 1)
+      this.recalculateByBackend()
     },
-    /** 与后端一致：整周年数 + 余下日历天数/365，保留两位小数 */
-    computePositionServiceYears(startDate, endDate) {
-      if (!startDate || typeof startDate !== "string") return null
-      const ps = startDate.split("-").map(Number)
-      if (ps.length !== 3 || ps.some(n => Number.isNaN(n))) return null
-      const todayStr = () => {
-        const n = new Date()
-        return `${n.getFullYear()}-${pad2(n.getMonth() + 1)}-${pad2(n.getDate())}`
-      }
-      const endStr = endDate && typeof endDate === "string" ? endDate : todayStr()
-      const pe = endStr.split("-").map(Number)
-      if (pe.length !== 3 || pe.some(n => Number.isNaN(n))) return null
-      if (endStr < startDate) return null
-      let full = 0
-      let cur = startDate
-      for (;;) {
-        const next = plusYearsStr(cur, 1)
-        if (next <= endStr) {
-          full++
-          cur = next
-        } else {
-          break
-        }
-      }
-      const remainderDays = diffDaysStr(cur, endStr)
-      const total = full + remainderDays / 365
-      return Number.parseFloat(total.toFixed(2))
+    toYearMonthStr(v) {
+      if (!v) return null
+      const s = String(v)
+      return s.length >= 7 ? s.slice(0, 7) : s
+    },
+    toFirstDayStr(v) {
+      if (!v) return null
+      const s = String(v)
+      if (/^\d{4}-\d{2}$/.test(s)) return `${s}-01`
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s.slice(0, 7)}-01`
+      return s
     },
     formatPositionServiceYears(row) {
-      const y = this.computePositionServiceYears(row.startDate, row.endDate)
-      return y === null ? "—" : y.toFixed(2)
+      if (row.serviceYears === null || row.serviceYears === undefined || row.serviceYears === "") return "—"
+      return Number(row.serviceYears).toFixed(2)
     },
-    syncPositionRowServiceYears(row) {
-      row.serviceYears = this.computePositionServiceYears(row.startDate, row.endDate)
+    handlePositionFieldChange() {
+      this.recalculateByBackend()
     },
-    syncAllPositionServiceYears() {
-      if (!this.form.positionList) return
-      this.form.positionList.forEach(row => this.syncPositionRowServiceYears(row))
+    recalculateByBackend() {
+      if (!this.validatePositionListRequired(false)) {
+        return Promise.resolve()
+      }
+      if (this.calculatingBenefit) {
+        return this.benefitPromise || Promise.resolve()
+      }
+      const req = {
+        ...this.form,
+        positionList: (this.form.positionList || []).map(row => ({
+          ...row,
+          startDate: this.toFirstDayStr(row.startDate),
+          endDate: this.toFirstDayStr(row.endDate)
+        }))
+      }
+      this.calculatingBenefit = true
+      this.benefitPromise = calculateVillageOfficialBenefit(req).then(response => {
+        const data = response.data || {}
+        this.form.subsidyAmount = data.subsidyAmount
+        this.form.positionList = data.positionList || this.form.positionList
+      }).finally(() => {
+        this.calculatingBenefit = false
+        this.benefitPromise = null
+      })
+      return this.benefitPromise
     }
   }
 }

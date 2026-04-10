@@ -76,6 +76,15 @@ public class VillageOfficialController extends BaseController
     }
 
     /**
+     * 计算任职年限与补贴标准（不保存）
+     */
+    @PostMapping("/calculateBenefit")
+    public AjaxResult calculateBenefit(@RequestBody VillageOfficialFormDto formDto)
+    {
+        return AjaxResult.success(villageOfficialService.calculateVillageOfficialBenefit(formDto));
+    }
+
+    /**
      * 新增村干部信息
      */
     @PreAuthorize("@ss.hasPermi('shebao:villageOfficial:add')")

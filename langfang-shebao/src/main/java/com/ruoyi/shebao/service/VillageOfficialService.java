@@ -74,6 +74,14 @@ public interface VillageOfficialService extends IService<VillageOfficial>
     VillageOfficialFormDto getFormDataByIdCardNo(String idCardNo);
 
     /**
+     * 计算任职年限与村干部补贴标准（不落库）
+     *
+     * @param formDto 村干部表单数据
+     * @return 回填了任职年限与补贴标准的表单数据
+     */
+    VillageOfficialFormDto calculateVillageOfficialBenefit(VillageOfficialFormDto formDto);
+
+    /**
      * 批量导入村干部信息
      * 
      * @param villageOfficialList 村干部信息列表

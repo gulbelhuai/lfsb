@@ -26,6 +26,16 @@ export function getFormDataByIdCardNo(idCardNo) {
   })
 }
 
+// 计算任职年限与补贴标准（不保存）
+export function calculateVillageOfficialBenefit(data) {
+  return request({
+    url: '/shebao/villageOfficial/calculateBenefit',
+    method: 'post',
+    data: data,
+    headers: { repeatSubmit: false }
+  })
+}
+
 // 新增村干部信息
 export function addVillageOfficial(data) {
   return request({

@@ -23,9 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -111,6 +111,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     @Transactional(rollbackFor = Exception.class)
     public int insertVillageOfficial(VillageOfficialFormDto formDto)
     {
+        calculateVillageOfficialBenefit(formDto);
         // 处理基础信息
         Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
 
@@ -146,6 +147,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     @Transactional(rollbackFor = Exception.class)
     public int updateVillageOfficial(VillageOfficialFormDto formDto)
     {
+        calculateVillageOfficialBenefit(formDto);
         // 处理基础信息
         Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
 
@@ -207,6 +209,19 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         }
 
         return ids.length;
+    }
+
+    @Override
+    public VillageOfficialFormDto calculateVillageOfficialBenefit(VillageOfficialFormDto formDto)
+    {
+        if (formDto == null)
+        {
+            return null;
+        }
+        List<VillageOfficialFormDto.VillageOfficialPositionDto> normalized = normalizeAndComputePositionList(formDto.getPositionList());
+        formDto.setPositionList(normalized);
+        formDto.setSubsidyAmount(calculateSubsidyAmount(normalized));
+        return formDto;
     }
 
     /**
@@ -549,14 +564,14 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         }
 
         List<VillageOfficialPosition> positionList = new ArrayList<>();
-        for (VillageOfficialFormDto.VillageOfficialPositionDto dto : positionDtoList)
+        for (VillageOfficialFormDto.VillageOfficialPositionDto dto : normalizeAndComputePositionList(positionDtoList))
         {
             VillageOfficialPosition position = new VillageOfficialPosition();
             position.setVillageOfficialId(villageOfficialId);
             position.setPosition(dto.getPosition());
             position.setStartDate(dto.getStartDate());
             position.setEndDate(dto.getEndDate());
-            position.setServiceYears(computePositionServiceYears(dto.getStartDate(), dto.getEndDate()));
+            position.setServiceYears(dto.getServiceYears());
             position.setStatus(dto.getStatus() != null ? dto.getStatus() : "0");
             position.setRemark(dto.getRemark());
             position.setCreateTime(LocalDateTime.now());
@@ -567,8 +582,66 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         villageOfficialPositionMapper.batchInsertPositions(positionList);
     }
 
+    private List<VillageOfficialFormDto.VillageOfficialPositionDto> normalizeAndComputePositionList(
+        List<VillageOfficialFormDto.VillageOfficialPositionDto> positionDtoList)
+    {
+        if (positionDtoList == null || positionDtoList.isEmpty())
+        {
+            return new ArrayList<>();
+        }
+        List<VillageOfficialFormDto.VillageOfficialPositionDto> normalized = new ArrayList<>();
+        int idx = 0;
+        for (VillageOfficialFormDto.VillageOfficialPositionDto dto : positionDtoList)
+        {
+            idx++;
+            if (dto == null || StringUtils.isBlank(dto.getPosition()) || dto.getStartDate() == null || dto.getEndDate() == null)
+            {
+                throw new ServiceException("第" + idx + "行任职信息：任职职位、上任时间、卸任时间均不能为空");
+            }
+            VillageOfficialFormDto.VillageOfficialPositionDto item = new VillageOfficialFormDto.VillageOfficialPositionDto();
+            item.setId(dto.getId());
+            item.setVillageOfficialId(dto.getVillageOfficialId());
+            item.setPosition(dto.getPosition());
+            item.setStatus(dto.getStatus());
+            item.setRemark(dto.getRemark());
+            item.setStartDate(normalizeToFirstDay(dto.getStartDate()));
+            item.setEndDate(normalizeToFirstDay(dto.getEndDate()));
+            item.setServiceYears(computePositionServiceYears(item.getStartDate(), item.getEndDate()));
+            normalized.add(item);
+        }
+        return normalized;
+    }
+
+    private static BigDecimal calculateSubsidyAmount(List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList)
+    {
+        if (positionList == null || positionList.isEmpty())
+        {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        BigDecimal sumYears = BigDecimal.ZERO;
+        for (VillageOfficialFormDto.VillageOfficialPositionDto item : positionList)
+        {
+            if (item.getServiceYears() != null)
+            {
+                sumYears = sumYears.add(item.getServiceYears());
+            }
+        }
+        return sumYears.multiply(BigDecimal.TEN).setScale(2);
+    }
+
+    private static LocalDate normalizeToFirstDay(LocalDate date)
+    {
+        if (date == null)
+        {
+            return null;
+        }
+        return date.withDayOfMonth(1);
+    }
+
     /**
-     * 任职年限：完整周年数（与 ChronoUnit.YEARS.between 一致）+ 余下日历天数/365，结果保留两位小数。
+     * 任职年限：先算含首尾月的月数，再换算成年限。
+     * 月数 = ChronoUnit.MONTHS.between(上任月, 卸任月) + 1
+     * 年限 = floor(月数/12) + (余数>=6 ? 1 : (余数>=0 ? 0.5 : 0))
      */
     private static BigDecimal computePositionServiceYears(LocalDate startDate, LocalDate endDate)
     {
@@ -581,13 +654,23 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         {
             return null;
         }
-        long fullYears = ChronoUnit.YEARS.between(startDate, end);
-        LocalDate afterFullYears = startDate.plusYears(fullYears);
-        long remainderDays = ChronoUnit.DAYS.between(afterFullYears, end);
-        BigDecimal full = BigDecimal.valueOf(fullYears);
-        BigDecimal fraction = BigDecimal.valueOf(remainderDays)
-            .divide(BigDecimal.valueOf(365), 8, RoundingMode.HALF_UP);
-        return full.add(fraction).setScale(2, RoundingMode.HALF_UP);
+        YearMonth startYm = YearMonth.from(startDate);
+        YearMonth endYm = YearMonth.from(end);
+        long months = ChronoUnit.MONTHS.between(startYm, endYm) + 1;
+        if (months <= 0)
+        {
+            return null;
+        }
+
+        long years = months / 12;
+        long remainder = months % 12;
+        BigDecimal bonus = BigDecimal.ZERO;
+          if (remainder >= 6) {
+            bonus = BigDecimal.ONE;
+          } else if (remainder > 0) {
+              bonus = new BigDecimal("0.5");
+          }
+      return BigDecimal.valueOf(years).add(bonus);
     }
 
     /**
