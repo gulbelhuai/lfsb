@@ -222,7 +222,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         }
         List<VillageOfficialFormDto.VillageOfficialPositionDto> normalized = normalizeAndComputePositionList(formDto.getPositionList());
         formDto.setPositionList(normalized);
-        formDto.setSubsidyAmount(subsidyCalculationService.calculateVillageOfficialSubsidyAmount(normalized));
+        formDto.setSubsidyAmount(subsidyCalculationService.calculateVillageOfficialSubsidyAmount(formDto.getIdCardNo(), normalized));
         return formDto;
     }
 

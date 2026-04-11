@@ -1,5 +1,6 @@
 package com.ruoyi.shebao.service.impl;
 
+import com.ruoyi.shebao.dto.VillageOfficialFormDto;
 import com.ruoyi.system.service.ISysConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
@@ -46,42 +48,42 @@ class SubsidyCalculationServiceImplTest {
         @Test
         @DisplayName("16-45岁应返回3年")
         void age16To45_returns3() {
-            assertEquals(new BigDecimal("3"), subsidyCalculationService.calculateSubsidyYears(16));
-            assertEquals(new BigDecimal("3"), subsidyCalculationService.calculateSubsidyYears(45));
+            assertEquals(new BigDecimal("3"), subsidyCalculationService.calculateSubsidyYears(16, null, null));
+            assertEquals(new BigDecimal("3"), subsidyCalculationService.calculateSubsidyYears(45, null, null));
         }
 
         @Test
         @DisplayName("46-50岁应返回5年")
         void age46To50_returns5() {
-            assertEquals(new BigDecimal("5"), subsidyCalculationService.calculateSubsidyYears(46));
-            assertEquals(new BigDecimal("5"), subsidyCalculationService.calculateSubsidyYears(50));
+            assertEquals(new BigDecimal("5"), subsidyCalculationService.calculateSubsidyYears(46, null, null));
+            assertEquals(new BigDecimal("5"), subsidyCalculationService.calculateSubsidyYears(50, null, null));
         }
 
         @Test
         @DisplayName("51-59岁应为实际年龄减45")
         void age51To59_returnsAgeMinus45() {
-            assertEquals(new BigDecimal("6"), subsidyCalculationService.calculateSubsidyYears(51));
-            assertEquals(new BigDecimal("14"), subsidyCalculationService.calculateSubsidyYears(59));
+            assertEquals(new BigDecimal("6"), subsidyCalculationService.calculateSubsidyYears(51, null, null));
+            assertEquals(new BigDecimal("14"), subsidyCalculationService.calculateSubsidyYears(59, null, null));
         }
 
         @Test
         @DisplayName("60岁及以上应返回15年")
         void age60Plus_returns15() {
-            assertEquals(new BigDecimal("15"), subsidyCalculationService.calculateSubsidyYears(60));
-            assertEquals(new BigDecimal("15"), subsidyCalculationService.calculateSubsidyYears(70));
+            assertEquals(new BigDecimal("15"), subsidyCalculationService.calculateSubsidyYears(60, null, null));
+            assertEquals(new BigDecimal("15"), subsidyCalculationService.calculateSubsidyYears(70, null, null));
         }
 
         @Test
         @DisplayName("16岁以下应返回0")
         void ageBelow16_returns0() {
-            assertEquals(BigDecimal.ZERO, subsidyCalculationService.calculateSubsidyYears(15));
-            assertEquals(BigDecimal.ZERO, subsidyCalculationService.calculateSubsidyYears(0));
+            assertEquals(BigDecimal.ZERO, subsidyCalculationService.calculateSubsidyYears(15, null, null));
+            assertEquals(BigDecimal.ZERO, subsidyCalculationService.calculateSubsidyYears(0, null, null));
         }
 
         @Test
         @DisplayName("null 年龄应返回0")
         void nullAge_returns0() {
-            assertEquals(BigDecimal.ZERO, subsidyCalculationService.calculateSubsidyYears(null));
+            assertEquals(BigDecimal.ZERO, subsidyCalculationService.calculateSubsidyYears(null, null, null));
         }
     }
 
@@ -166,6 +168,78 @@ class SubsidyCalculationServiceImplTest {
         void whenConfigEmpty_returnsDefault() {
             when(configService.selectConfigByKey(eq(AVERAGE_SALARY_KEY))).thenReturn("");
             assertEquals(new BigDecimal("56724"), subsidyCalculationService.getAverageAnnualSalary());
+        }
+    }
+
+    @Nested
+    @DisplayName("村干部补贴标准 calculateVillageOfficialSubsidyAmount")
+    class VillageOfficialSubsidyAmountTests {
+
+        @BeforeEach
+        void stubVillageSubsidyRates() {
+            lenient().when(configService.selectConfigByKey(eq(SubsidyCalculationServiceImpl.POSITION_SECRETARY_AND_DIRECTOR_SUBSIDY_KEY)))
+                .thenReturn("100");
+            lenient().when(configService.selectConfigByKey(eq(SubsidyCalculationServiceImpl.POSITION_SECRETARY_OR_DIRECTOR_SUBSIDY_KEY)))
+                .thenReturn("200");
+            lenient().when(configService.selectConfigByKey(eq(SubsidyCalculationServiceImpl.POSITION_TWO_COMMITTEES_SUBSIDY_KEY)))
+                .thenReturn("300");
+        }
+
+        private static VillageOfficialFormDto.VillageOfficialPositionDto row(String pos, String start, String end) {
+            VillageOfficialFormDto.VillageOfficialPositionDto d = new VillageOfficialFormDto.VillageOfficialPositionDto();
+            d.setPosition(pos);
+            d.setStartDate(LocalDate.parse(start));
+            d.setEndDate(LocalDate.parse(end));
+            return d;
+        }
+
+        @Test
+        @DisplayName("职位1与2完全重叠时整段按1计")
+        void overlap_position1Wins_fullYearAtRate1() {
+            List<VillageOfficialFormDto.VillageOfficialPositionDto> list = List.of(
+                row("1", "2020-01-01", "2020-12-01"),
+                row("2", "2020-01-15", "2020-12-15")
+            );
+            assertEquals(0, new BigDecimal("100.00").compareTo(subsidyCalculationService.calculateVillageOfficialSubsidyAmount("test", list)));
+        }
+
+        @Test
+        @DisplayName("同职位相邻两段合并为12个月即1年")
+        void samePositionConsecutive_mergesToOneYear() {
+            List<VillageOfficialFormDto.VillageOfficialPositionDto> list = List.of(
+                row("1", "2020-01-01", "2020-06-01"),
+                row("1", "2020-07-01", "2020-12-01")
+            );
+            assertEquals(0, new BigDecimal("100.00").compareTo(subsidyCalculationService.calculateVillageOfficialSubsidyAmount("test", list)));
+        }
+
+        @Test
+        @DisplayName("职位2与3重叠时按2计")
+        void overlap_position2Beats3() {
+            List<VillageOfficialFormDto.VillageOfficialPositionDto> list = List.of(
+                row("3", "2020-01-01", "2020-06-01"),
+                row("2", "2020-01-01", "2020-06-01")
+            );
+            assertEquals(0, new BigDecimal("200.00").compareTo(subsidyCalculationService.calculateVillageOfficialSubsidyAmount("test", list)));
+        }
+
+        @Test
+        @DisplayName("职位1与2各半年且不重叠则金额相加")
+        void nonOverlap_halfYearEach_sumRates() {
+            List<VillageOfficialFormDto.VillageOfficialPositionDto> list = List.of(
+                row("1", "2020-01-01", "2020-06-01"),
+                row("2", "2020-07-01", "2020-12-01")
+            );
+            assertEquals(0, new BigDecimal("300.00").compareTo(subsidyCalculationService.calculateVillageOfficialSubsidyAmount("test", list)));
+        }
+
+        @Test
+        @DisplayName("无职位123时返回0")
+        void noSubsidyPositions_returnsZero() {
+            List<VillageOfficialFormDto.VillageOfficialPositionDto> list = List.of(
+                row("9", "2020-01-01", "2020-12-01")
+            );
+            assertEquals(0, BigDecimal.ZERO.setScale(2).compareTo(subsidyCalculationService.calculateVillageOfficialSubsidyAmount("test", list)));
         }
     }
 }

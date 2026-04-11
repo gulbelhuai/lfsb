@@ -122,7 +122,7 @@ public class VillageOfficialFormDto
         /** 村干部信息ID */
         private Long villageOfficialId;
 
-        /** 任职职位（1书记或主任 2书记兼主任 3村"两委"其他成员） */
+        /** 任职职位（1书记兼主任 2书记或主任 3村"两委"其他成员） */
         private String position;
 
         /** 上任时间 */

@@ -315,8 +315,8 @@
                       style="width: 100%"
                       @change="handlePositionFieldChange"
                     >
-                      <el-option label="书记或主任" value="1" />
-                      <el-option label="书记兼主任" value="2" />
+                      <el-option label="书记兼主任" value="1" />
+                      <el-option label="书记或主任" value="2" />
                       <el-option label="村两委其他成员" value="3" />
                     </el-select>
                   </template>

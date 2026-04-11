@@ -1267,7 +1267,7 @@ DROP TABLE IF EXISTS `shebao_village_official_position`;
 CREATE TABLE `shebao_village_official_position` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `village_official_id` bigint NOT NULL COMMENT '村干部信息ID',
-  `position` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '任职职位（1书记或主任 2书记兼主任 3村"两委"其他成员）',
+  `position` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '任职职位（1书记兼主任 2书记或主任 3村"两委"其他成员）',
   `start_date` date NOT NULL COMMENT '上任时间',
   `end_date` date DEFAULT NULL COMMENT '卸任时间',
   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '0' COMMENT '状态（0正常 1停用）',

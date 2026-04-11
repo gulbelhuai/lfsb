@@ -55,7 +55,7 @@ public interface SubsidyCalculationService
      * @param positionList 任职信息
      * @return 补贴标准
      */
-    BigDecimal calculateVillageOfficialSubsidyAmount(List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList);
+    BigDecimal calculateVillageOfficialSubsidyAmount(String idCardNo, List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList);
 
 
     /**

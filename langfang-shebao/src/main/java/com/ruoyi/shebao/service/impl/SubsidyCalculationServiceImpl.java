@@ -5,6 +5,9 @@ import com.ruoyi.shebao.dto.VillageOfficialFormDto;
 import com.ruoyi.shebao.service.SubsidyCalculationService;
 import com.ruoyi.system.service.ISysConfigService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -13,7 +16,10 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.TreeSet;
 
 /**
  * 补贴计算服务实现类
@@ -21,9 +27,11 @@ import java.util.List;
  * @author ruoyi
  * @date 2025-09-28
  */
+@Slf4j
 @Service
 public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
 {
+
     @Resource
     private ISysConfigService configService;
 
@@ -178,27 +186,240 @@ public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
         }
     }
 
+    /**
+     * 村干部补贴标准：仅统计职位 1/2/3；重叠月份按职位优先级 1 &gt; 2 &gt; 3 只计一次；
+     * 同职位且时间上相邻的合并后再用 {@link #computePositionServiceYears} 算年限；
+     * 最终为 各职位有效年限 × 对应系统配置补贴单价 之和。
+     */
     @Override
-    public BigDecimal calculateVillageOfficialSubsidyAmount(List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList)
+    public BigDecimal calculateVillageOfficialSubsidyAmount(String idCardNo, List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList)
     {
-
         if (positionList == null || positionList.isEmpty())
         {
             return BigDecimal.ZERO.setScale(2);
         }
-        BigDecimal secretaryAndDirectorSubsidy = new BigDecimal(configService.selectConfigByKey(POSITION_SECRETARY_AND_DIRECTOR_SUBSIDY_KEY));
-        BigDecimal secretaryOrDirectorSubsidy = new BigDecimal(configService.selectConfigByKey(POSITION_SECRETARY_OR_DIRECTOR_SUBSIDY_KEY));
-        BigDecimal twoCommitteesSubsidy = new BigDecimal(configService.selectConfigByKey(POSITION_TWO_COMMITTEES_SUBSIDY_KEY));
+        BigDecimal secretaryAndDirectorSubsidy = readSubsidyRateConfig(POSITION_SECRETARY_AND_DIRECTOR_SUBSIDY_KEY);
+        BigDecimal secretaryOrDirectorSubsidy = readSubsidyRateConfig(POSITION_SECRETARY_OR_DIRECTOR_SUBSIDY_KEY);
+        BigDecimal twoCommitteesSubsidy = readSubsidyRateConfig(POSITION_TWO_COMMITTEES_SUBSIDY_KEY);
 
-        BigDecimal sumYears = BigDecimal.ZERO;
-        for (VillageOfficialFormDto.VillageOfficialPositionDto item : positionList)
+        /*
+         * 核心思路（按月离散、半开区间扫描）：
+         * 1) 每条任职记录转为 [上任月, 卸任月] 闭区间，再写成半开区间 [startYm, endYm.plusMonths(1))，便于拼接边界。
+         * 2) 收集所有边界点并排序，相邻边界之间是一段「原子月序列」，其中任意月份被同一组原始记录覆盖。
+         * 3) 对每一段，在所有完全覆盖该段的原始记录中取职位编号最小者（1 优先于 2、2 优先于 3），重叠部分只归属一个职位。
+         * 4) 将相邻且职位相同的原子段合并，再对合并后的闭区间调用 computePositionServiceYears（与业务口径一致）。
+         */
+        List<RawYmInterval> rawIntervals = buildSubsidyRawIntervals(positionList);
+        if (rawIntervals.isEmpty())
         {
-            if (item.getServiceYears() != null)
+            log.info("村干部补贴标准计算[{}]：无职位1/2/3的有效任职区间，补贴金额=0", idCardNo);
+            return BigDecimal.ZERO.setScale(2);
+        }
+
+        TreeSet<YearMonth> boundaries = new TreeSet<>();
+        for (RawYmInterval raw : rawIntervals)
+        {
+            boundaries.add(raw.startYm());
+            boundaries.add(raw.endYm().plusMonths(1));
+        }
+        List<YearMonth> boundaryList = new ArrayList<>(boundaries);
+
+        List<HalfOpenSegment> atomic = new ArrayList<>();
+        for (int i = 0; i < boundaryList.size() - 1; i++)
+        {
+            YearMonth b0 = boundaryList.get(i);
+            YearMonth b1 = boundaryList.get(i + 1);
+            long monthSpan = ChronoUnit.MONTHS.between(b0, b1);
+            if (monthSpan <= 0)
             {
-                sumYears = sumYears.add(item.getServiceYears());
+                continue;
+            }
+            String winner = resolveWinnerPosition(rawIntervals, b0, b1);
+            if (winner == null)
+            {
+                continue;
+            }
+            atomic.add(new HalfOpenSegment(b0, b1, winner));
+        }
+
+        List<MergedYmSegment> merged = mergeAdjacentSamePosition(atomic);
+        BigDecimal yearsPos1 = BigDecimal.ZERO;
+        BigDecimal yearsPos2 = BigDecimal.ZERO;
+        BigDecimal yearsPos3 = BigDecimal.ZERO;
+        StringBuilder timelineLog = new StringBuilder();
+        for (MergedYmSegment seg : merged)
+        {
+            LocalDate segStart = seg.startYm().atDay(1);
+            LocalDate segEnd = seg.endYm().atDay(1);
+            BigDecimal segYears = computePositionServiceYears(segStart, segEnd);
+            if (segYears == null)
+            {
+                continue;
+            }
+            if (!timelineLog.isEmpty())
+            {
+                timelineLog.append("；");
+            }
+            timelineLog.append(seg.startYm())
+                .append("至")
+                .append(seg.endYm())
+                .append(" \"")
+                .append(seg.position())
+                .append("\" ")
+                .append(segYears.stripTrailingZeros().toPlainString())
+                .append("年");
+
+            if (VillageOfficialFormDto.VillageOfficialPositionDto.POSITION_SECRETARY_AND_DIRECTOR.equals(seg.position()))
+            {
+                yearsPos1 = yearsPos1.add(segYears);
+            }
+            else if (VillageOfficialFormDto.VillageOfficialPositionDto.POSITION_SECRETARY_OR_DIRECTOR.equals(seg.position()))
+            {
+                yearsPos2 = yearsPos2.add(segYears);
+            }
+            else if (VillageOfficialFormDto.VillageOfficialPositionDto.POSITION_TWO_COMMITTEES.equals(seg.position()))
+            {
+                yearsPos3 = yearsPos3.add(segYears);
             }
         }
-        return sumYears.multiply(BigDecimal.TEN).setScale(2);
+
+        BigDecimal amount = yearsPos1.multiply(secretaryAndDirectorSubsidy)
+            .add(yearsPos2.multiply(secretaryOrDirectorSubsidy))
+            .add(yearsPos3.multiply(twoCommitteesSubsidy))
+            .setScale(2, RoundingMode.HALF_UP);
+
+        log.info("村干部补贴标准计算[{}]：去重叠合并后的任职时间段（按时间先后）=> {}", idCardNo, timelineLog);
+        log.info("村干部补贴标准计算[{}]：职位\"1\"累计年限={}，职位\"2\"累计年限={}，职位\"3\"累计年限={}；单价(元/年) 1={} 2={} 3={}；合计补贴={}",
+            idCardNo,
+            yearsPos1.stripTrailingZeros().toPlainString(),
+            yearsPos2.stripTrailingZeros().toPlainString(),
+            yearsPos3.stripTrailingZeros().toPlainString(),
+            secretaryAndDirectorSubsidy.stripTrailingZeros().toPlainString(),
+            secretaryOrDirectorSubsidy.stripTrailingZeros().toPlainString(),
+            twoCommitteesSubsidy.stripTrailingZeros().toPlainString(),
+            amount.stripTrailingZeros().toPlainString());
+
+        return amount;
+    }
+
+    /** 仅职位 1/2/3 参与补贴；起止规范到当月 1 日对应的年月。 */
+    private static List<RawYmInterval> buildSubsidyRawIntervals(List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList)
+    {
+        List<RawYmInterval> list = new ArrayList<>();
+        for (VillageOfficialFormDto.VillageOfficialPositionDto dto : positionList)
+        {
+            if (dto == null || !isSubsidyPosition(dto.getPosition()) || dto.getStartDate() == null)
+            {
+                continue;
+            }
+            LocalDate start = dto.getStartDate().withDayOfMonth(1);
+            LocalDate end = dto.getEndDate() != null ? dto.getEndDate().withDayOfMonth(1) : LocalDate.now().withDayOfMonth(1);
+            if (end.isBefore(start))
+            {
+                continue;
+            }
+            YearMonth startYm = YearMonth.from(start);
+            YearMonth endYm = YearMonth.from(end);
+            list.add(new RawYmInterval(startYm, endYm, dto.getPosition()));
+        }
+        return list;
+    }
+
+    private static boolean isSubsidyPosition(String position)
+    {
+        return VillageOfficialFormDto.VillageOfficialPositionDto.POSITION_SECRETARY_AND_DIRECTOR.equals(position)
+            || VillageOfficialFormDto.VillageOfficialPositionDto.POSITION_SECRETARY_OR_DIRECTOR.equals(position)
+            || VillageOfficialFormDto.VillageOfficialPositionDto.POSITION_TWO_COMMITTEES.equals(position);
+    }
+
+    /**
+     * 在半开区间 [b0, b1) 上，找出所有完全覆盖该段的原始任职（startYm ≤ b0 且 endYm+1 ≥ b1），
+     * 取 position 字典序最小（即 "1" &lt; "2" &lt; "3"）作为本段归属职位。
+     */
+    private static String resolveWinnerPosition(List<RawYmInterval> rawIntervals, YearMonth b0, YearMonth b1)
+    {
+        String winner = null;
+        int bestRank = Integer.MAX_VALUE;
+        for (RawYmInterval raw : rawIntervals)
+        {
+            YearMonth endExclusive = raw.endYm().plusMonths(1);
+            if (!raw.startYm().isAfter(b0) && !endExclusive.isBefore(b1))
+            {
+                int rank = positionRank(raw.position());
+                if (rank < bestRank)
+                {
+                    bestRank = rank;
+                    winner = raw.position();
+                }
+            }
+        }
+        return winner;
+    }
+
+    private static int positionRank(String position)
+    {
+        try
+        {
+            return Integer.parseInt(position.trim());
+        }
+        catch (Exception e)
+        {
+            return 99;
+        }
+    }
+
+    /** 半开区间上相邻且职位相同则合并，便于按连续段计算年限。 */
+    private static List<MergedYmSegment> mergeAdjacentSamePosition(List<HalfOpenSegment> atomic)
+    {
+        List<MergedYmSegment> merged = new ArrayList<>();
+        for (HalfOpenSegment seg : atomic)
+        {
+            if (merged.isEmpty())
+            {
+                merged.add(MergedYmSegment.fromHalfOpen(seg.start(), seg.endExclusive(), seg.position()));
+                continue;
+            }
+            MergedYmSegment last = merged.get(merged.size() - 1);
+            if (last.endYm().plusMonths(1).equals(seg.start()) && Objects.equals(last.position(), seg.position()))
+            {
+                merged.set(merged.size() - 1, new MergedYmSegment(last.startYm(), seg.endExclusive().minusMonths(1), last.position()));
+            }
+            else
+            {
+                merged.add(MergedYmSegment.fromHalfOpen(seg.start(), seg.endExclusive(), seg.position()));
+            }
+        }
+        return merged;
+    }
+
+    private BigDecimal readSubsidyRateConfig(String key)
+    {
+        String raw = configService.selectConfigByKey(key);
+        if (StringUtils.isEmpty(raw))
+        {
+            return BigDecimal.ZERO;
+        }
+        try
+        {
+            return new BigDecimal(raw.trim());
+        }
+        catch (NumberFormatException e)
+        {
+            log.warn("村干部补贴配置 key={} 值非法: {}，按0处理", key, raw);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private record RawYmInterval(YearMonth startYm, YearMonth endYm, String position) {}
+
+    private record HalfOpenSegment(YearMonth start, YearMonth endExclusive, String position) {}
+
+    private record MergedYmSegment(YearMonth startYm, YearMonth endYm, String position)
+    {
+        static MergedYmSegment fromHalfOpen(YearMonth start, YearMonth endExclusive, String position)
+        {
+            return new MergedYmSegment(start, endExclusive.minusMonths(1), position);
+        }
     }
 
     /**
@@ -206,6 +427,7 @@ public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
      * 月数 = ChronoUnit.MONTHS.between(上任月, 卸任月) + 1
      * 年限 = floor(月数/12) + (余数>=6 ? 1 : (余数>=0 ? 0.5 : 0))
      */
+    @Override
     public BigDecimal computePositionServiceYears(LocalDate startDate, LocalDate endDate)
     {
         if (startDate == null)

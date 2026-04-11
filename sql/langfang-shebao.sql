@@ -210,7 +210,7 @@ create table shebao_village_official_position
 (
     id                   bigint auto_increment comment '主键ID' primary key,
     village_official_id  bigint               not null comment '村干部信息ID',
-    position             char                 not null comment '任职职位（1书记或主任 2书记兼主任 3村"两委"其他成员）',
+    position             char                 not null comment '任职职位（1书记兼主任 2书记或主任 3村"两委"其他成员）',
     start_date           date                 not null comment '上任时间',
     end_date             date                          null comment '卸任时间',
     status               char        default '0'       null comment '状态（0正常 1停用）',

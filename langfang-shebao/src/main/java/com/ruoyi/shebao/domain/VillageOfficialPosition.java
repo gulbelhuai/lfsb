@@ -27,8 +27,8 @@ public class VillageOfficialPosition extends BaseDomain
     @Excel(name = "村干部信息ID")
     private Long villageOfficialId;
 
-    /** 任职职位（1书记或主任 2书记兼主任 3村"两委"其他成员） */
-    @Excel(name = "任职职位", readConverterExp = "1=书记或主任,2=书记兼主任,3=村\"两委\"其他成员")
+    /** 任职职位（1书记兼主任 2书记或主任 3村"两委"其他成员） */
+    @Excel(name = "任职职位", readConverterExp = "1=书记兼主任,2=书记或主任,3=村\"两委\"其他成员")
     private String position;
 
     /** 上任时间 */
