@@ -111,6 +111,11 @@ public class VillageOfficialFormDto
     @Data
     public static class VillageOfficialPositionDto
     {
+
+        public static final String POSITION_SECRETARY_AND_DIRECTOR = "1";
+        public static final String POSITION_SECRETARY_OR_DIRECTOR = "2";
+        public static final String POSITION_TWO_COMMITTEES = "3";
+
         /** 任职信息ID */
         private Long id;
 

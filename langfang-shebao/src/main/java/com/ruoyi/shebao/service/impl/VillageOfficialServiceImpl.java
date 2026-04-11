@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
-import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.shebao.domain.VillageOfficial;
 import com.ruoyi.shebao.domain.VillageOfficialPosition;
 import com.ruoyi.shebao.domain.SubsidyPerson;
@@ -15,19 +14,19 @@ import com.ruoyi.shebao.dto.VillageOfficialFormDto;
 import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialPositionMapper;
+import com.ruoyi.shebao.service.SubsidyCalculationService;
 import com.ruoyi.shebao.service.VillageOfficialService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.VillageCommitteeService;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -55,6 +54,9 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
 
     @Autowired
     private VillageCommitteeService villageCommitteeService;
+
+    @Autowired
+    private SubsidyCalculationService subsidyCalculationService;
 
 
     /**
@@ -220,7 +222,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         }
         List<VillageOfficialFormDto.VillageOfficialPositionDto> normalized = normalizeAndComputePositionList(formDto.getPositionList());
         formDto.setPositionList(normalized);
-        formDto.setSubsidyAmount(calculateSubsidyAmount(normalized));
+        formDto.setSubsidyAmount(subsidyCalculationService.calculateVillageOfficialSubsidyAmount(normalized));
         return formDto;
     }
 
@@ -317,7 +319,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     @Override
     public String importVillageOfficial(List<VillageOfficialFormDto> villageOfficialList, Boolean isUpdateSupport, String operName)
     {
-        if (StringUtils.isNull(villageOfficialList) || villageOfficialList.size() == 0)
+        if (CollectionUtils.isEmpty(villageOfficialList))
         {
             throw new RuntimeException("导入村干部数据不能为空！");
         }
@@ -606,27 +608,10 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             item.setRemark(dto.getRemark());
             item.setStartDate(normalizeToFirstDay(dto.getStartDate()));
             item.setEndDate(normalizeToFirstDay(dto.getEndDate()));
-            item.setServiceYears(computePositionServiceYears(item.getStartDate(), item.getEndDate()));
+            item.setServiceYears(subsidyCalculationService.computePositionServiceYears(item.getStartDate(), item.getEndDate()));
             normalized.add(item);
         }
         return normalized;
-    }
-
-    private static BigDecimal calculateSubsidyAmount(List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList)
-    {
-        if (positionList == null || positionList.isEmpty())
-        {
-            return BigDecimal.ZERO.setScale(2);
-        }
-        BigDecimal sumYears = BigDecimal.ZERO;
-        for (VillageOfficialFormDto.VillageOfficialPositionDto item : positionList)
-        {
-            if (item.getServiceYears() != null)
-            {
-                sumYears = sumYears.add(item.getServiceYears());
-            }
-        }
-        return sumYears.multiply(BigDecimal.TEN).setScale(2);
     }
 
     private static LocalDate normalizeToFirstDay(LocalDate date)
@@ -636,41 +621,6 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
             return null;
         }
         return date.withDayOfMonth(1);
-    }
-
-    /**
-     * 任职年限：先算含首尾月的月数，再换算成年限。
-     * 月数 = ChronoUnit.MONTHS.between(上任月, 卸任月) + 1
-     * 年限 = floor(月数/12) + (余数>=6 ? 1 : (余数>=0 ? 0.5 : 0))
-     */
-    private static BigDecimal computePositionServiceYears(LocalDate startDate, LocalDate endDate)
-    {
-        if (startDate == null)
-        {
-            return null;
-        }
-        LocalDate end = endDate != null ? endDate : LocalDate.now();
-        if (end.isBefore(startDate))
-        {
-            return null;
-        }
-        YearMonth startYm = YearMonth.from(startDate);
-        YearMonth endYm = YearMonth.from(end);
-        long months = ChronoUnit.MONTHS.between(startYm, endYm) + 1;
-        if (months <= 0)
-        {
-            return null;
-        }
-
-        long years = months / 12;
-        long remainder = months % 12;
-        BigDecimal bonus = BigDecimal.ZERO;
-          if (remainder >= 6) {
-            bonus = BigDecimal.ONE;
-          } else if (remainder > 0) {
-              bonus = new BigDecimal("0.5");
-          }
-      return BigDecimal.valueOf(years).add(bonus);
     }
 
     /**

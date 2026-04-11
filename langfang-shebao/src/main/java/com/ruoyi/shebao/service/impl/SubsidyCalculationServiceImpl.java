@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.service.impl;
 
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.shebao.dto.VillageOfficialFormDto;
 import com.ruoyi.shebao.service.SubsidyCalculationService;
 import com.ruoyi.system.service.ISysConfigService;
 import jakarta.annotation.Resource;
@@ -10,6 +11,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 /**
  * 补贴计算服务实现类
@@ -26,10 +30,14 @@ public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
     /** 年平均工资系统参数key */
     private static final String AVERAGE_ANNUAL_SALARY_KEY = "shebao.average.annual.salary";
 
+    public static final String POSITION_SECRETARY_AND_DIRECTOR_SUBSIDY_KEY = "shebao.official.secretary.and.director.subsidy";
+    public static final String POSITION_SECRETARY_OR_DIRECTOR_SUBSIDY_KEY = "shebao.official.secretary.or.director.subsidy";
+    public static final String POSITION_TWO_COMMITTEES_SUBSIDY_KEY = "shebao.official.two.committees.subsidy";
+
     /**
      * 计算被征地参保补贴年限
      * 根据截至基准日的年龄计算补贴年限
-     * 
+     *
      * 计算规则：
      * - 年满16至45周岁的，补贴年限为3年
      * - 年满46至50周岁的，补贴年限为5年
@@ -168,5 +176,63 @@ public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
             // 配置值格式错误，返回默认值
             return new BigDecimal("56724");
         }
+    }
+
+    @Override
+    public BigDecimal calculateVillageOfficialSubsidyAmount(List<VillageOfficialFormDto.VillageOfficialPositionDto> positionList)
+    {
+
+        if (positionList == null || positionList.isEmpty())
+        {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        BigDecimal secretaryAndDirectorSubsidy = new BigDecimal(configService.selectConfigByKey(POSITION_SECRETARY_AND_DIRECTOR_SUBSIDY_KEY));
+        BigDecimal secretaryOrDirectorSubsidy = new BigDecimal(configService.selectConfigByKey(POSITION_SECRETARY_OR_DIRECTOR_SUBSIDY_KEY));
+        BigDecimal twoCommitteesSubsidy = new BigDecimal(configService.selectConfigByKey(POSITION_TWO_COMMITTEES_SUBSIDY_KEY));
+
+        BigDecimal sumYears = BigDecimal.ZERO;
+        for (VillageOfficialFormDto.VillageOfficialPositionDto item : positionList)
+        {
+            if (item.getServiceYears() != null)
+            {
+                sumYears = sumYears.add(item.getServiceYears());
+            }
+        }
+        return sumYears.multiply(BigDecimal.TEN).setScale(2);
+    }
+
+    /**
+     * 任职年限：先算含首尾月的月数，再换算成年限。
+     * 月数 = ChronoUnit.MONTHS.between(上任月, 卸任月) + 1
+     * 年限 = floor(月数/12) + (余数>=6 ? 1 : (余数>=0 ? 0.5 : 0))
+     */
+    public BigDecimal computePositionServiceYears(LocalDate startDate, LocalDate endDate)
+    {
+        if (startDate == null)
+        {
+            return null;
+        }
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        if (end.isBefore(startDate))
+        {
+            return null;
+        }
+        YearMonth startYm = YearMonth.from(startDate);
+        YearMonth endYm = YearMonth.from(end);
+        long months = ChronoUnit.MONTHS.between(startYm, endYm) + 1;
+        if (months <= 0)
+        {
+            return null;
+        }
+
+        long years = months / 12;
+        long remainder = months % 12;
+        BigDecimal bonus = BigDecimal.ZERO;
+        if (remainder >= 6) {
+            bonus = BigDecimal.ONE;
+        } else if (remainder > 0) {
+            bonus = new BigDecimal("0.5");
+        }
+        return BigDecimal.valueOf(years).add(bonus);
     }
 }
