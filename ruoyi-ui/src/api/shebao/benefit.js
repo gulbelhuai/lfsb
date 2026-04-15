@@ -1,37 +1,11 @@
 import request from '@/utils/request'
 
-// 查询预到龄通知批次列表
-export function listBenefitNoticeBatch(query) {
+// 查询预到龄通知列表
+export function listBenefitNotice(query) {
   return request({
-    url: '/shebao/benefit/notice/batch/list',
+    url: '/shebao/benefit/notice/list',
     method: 'get',
     params: query
-  })
-}
-
-// 查询预到龄通知批次详情
-export function getBenefitNoticeBatch(batchNo) {
-  return request({
-    url: `/shebao/benefit/notice/batch/${batchNo}`,
-    method: 'get'
-  })
-}
-
-// 查询预到龄通知明细
-export function listBenefitNoticeDetail(query) {
-  return request({
-    url: '/shebao/benefit/notice/detail/list',
-    method: 'get',
-    params: query
-  })
-}
-
-// 生成预到龄通知
-export function generateBenefitNotice(data) {
-  return request({
-    url: '/shebao/benefit/notice/generate',
-    method: 'post',
-    data: data
   })
 }
 

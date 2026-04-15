@@ -3,36 +3,28 @@ package com.ruoyi.shebao.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
- * 预到龄通知批次响应
+ * 预到龄通知列表响应
  */
 @Data
 public class BenefitNoticeBatchResp
 {
-    private Long id;
+    private String streetOfficeName;
 
-    private String batchNo;
+    private String villageCommitteeName;
 
-    private String noticeMonth;
+    private String name;
+
+    private String idCardNo;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate birthday;
 
     private String retirementMonth;
 
-    private Integer ageThreshold;
+    private String subsidyStatus;
 
-    private Integer totalCount;
-
-    private Integer pendingReviewCount;
-
-    private Integer approvedCount;
-
-    private Integer rejectedCount;
-
-    private String batchStatus;
-
-    private String createBy;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date createTime;
+    private String subsidyType;
 }

@@ -9,20 +9,11 @@ import lombok.Data;
 @Data
 public class BenefitNoticeExportRow
 {
-    @Excel(name = "通知批次号")
-    private String batchNo;
+    @Excel(name = "街道办")
+    private String streetOfficeName;
 
-    @Excel(name = "通知月份")
-    private String noticeMonth;
-
-    @Excel(name = "到龄月份")
-    private String retirementMonth;
-
-    @Excel(name = "用户ID")
-    private Long subsidyPersonId;
-
-    @Excel(name = "用户编号")
-    private String userCode;
+    @Excel(name = "村委会")
+    private String villageCommitteeName;
 
     @Excel(name = "姓名")
     private String name;
@@ -30,12 +21,15 @@ public class BenefitNoticeExportRow
     @Excel(name = "身份证号")
     private String idCardNo;
 
+    @Excel(name = "出生日期")
+    private String birthday;
+
+    @Excel(name = "到龄年月")
+    private String retirementMonth;
+
+    @Excel(name = "参保状态")
+    private String subsidyStatus;
+
     @Excel(name = "补贴类型")
     private String subsidyType;
-
-    @Excel(name = "到龄日期")
-    private String retirementDate;
-
-    @Excel(name = "核定状态")
-    private String determinationStatus;
 }

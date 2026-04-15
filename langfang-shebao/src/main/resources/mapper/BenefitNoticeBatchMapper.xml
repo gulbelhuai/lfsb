@@ -5,112 +5,93 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 <mapper namespace="com.ruoyi.shebao.mapper.BenefitNoticeBatchMapper">
 
     <resultMap id="BenefitNoticeBatchRespResult" type="com.ruoyi.shebao.dto.BenefitNoticeBatchResp">
-        <result property="id" column="id"/>
-        <result property="batchNo" column="batch_no"/>
-        <result property="noticeMonth" column="notice_month"/>
-        <result property="retirementMonth" column="retirement_month"/>
-        <result property="ageThreshold" column="age_threshold"/>
-        <result property="totalCount" column="total_count"/>
-        <result property="pendingReviewCount" column="pending_review_count"/>
-        <result property="approvedCount" column="approved_count"/>
-        <result property="rejectedCount" column="rejected_count"/>
-        <result property="batchStatus" column="batch_status"/>
-        <result property="createBy" column="create_by"/>
-        <result property="createTime" column="create_time"/>
-    </resultMap>
-
-    <resultMap id="BenefitNoticeDetailRespResult" type="com.ruoyi.shebao.dto.BenefitNoticeDetailResp">
-        <result property="id" column="id"/>
-        <result property="batchNo" column="batch_no"/>
-        <result property="subsidyPersonId" column="subsidy_person_id"/>
-        <result property="userCode" column="user_code"/>
+        <result property="streetOfficeName" column="street_office_name"/>
+        <result property="villageCommitteeName" column="village_committee_name"/>
         <result property="name" column="name"/>
         <result property="idCardNo" column="id_card_no"/>
-        <result property="subsidyType" column="subsidy_type"/>
         <result property="birthday" column="birthday"/>
-        <result property="retirementDate" column="retirement_date"/>
-        <result property="determinationId" column="determination_id"/>
-        <result property="determinationStatus" column="determination_status"/>
-        <result property="materialStatus" column="material_status"/>
-        <result property="reviewStatus" column="review_status"/>
-        <result property="bankName" column="bank_name"/>
-        <result property="bankAccount" column="bank_account"/>
+        <result property="retirementMonth" column="retirement_month"/>
+        <result property="subsidyStatus" column="subsidy_status"/>
+        <result property="subsidyType" column="subsidy_type"/>
     </resultMap>
 
     <resultMap id="BenefitNoticeExportRowResult" type="com.ruoyi.shebao.dto.BenefitNoticeExportRow">
-        <result property="batchNo" column="batch_no"/>
-        <result property="noticeMonth" column="notice_month"/>
-        <result property="retirementMonth" column="retirement_month"/>
-        <result property="subsidyPersonId" column="subsidy_person_id"/>
-        <result property="userCode" column="user_code"/>
+        <result property="streetOfficeName" column="street_office_name"/>
+        <result property="villageCommitteeName" column="village_committee_name"/>
         <result property="name" column="name"/>
         <result property="idCardNo" column="id_card_no"/>
+        <result property="birthday" column="birthday"/>
+        <result property="retirementMonth" column="retirement_month"/>
+        <result property="subsidyStatus" column="subsidy_status"/>
         <result property="subsidyType" column="subsidy_type"/>
-        <result property="retirementDate" column="retirement_date"/>
-        <result property="determinationStatus" column="determination_status"/>
     </resultMap>
 
-    <select id="selectBatchPage" resultMap="BenefitNoticeBatchRespResult">
-        select id, batch_no, notice_month, retirement_month, age_threshold, total_count,
-               pending_review_count, approved_count, rejected_count, batch_status, create_by, create_time
-        from shebao_benefit_notice_batch
-        where del_flag = '0'
-        <if test="req.noticeMonth != null and req.noticeMonth != ''">
-            and notice_month = #{req.noticeMonth}
-        </if>
-        <if test="req.batchNo != null and req.batchNo != ''">
-            and batch_no like concat('%', #{req.batchNo}, '%')
-        </if>
-        <if test="req.batchStatus != null and req.batchStatus != ''">
-            and batch_status = #{req.batchStatus}
-        </if>
-        order by create_time desc
-    </select>
+    <sql id="noticeBaseSelect">
+        select sso.street_name as street_office_name,
+               svc.village_name as village_committee_name,
+               sp.name,
+               sp.id_card_no,
+               sp.birthday,
+               date_format(date_add(sp.birthday, interval 60 year), '%Y-%m') as retirement_month,
+               sp.subsidy_status,
+               concat_ws('、',
+                         if(ll.subsidy_person_id is not null, '失地补贴', null),
+                         if(dr.subsidy_person_id is not null, '拆迁补贴', null),
+                         if(vo.subsidy_person_id is not null, '村干部补贴', null)) as subsidy_type
+        from shebao_subsidy_person sp
+        left join shebao_street_office sso on sp.street_office_id = sso.id
+        left join shebao_village_committee svc on sp.village_committee_id = svc.id
+        left join (
+            select distinct subsidy_person_id
+            from shebao_land_loss_resident
+            where del_flag = '0'
+        ) ll on ll.subsidy_person_id = sp.id
+        left join (
+            select distinct subsidy_person_id
+            from shebao_demolition_resident
+            where del_flag = '0'
+        ) dr on dr.subsidy_person_id = sp.id
+        left join (
+            select distinct subsidy_person_id
+            from shebao_village_official
+            where del_flag = '0'
+        ) vo on vo.subsidy_person_id = sp.id
+        <where>
+            sp.del_flag = '0'
+            and sp.birthday is not null
+            and (ll.subsidy_person_id is not null or dr.subsidy_person_id is not null or vo.subsidy_person_id is not null)
+            <if test="req.noticeMonth != null and req.noticeMonth != ''">
+                and date_format(date_add(sp.birthday, interval 60 year), '%Y-%m') &lt;= #{req.noticeMonth}
+                and sp.subsidy_status = '0'
+                and sp.person_status = '0'
+            </if>
+            <if test="req.idCardNo != null and req.idCardNo != ''">
+                and sp.id_card_no = #{req.idCardNo}
+            </if>
+        </where>
+    </sql>
 
-    <select id="selectBatchByBatchNo" resultMap="BenefitNoticeBatchRespResult">
-        select id, batch_no, notice_month, retirement_month, age_threshold, total_count,
-               pending_review_count, approved_count, rejected_count, batch_status, create_by, create_time
-        from shebao_benefit_notice_batch
-        where batch_no = #{batchNo}
-          and del_flag = '0'
-        limit 1
-    </select>
-
-    <select id="selectDetailList" resultMap="BenefitNoticeDetailRespResult">
-        select nd.id, nd.batch_no, nd.subsidy_person_id, nd.user_code, nd.name, nd.id_card_no,
-               nd.subsidy_type, nd.birthday, nd.retirement_date, nd.determination_id,
-               nd.determination_status, nd.material_status, nd.review_status,
-               bd.bank_name, bd.bank_account
-        from shebao_benefit_notice_detail nd
-        left join benefit_determination bd on nd.determination_id = bd.id
-        where nd.del_flag = '0'
-        <if test="req.batchNo != null and req.batchNo != ''">
-            and nd.batch_no = #{req.batchNo}
-        </if>
-        <if test="req.name != null and req.name != ''">
-            and nd.name like concat('%', #{req.name}, '%')
-        </if>
-        <if test="req.determinationStatus != null and req.determinationStatus != ''">
-            and nd.determination_status = #{req.determinationStatus}
-        </if>
-        order by nd.retirement_date asc, nd.id asc
+    <select id="selectPage" resultMap="BenefitNoticeBatchRespResult">
+        <include refid="noticeBaseSelect"/>
+        order by retirement_month asc, sp.id asc
     </select>
 
     <select id="selectExportRows" resultMap="BenefitNoticeExportRowResult">
-        select nb.batch_no, nb.notice_month, nb.retirement_month,
-               nd.subsidy_person_id, nd.user_code, nd.name, nd.id_card_no,
-               nd.subsidy_type, date_format(nd.retirement_date, '%Y-%m-%d') as retirement_date,
-               nd.determination_status
-        from shebao_benefit_notice_batch nb
-        join shebao_benefit_notice_detail nd on nb.id = nd.notice_batch_id
-        where nb.del_flag = '0'
-          and nd.del_flag = '0'
-        <if test="noticeMonth != null and noticeMonth != ''">
-            and nb.notice_month = #{noticeMonth}
-        </if>
-        <if test="batchNo != null and batchNo != ''">
-            and nb.batch_no = #{batchNo}
-        </if>
-        order by nb.create_time desc, nd.retirement_date asc
+        select t.street_office_name,
+               t.village_committee_name,
+               t.name,
+               t.id_card_no,
+               date_format(t.birthday, '%Y-%m-%d') as birthday,
+               t.retirement_month,
+               case t.subsidy_status
+                   when '0' then '正常'
+                   when '1' then '终止'
+                   else t.subsidy_status
+               end as subsidy_status,
+               t.subsidy_type
+        from (
+            <include refid="noticeBaseSelect"/>
+        ) t
+        order by t.retirement_month asc, t.id_card_no asc
     </select>
 </mapper>
