@@ -12,6 +12,8 @@ import com.ruoyi.shebao.dto.BenefitDeterminationImportDto;
 import com.ruoyi.shebao.dto.BenefitDeterminationPrintDto;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
+import com.ruoyi.shebao.dto.BenefitDeterminationPrepareResp;
+import com.ruoyi.shebao.dto.BenefitDeterminationSaveDraftReq;
 import com.ruoyi.shebao.service.IBenefitDeterminationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -64,6 +66,29 @@ public class BenefitDeterminationController extends BaseController
     public AjaxResult getInfo(@PathVariable("id") Long id)
     {
         return AjaxResult.success(benefitDeterminationService.selectBenefitDeterminationDetail(id));
+    }
+
+    /**
+     * 身份证查询：准备待核定人员信息（基本信息 + 补贴信息 + 默认享受开始年月）
+     */
+    @PreAuthorize("@ss.hasAnyPermi('shebao:benefit:determination:add,shebao:benefit:determination:edit')")
+    @GetMapping("/prepare")
+    public AjaxResult prepare(@RequestParam String idCardNo)
+    {
+        BenefitDeterminationPrepareResp resp = benefitDeterminationService.prepareByIdCardNo(idCardNo);
+        return AjaxResult.success(resp);
+    }
+
+    /**
+     * 保存草稿（新增/修改）
+     */
+    @PreAuthorize("@ss.hasAnyPermi('shebao:benefit:determination:add,shebao:benefit:determination:edit')")
+    @Log(title = "待遇核定", businessType = BusinessType.INSERT)
+    @PostMapping("/draft")
+    public AjaxResult saveDraft(@Validated @RequestBody BenefitDeterminationSaveDraftReq req)
+    {
+        Long id = benefitDeterminationService.saveDraft(req);
+        return AjaxResult.success(id);
     }
 
     /**
@@ -127,13 +152,12 @@ public class BenefitDeterminationController extends BaseController
     @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:import')")
     @Log(title = "待遇核定导入", businessType = BusinessType.IMPORT)
     @PostMapping("/batch")
-    public AjaxResult batchImport(@RequestParam(required = false) String noticeBatchNo,
-                                  @RequestPart("file") MultipartFile file,
+    public AjaxResult batchImport(@RequestPart("file") MultipartFile file,
                                   @RequestPart(value = "attachments", required = false) MultipartFile[] attachments) throws Exception
     {
         ExcelUtil<BenefitDeterminationImportDto> util = new ExcelUtil<>(BenefitDeterminationImportDto.class);
         List<BenefitDeterminationImportDto> rows = util.importExcel(file.getInputStream());
-        int count = benefitDeterminationService.batchImport(noticeBatchNo, rows, attachments);
+        int count = benefitDeterminationService.batchImport(rows, attachments);
         return AjaxResult.success("导入成功，共处理 " + count + " 条记录");
     }
 
@@ -155,8 +179,8 @@ public class BenefitDeterminationController extends BaseController
     @PostMapping("/print/{id}")
     public void print(@PathVariable Long id, HttpServletResponse response)
     {
-        BenefitDeterminationPrintDto dto = benefitDeterminationService.buildPrintDto(id);
+        List<BenefitDeterminationPrintDto> dtoList = benefitDeterminationService.buildPrintDto(id);
         ExcelUtil<BenefitDeterminationPrintDto> util = new ExcelUtil<>(BenefitDeterminationPrintDto.class);
-        util.exportExcel(response, java.util.List.of(dto), "待遇核定表");
+        util.exportExcel(response, dtoList, "待遇核定表");
     }
 }

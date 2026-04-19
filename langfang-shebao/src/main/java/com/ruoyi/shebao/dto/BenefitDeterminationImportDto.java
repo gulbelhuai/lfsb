@@ -9,9 +9,6 @@ import lombok.Data;
 @Data
 public class BenefitDeterminationImportDto
 {
-    @Excel(name = "通知批次号")
-    private String noticeBatchNo;
-
     @Excel(name = "用户ID")
     private Long subsidyPersonId;
 

@@ -7,7 +7,6 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.shebao.domain.*;
 import com.ruoyi.shebao.mapper.BenefitDeterminationMapper;
-import com.ruoyi.shebao.mapper.BenefitNoticeDetailMapper;
 import com.ruoyi.shebao.dto.AvailableSubsidyDto;
 import com.ruoyi.shebao.dto.SubsidyDistributionListReq;
 import com.ruoyi.shebao.dto.SubsidyDistributionListResp;
@@ -27,7 +26,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,9 +74,6 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
 
     @Autowired
     private BenefitDeterminationMapper benefitDeterminationMapper;
-
-    @Autowired
-    private BenefitNoticeDetailMapper benefitNoticeDetailMapper;
 
     /**
      * 查询补贴发放记录列表
@@ -357,81 +352,6 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         distributionReviewService.addReviewRecord(distribution.getId(), "1", StringUtils.isNotBlank(distribution.getRemark()) ? distribution.getRemark() : "提交审核", SecurityUtils.getUsername());
 
         return result;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public int generateFromNoticeBatch(String noticeBatchNo)
-    {
-        if (StringUtils.isBlank(noticeBatchNo))
-        {
-            throw new ServiceException("通知批次号不能为空");
-        }
-        List<BenefitDetermination> determinations = benefitDeterminationMapper.selectList(
-                new LambdaQueryWrapper<BenefitDetermination>()
-                        .eq(BenefitDetermination::getNoticeBatchNo, noticeBatchNo)
-                        .eq(BenefitDetermination::getApprovalStatus, "approved")
-                        .eq(BenefitDetermination::getPaymentPlanGenerated, "0")
-                        .eq(BenefitDetermination::getDelFlag, "0"));
-        if (determinations.isEmpty())
-        {
-            throw new ServiceException("当前批次没有可生成支付计划的已通过核定记录");
-        }
-        int count = 0;
-        for (BenefitDetermination determination : determinations)
-        {
-            SubsidyDistribution distribution = new SubsidyDistribution();
-            distribution.setSubsidyPersonId(determination.getSubsidyPersonId());
-            distribution.setSubsidyType(normalizeSubsidyTypeCode(determination.getSubsidyType()));
-            distribution.setSubsidyRecordId(determination.getId());
-            distribution.setDistributionAmount(determination.getBenefitAmount() != null && determination.getBenefitAmount().compareTo(BigDecimal.ZERO) > 0
-                    ? determination.getBenefitAmount() : determination.getSubsidyStandard());
-            distribution.setDistributionDate(LocalDate.now());
-            distribution.setBatchType("first");
-            distribution.setApprovalStatus("draft");
-            distribution.setDistributionStatus(DistributionStatusEnum.PENDING_REVIEW.getCode());
-            distribution.setStatus("0");
-            distribution.setCreateBy(SecurityUtils.getUsername());
-            distribution.setCreateTime(LocalDateTime.now());
-            distribution.setRemark("来源通知批次：" + noticeBatchNo);
-            subsidyDistributionMapper.insert(distribution);
-
-            BenefitDetermination determinationUpdate = new BenefitDetermination();
-            determinationUpdate.setId(determination.getId());
-            determinationUpdate.setPaymentPlanGenerated("1");
-            determinationUpdate.setUpdateBy(SecurityUtils.getUsername());
-            determinationUpdate.setUpdateTime(new Date());
-            benefitDeterminationMapper.updateById(determinationUpdate);
-            if (determination.getNoticeDetailId() != null)
-            {
-                BenefitNoticeDetail detail = new BenefitNoticeDetail();
-                detail.setId(determination.getNoticeDetailId());
-                detail.setDeterminationStatus("payment_generated");
-                detail.setReviewStatus("approved");
-                detail.setUpdateBy(SecurityUtils.getUsername());
-                detail.setUpdateTime(LocalDateTime.now());
-                benefitNoticeDetailMapper.updateById(detail);
-            }
-            count++;
-        }
-        return count;
-    }
-
-    private String normalizeSubsidyTypeCode(String subsidyType)
-    {
-        if (StringUtils.isBlank(subsidyType))
-        {
-            return subsidyType;
-        }
-        return switch (subsidyType)
-        {
-            case "land_loss_resident" -> "1";
-            case "expropriatee" -> "2";
-            case "demolition_resident" -> "3";
-            case "village_official" -> "4";
-            case "teacher", "teacher_subsidy" -> "5";
-            default -> subsidyType;
-        };
     }
 
     /**
@@ -747,8 +667,9 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
             distribution.setBatchType("first");
             distribution.setApprovalStatus("draft");
             distribution.setSubsidyPersonId(determination.getSubsidyPersonId());
-            distribution.setSubsidyType(determination.getSubsidyType());
-            distribution.setSubsidyRecordId(determination.getId());
+            distribution.setSubsidyType(normalizeDeterminationSubsidyTypeForDistribution(determination.getSubsidyType()));
+            Long recordId = determination.getDeterminationItemId() != null ? determination.getDeterminationItemId() : determination.getId();
+            distribution.setSubsidyRecordId(recordId);
             distribution.setDistributionAmount(resolveDeterminationAmount(determination));
             distribution.setDistributionDate(LocalDate.now());
             distribution.setDistributionStatus(DistributionStatusEnum.PENDING_REVIEW.getCode());
@@ -791,7 +712,12 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         }
         return benefitDeterminationMapper.selectEligibleForPaymentPlan(subsidyType, benefitStartYear, benefitStartMonth, streetOfficeId)
                 .stream()
-                .filter(item -> subsidyDistributionMapper.checkUndeletedDistributions(item.getSubsidyType(), item.getId()) == 0)
+                .filter(item ->
+                {
+                    String distType = normalizeDeterminationSubsidyTypeForDistribution(item.getSubsidyType());
+                    Long recordId = item.getDeterminationItemId() != null ? item.getDeterminationItemId() : item.getId();
+                    return subsidyDistributionMapper.checkUndeletedDistributions(distType, recordId) == 0;
+                })
                 .toList();
     }
 
@@ -804,7 +730,29 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
 
     private long countBySubsidyType(List<BenefitDetermination> determinations, String subsidyType)
     {
-        return determinations.stream().filter(item -> subsidyType.equals(item.getSubsidyType())).count();
+        return determinations.stream()
+                .filter(item -> subsidyType.equals(normalizeDeterminationSubsidyTypeForDistribution(item.getSubsidyType())))
+                .count();
+    }
+
+    /**
+     * 待遇核定明细中的补贴类型（land_loss 等）转为发放记录中的数字编码（1-5）
+     */
+    private static String normalizeDeterminationSubsidyTypeForDistribution(String subsidyType)
+    {
+        if (StringUtils.isBlank(subsidyType))
+        {
+            return subsidyType;
+        }
+        return switch (subsidyType)
+        {
+            case "land_loss", "land_loss_resident" -> "1";
+            case "expropriatee", "expropriatee_subsidy" -> "2";
+            case "demolition", "demolition_resident" -> "3";
+            case "village_official" -> "4";
+            case "teacher", "teacher_subsidy" -> "5";
+            default -> subsidyType;
+        };
     }
 
     /**

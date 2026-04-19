@@ -26,6 +26,24 @@ export function getBenefitDetermination(id) {
   })
 }
 
+// 身份证查询待核定人员信息
+export function prepareBenefitDetermination(idCardNo) {
+  return request({
+    url: '/shebao/benefit/determination/prepare',
+    method: 'get',
+    params: { idCardNo }
+  })
+}
+
+// 保存待遇核定草稿（新增/修改）
+export function saveBenefitDeterminationDraft(data) {
+  return request({
+    url: '/shebao/benefit/determination/draft',
+    method: 'post',
+    data
+  })
+}
+
 // 单个待遇核定
 export function addBenefitDetermination(data) {
   return request({
@@ -48,9 +66,6 @@ export function updateBenefitDetermination(data) {
 export function batchBenefitDetermination(data) {
   const formData = new FormData()
   formData.append('file', data.file)
-  if (data.noticeBatchNo) {
-    formData.append('noticeBatchNo', data.noticeBatchNo)
-  }
   ;(data.attachments || []).forEach(file => formData.append('attachments', file))
   return request({
     url: '/shebao/benefit/determination/batch',
@@ -113,6 +128,6 @@ export function batchApproveBenefitReview(data) {
   return request({
     url: '/shebao/benefit/review/batchApprove',
     method: 'post',
-    data
+    data: { ids: data.ids, remark: data.remark }
   })
 }

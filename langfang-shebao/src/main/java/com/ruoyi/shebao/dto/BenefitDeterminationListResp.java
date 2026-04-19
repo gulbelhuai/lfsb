@@ -30,9 +30,6 @@ public class BenefitDeterminationListResp
     /** 用户编码 */
     private String userCode;
 
-    /** 通知批次号 */
-    private String noticeBatchNo;
-
     /** 补贴类型 */
     private String subsidyType;
 

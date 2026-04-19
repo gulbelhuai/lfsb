@@ -119,8 +119,6 @@ public interface SubsidyDistributionService extends IService<SubsidyDistribution
      */
     List<SubsidyDistributionListResp> selectRecentDistributions(Long subsidyPersonId, Integer limit);
 
-    int generateFromNoticeBatch(String noticeBatchNo);
-
     Map<String, Object> previewPaymentStatistics(String subsidyType, String paymentMonth, Long streetOfficeId);
 
     int generatePaymentPlans(String subsidyType, String paymentMonth, Long streetOfficeId);

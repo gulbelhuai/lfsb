@@ -8,32 +8,40 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.config.RuoYiConfig;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileUploadUtils;
 import com.ruoyi.shebao.domain.BenefitAttachment;
 import com.ruoyi.shebao.domain.BenefitDetermination;
-import com.ruoyi.shebao.domain.BenefitNoticeDetail;
 import com.ruoyi.shebao.domain.DemolitionResident;
 import com.ruoyi.shebao.domain.ExpropriateeSubsidy;
 import com.ruoyi.shebao.domain.LandLossResident;
 import com.ruoyi.shebao.domain.SubsidyPerson;
+import com.ruoyi.shebao.domain.BenefitDeterminationItem;
+import com.ruoyi.shebao.domain.StreetOffice;
+import com.ruoyi.shebao.domain.VillageCommittee;
+import com.ruoyi.shebao.domain.VillageOfficial;
 import com.ruoyi.shebao.dto.BenefitDeterminationDetailResp;
 import com.ruoyi.shebao.dto.BenefitDeterminationImportDto;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
 import com.ruoyi.shebao.dto.BenefitDeterminationPrintDto;
+import com.ruoyi.shebao.dto.BenefitDeterminationPrepareResp;
+import com.ruoyi.shebao.dto.BenefitDeterminationSaveDraftReq;
 import com.ruoyi.shebao.mapper.BenefitAttachmentMapper;
-import com.ruoyi.shebao.mapper.BenefitNoticeBatchMapper;
 import com.ruoyi.shebao.mapper.BenefitDeterminationMapper;
-import com.ruoyi.shebao.mapper.BenefitNoticeDetailMapper;
+import com.ruoyi.shebao.mapper.BenefitDeterminationItemMapper;
 import com.ruoyi.shebao.mapper.DemolitionResidentMapper;
 import com.ruoyi.shebao.mapper.ExpropriateeSubsidyMapper;
 import com.ruoyi.shebao.mapper.LandLossResidentMapper;
 import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
-import com.ruoyi.shebao.enums.SubsidyTypeEnum;
+import com.ruoyi.shebao.mapper.StreetOfficeMapper;
+import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
+import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.service.IBenefitDeterminationService;
 import com.ruoyi.shebao.util.ZipPreviewUtils;
+import com.ruoyi.system.service.ISysConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,11 +50,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Objects;
@@ -65,9 +72,12 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     private final LandLossResidentMapper landLossResidentMapper;
     private final DemolitionResidentMapper demolitionResidentMapper;
     private final ExpropriateeSubsidyMapper expropriateeSubsidyMapper;
-    private final BenefitNoticeBatchMapper benefitNoticeBatchMapper;
-    private final BenefitNoticeDetailMapper benefitNoticeDetailMapper;
     private final BenefitAttachmentMapper benefitAttachmentMapper;
+    private final BenefitDeterminationItemMapper benefitDeterminationItemMapper;
+    private final StreetOfficeMapper streetOfficeMapper;
+    private final VillageCommitteeMapper villageCommitteeMapper;
+    private final VillageOfficialMapper villageOfficialMapper;
+    private final ISysConfigService sysConfigService;
 
     /**
      * 查询待遇核定列表
@@ -107,6 +117,27 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
                     .toList());
             detail.setMaterialZipPath(entity.getMaterialZipPath());
         }
+
+        List<BenefitDeterminationItem> items = benefitDeterminationItemMapper.selectList(
+                new LambdaQueryWrapper<BenefitDeterminationItem>()
+                        .eq(BenefitDeterminationItem::getDeterminationId, id)
+                        .eq(BenefitDeterminationItem::getDelFlag, "0")
+                        .orderByAsc(BenefitDeterminationItem::getId)
+        );
+        List<BenefitDeterminationDetailResp.BenefitDeterminationItemResp> itemResps = items.stream().map(it -> {
+            BenefitDeterminationDetailResp.BenefitDeterminationItemResp r = new BenefitDeterminationDetailResp.BenefitDeterminationItemResp();
+            r.setId(it.getId());
+            r.setSubsidyType(it.getSubsidyType());
+            r.setVillageStreet(it.getVillageStreet());
+            r.setEventDate(it.getEventDate());
+            r.setSubsidyStandard(it.getSubsidyStandard());
+            r.setBenefitStartYear(it.getBenefitStartYear());
+            r.setBenefitStartMonth(it.getBenefitStartMonth());
+            r.setBenefitMonths(it.getBenefitMonths());
+            r.setBenefitAmount(it.getBenefitAmount());
+            return r;
+        }).toList();
+        detail.setItems(itemResps);
         return detail;
     }
 
@@ -120,19 +151,12 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     @Transactional
     public int insertBenefitDetermination(BenefitDetermination benefitDetermination)
     {
-        if (benefitDetermination.getSubsidyPersonId() == null && StringUtils.isNotBlank(benefitDetermination.getIdCardNo()))
+        // 旧接口保留：仅用于兼容历史调用（新需求请使用 /draft）
+        if (benefitDetermination.getSubsidyPersonId() == null)
         {
-            SubsidyPerson person = subsidyPersonMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SubsidyPerson>()
-                    .eq(SubsidyPerson::getIdCardNo, benefitDetermination.getIdCardNo())
-                    .eq(SubsidyPerson::getDelFlag, "0")
-                    .last("LIMIT 1")
-            );
-            if (person != null) {
-                benefitDetermination.setSubsidyPersonId(person.getId());
-            }
+            throw new ServiceException("缺少被补贴人ID");
         }
-        fillDerivedMonths(benefitDetermination);
+        fillEligibleMonth(benefitDetermination);
         benefitDetermination.setApprovalStatus("draft");
         benefitDetermination.setDelFlag("0");
         benefitDetermination.setPaymentPlanGenerated("0");
@@ -155,7 +179,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     @Transactional
     public int updateBenefitDetermination(BenefitDetermination benefitDetermination)
     {
-        fillDerivedMonths(benefitDetermination);
+        fillEligibleMonth(benefitDetermination);
         benefitDetermination.setUpdateBy(SecurityUtils.getUsername());
         benefitDetermination.setUpdateTime(new Date());
         return this.updateById(benefitDetermination) ? 1 : 0;
@@ -193,9 +217,21 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         {
             throw new ServiceException("身份证号不能为空");
         }
-        if (StringUtils.isBlank(determination.getBankName()) || StringUtils.isBlank(determination.getBankAccount()))
+        if (StringUtils.isBlank(determination.getBankAccount()))
         {
-            throw new ServiceException("银行名称和银行卡号不能为空");
+            throw new ServiceException("银行账号不能为空");
+        }
+        if (StringUtils.isBlank(determination.getGrantOrg()))
+        {
+            throw new ServiceException("发放机构不能为空");
+        }
+        if (StringUtils.isBlank(determination.getAccountName()))
+        {
+            throw new ServiceException("开户名不能为空");
+        }
+        if (StringUtils.isBlank(determination.getRelationToInsured()))
+        {
+            throw new ServiceException("与参保人关系不能为空");
         }
         if (!"uploaded".equals(determination.getMaterialStatus()) && !"verified".equals(determination.getMaterialStatus()))
         {
@@ -209,8 +245,6 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
                 .set(BenefitDetermination::getUpdateBy, SecurityUtils.getUsername())
                 .set(BenefitDetermination::getUpdateTime, new Date())
                 .update() ? 1 : 0;
-        syncNoticeDetailStatus(determination.getNoticeDetailId(), "pending_review", determination.getMaterialStatus(), "pending_review");
-        refreshBatchStatistics(determination.getNoticeBatchNo());
         return rows;
     }
 
@@ -236,8 +270,6 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
                 .set(BenefitDetermination::getUpdateBy, SecurityUtils.getUsername())
                 .set(BenefitDetermination::getUpdateTime, new Date())
                 .update() ? 1 : 0;
-        syncNoticeDetailStatus(determination.getNoticeDetailId(), "approved", determination.getMaterialStatus(), "approved");
-        refreshBatchStatistics(determination.getNoticeBatchNo());
         return rows;
     }
 
@@ -264,13 +296,11 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
                 .set(BenefitDetermination::getUpdateBy, SecurityUtils.getUsername())
                 .set(BenefitDetermination::getUpdateTime, new Date())
                 .update() ? 1 : 0;
-        syncNoticeDetailStatus(determination.getNoticeDetailId(), "rejected", determination.getMaterialStatus(), "rejected");
-        refreshBatchStatistics(determination.getNoticeBatchNo());
         return rows;
     }
 
     @Override
-    public BenefitDeterminationPrintDto buildPrintDto(Long id)
+    public List<BenefitDeterminationPrintDto> buildPrintDto(Long id)
     {
         BenefitDetermination determination = this.getById(id);
         Assert.notNull(determination, "待遇核定记录不存在");
@@ -278,72 +308,44 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         SubsidyPerson person = subsidyPersonMapper.selectById(determination.getSubsidyPersonId());
         Assert.notNull(person, "被补贴人不存在");
 
-        BenefitDeterminationPrintDto dto = BeanUtil.copyProperties(determination, BenefitDeterminationPrintDto.class);
-        dto.setName(person.getName());
-        dto.setIdCardNo(person.getIdCardNo());
-        dto.setUserCode(person.getUserCode());
-        return dto;
+        List<BenefitDeterminationItem> items = benefitDeterminationItemMapper.selectList(
+                new LambdaQueryWrapper<BenefitDeterminationItem>()
+                        .eq(BenefitDeterminationItem::getDeterminationId, id)
+                        .eq(BenefitDeterminationItem::getDelFlag, "0")
+                        .orderByAsc(BenefitDeterminationItem::getId)
+        );
+        if (items.isEmpty())
+        {
+            BenefitDeterminationPrintDto dto = BeanUtil.copyProperties(determination, BenefitDeterminationPrintDto.class);
+            dto.setName(person.getName());
+            dto.setIdCardNo(person.getIdCardNo());
+            dto.setUserCode(person.getUserCode());
+            dto.setBankName(DictUtils.getDictLabel("shebao_grant_org", determination.getGrantOrg()));
+            return List.of(dto);
+        }
+        return items.stream().map(it -> {
+            BenefitDeterminationPrintDto dto = new BenefitDeterminationPrintDto();
+            dto.setUserCode(person.getUserCode());
+            dto.setName(person.getName());
+            dto.setIdCardNo(person.getIdCardNo());
+            dto.setSubsidyType(it.getSubsidyType());
+            dto.setEligibleMonth(yearMonthToDate(determination.getEligibleYear(), determination.getEligibleMonth()));
+            dto.setBenefitStartMonth(yearMonthToDate(it.getBenefitStartYear(), it.getBenefitStartMonth()));
+            dto.setBankName(DictUtils.getDictLabel("shebao_grant_org", determination.getGrantOrg()));
+            dto.setBankAccount(determination.getBankAccount());
+            dto.setSubsidyStandard(it.getSubsidyStandard());
+            dto.setBenefitMonths(it.getBenefitMonths());
+            dto.setBenefitAmount(it.getBenefitAmount());
+            dto.setCreateTime(determination.getCreateTime());
+            return dto;
+        }).toList();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int batchImport(String noticeBatchNo, List<BenefitDeterminationImportDto> rows, MultipartFile[] attachmentFiles) throws Exception
+    public int batchImport(List<BenefitDeterminationImportDto> rows, MultipartFile[] attachmentFiles) throws Exception
     {
-        if (CollectionUtils.isEmpty(rows))
-        {
-            return 0;
-        }
-        Map<Long, MultipartFile> attachmentMap = buildAttachmentMap(attachmentFiles);
-        int success = 0;
-        for (BenefitDeterminationImportDto row : rows)
-        {
-            String batchNo = StringUtils.isNotBlank(row.getNoticeBatchNo()) ? row.getNoticeBatchNo() : noticeBatchNo;
-            if (StringUtils.isBlank(batchNo))
-            {
-                throw new ServiceException("导入数据缺少通知批次号");
-            }
-            if (row.getSubsidyPersonId() == null)
-            {
-                throw new ServiceException("导入数据缺少用户ID");
-            }
-            BenefitDetermination determination = this.lambdaQuery()
-                    .eq(BenefitDetermination::getNoticeBatchNo, batchNo)
-                    .eq(BenefitDetermination::getSubsidyPersonId, row.getSubsidyPersonId())
-                    .eq(BenefitDetermination::getDelFlag, "0")
-                    .last("limit 1")
-                    .one();
-            if (determination == null)
-            {
-                throw new ServiceException("未找到批次[" + batchNo + "]下用户ID[" + row.getSubsidyPersonId() + "]的核定草稿");
-            }
-            determination.setIdCardNo(row.getIdCardNo());
-            determination.setBankName(row.getBankName());
-            determination.setBankAccount(row.getBankAccount());
-            determination.setBankAccountName(row.getBankAccountName());
-            if (StringUtils.isNotBlank(row.getSubsidyStandard()))
-            {
-                determination.setSubsidyStandard(new BigDecimal(row.getSubsidyStandard()));
-            }
-            if (StringUtils.isNotBlank(row.getStartMonth()))
-            {
-                String[] parts = row.getStartMonth().split("-");
-                if (parts.length != 2)
-                {
-                    throw new ServiceException("享受开始年月格式错误，应为yyyy-MM");
-                }
-                determination.setBenefitStartYear(Integer.parseInt(parts[0]));
-                determination.setBenefitStartMonth(Integer.parseInt(parts[1]));
-            }
-            this.updateBenefitDetermination(determination);
-            MultipartFile attachment = attachmentMap.get(row.getSubsidyPersonId());
-            if (attachment != null)
-            {
-                uploadAttachment(determination.getId(), attachment);
-            }
-            submitForReview(determination.getId());
-            success++;
-        }
-        return success;
+        throw new ServiceException("待遇核定已调整为逐个录入，批量导入功能已取消");
     }
 
     @Override
@@ -352,21 +354,20 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     {
         BenefitDetermination determination = this.getById(determinationId);
         Assert.notNull(determination, "待遇核定记录不存在");
-        String batchNo = determination.getNoticeBatchNo();
         Long userId = determination.getSubsidyPersonId();
         if (userId == null)
         {
             throw new ServiceException("待遇核定记录缺少用户ID");
         }
-        String expectedFileName = userId + ".zip";
-        if (file.getOriginalFilename() == null || !expectedFileName.equalsIgnoreCase(file.getOriginalFilename()))
+        String originalFileName = file.getOriginalFilename();
+        if (StringUtils.isBlank(originalFileName) || !StringUtils.endsWithIgnoreCase(originalFileName, ".zip"))
         {
-            throw new ServiceException("材料ZIP文件名必须为“" + expectedFileName + "”");
+            throw new ServiceException("材料文件格式必须为zip");
         }
-        String uploadDir = RuoYiConfig.getProfile() + "/benefit/determination/" + batchNo + "/zip";
+        String uploadDir = RuoYiConfig.getProfile() + "/benefit/determination/" + determinationId + "/zip";
         String zipPath = FileUploadUtils.upload(uploadDir, file);
         Path profileDir = Path.of(RuoYiConfig.getProfile());
-        Path extractDir = profileDir.resolve("benefit/determination/" + batchNo + "/" + userId + "/images");
+        Path extractDir = profileDir.resolve("benefit/determination/" + determinationId + "/" + userId + "/images");
         ZipPreviewUtils.deleteDirectory(extractDir);
         List<String> imagePaths = ZipPreviewUtils.extractImages(profileDir.resolve(stripProfilePrefix(zipPath)), extractDir, profileDir);
         if (imagePaths.isEmpty())
@@ -384,11 +385,10 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             attachment = new BenefitAttachment();
             attachment.setBusinessType("benefit_determination");
             attachment.setBusinessId(determinationId);
-            attachment.setNoticeBatchNo(batchNo);
             attachment.setSubsidyPersonId(userId);
             attachment.setCreateBy(SecurityUtils.getUsername());
         }
-        attachment.setOriginalFileName(file.getOriginalFilename());
+        attachment.setOriginalFileName(originalFileName);
         attachment.setZipFilePath(zipPath);
         attachment.setExtractDir("/profile/" + profileDir.relativize(extractDir).toString().replace("\\", "/"));
         attachment.setPreviewImagePaths(String.join(",", imagePaths));
@@ -411,16 +411,14 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
                 .set(BenefitDetermination::getUpdateBy, SecurityUtils.getUsername())
                 .set(BenefitDetermination::getUpdateTime, new Date())
                 .update();
-        syncNoticeDetailStatus(determination.getNoticeDetailId(), null, "uploaded", null);
         return attachment;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int batchApprove(List<Long> ids, String noticeBatchNo, String remark)
+    public int batchApprove(List<Long> ids, String remark)
     {
         List<BenefitDetermination> list = this.lambdaQuery()
-                .eq(StringUtils.isNotBlank(noticeBatchNo), BenefitDetermination::getNoticeBatchNo, noticeBatchNo)
                 .in(!CollectionUtils.isEmpty(ids), BenefitDetermination::getId, ids)
                 .eq(BenefitDetermination::getApprovalStatus, "pending_review")
                 .eq(BenefitDetermination::getDelFlag, "0")
@@ -434,9 +432,9 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     }
 
     /**
-     * 自动生成到龄年月，并按规则填充默认享受开始年月（允许手工覆盖）
+     * 自动生成到龄年月（按生日+60周岁当月）
      */
-    private void fillDerivedMonths(BenefitDetermination benefitDetermination)
+    private void fillEligibleMonth(BenefitDetermination benefitDetermination)
     {
         if (benefitDetermination == null || benefitDetermination.getSubsidyPersonId() == null)
         {
@@ -452,183 +450,359 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         YearMonth eligibleYm = YearMonth.from(birthday.plusYears(60));
         benefitDetermination.setEligibleYear(eligibleYm.getYear());
         benefitDetermination.setEligibleMonth(eligibleYm.getMonthValue());
-
-        // 享受开始年月：默认=到龄次月；若到龄次月早于征地/拆迁时间，则取征地/拆迁时间；否则取到龄次月
-        if (benefitDetermination.getBenefitStartMonth() == null)
-        {
-            YearMonth startYm = eligibleYm.plusMonths(1);
-            YearMonth eventYm = findEventMonth(resolveSubsidyType(benefitDetermination.getSubsidyType()), benefitDetermination.getSubsidyPersonId());
-            if (eventYm != null && eventYm.isAfter(startYm))
-            {
-                startYm = eventYm;
-            }
-            benefitDetermination.setBenefitStartYear(startYm.getYear());
-            benefitDetermination.setBenefitStartMonth(startYm.getMonthValue());
-        }
     }
 
-    private SubsidyTypeEnum resolveSubsidyType(String subsidyType)
+    private void validateSubsidyReviewStatus(SubsidyPerson person, List<LandLossResident> landList,
+                                             List<DemolitionResident> demoList, List<VillageOfficial> voList)
     {
-        if (StringUtils.isBlank(subsidyType))
-        {
-            return null;
-        }
-        SubsidyTypeEnum byCode = SubsidyTypeEnum.getByCode(subsidyType);
-        if (byCode != null)
-        {
-            return byCode;
-        }
-        // 兼容前端/历史字符串
-        return switch (subsidyType)
-        {
-            case "land_loss_resident" -> SubsidyTypeEnum.LAND_LOSS;
-            case "expropriatee" -> SubsidyTypeEnum.EXPROPRIATEE;
-            case "demolition_resident" -> SubsidyTypeEnum.DEMOLITION;
-            case "village_official" -> SubsidyTypeEnum.VILLAGE_OFFICIAL;
-            case "teacher_subsidy" -> SubsidyTypeEnum.TEACHER;
-            default -> null;
-        };
-    }
-
-    private YearMonth findEventMonth(SubsidyTypeEnum type, Long subsidyPersonId)
-    {
-        if (type == null || subsidyPersonId == null)
-        {
-            return null;
-        }
-
-        return switch (type)
-        {
-            case LAND_LOSS ->
-            {
-                List<LandLossResident> list = landLossResidentMapper.selectBySubsidyPersonId(subsidyPersonId);
-                LocalDate min = list == null ? null : list.stream()
-                        .map(LandLossResident::getLandRequisitionTime)
-                        .filter(d -> d != null)
-                        .min(LocalDate::compareTo)
-                        .orElse(null);
-                yield min == null ? null : YearMonth.from(min);
-            }
-            case DEMOLITION ->
-            {
-                List<DemolitionResident> list = demolitionResidentMapper.selectBySubsidyPersonId(subsidyPersonId);
-                LocalDate min = list == null ? null : list.stream()
-                        .map(DemolitionResident::getDemolitionTime)
-                        .filter(d -> d != null)
-                        .min(LocalDate::compareTo)
-                        .orElse(null);
-                yield min == null ? null : YearMonth.from(min);
-            }
-            case EXPROPRIATEE ->
-            {
-                List<ExpropriateeSubsidy> list = expropriateeSubsidyMapper.selectBySubsidyPersonId(subsidyPersonId);
-                LocalDate min = list == null ? null : list.stream()
-                        .map(ExpropriateeSubsidy::getBaseDate)
-                        .filter(d -> d != null)
-                        .min(LocalDate::compareTo)
-                        .orElse(null);
-                yield min == null ? null : YearMonth.from(min);
-            }
-            default -> null;
-        };
-    }
-
-    private void syncNoticeDetailStatus(Long noticeDetailId, String determinationStatus, String materialStatus, String reviewStatus)
-    {
-        if (noticeDetailId == null)
+        if (person == null)
         {
             return;
         }
-        LambdaUpdateWrapper<BenefitNoticeDetail> updateWrapper = new LambdaUpdateWrapper<BenefitNoticeDetail>()
-                .eq(BenefitNoticeDetail::getId, noticeDetailId);
-        if (StringUtils.isNotBlank(determinationStatus))
-        {
-            updateWrapper.set(BenefitNoticeDetail::getDeterminationStatus, determinationStatus);
-        }
-        if (StringUtils.isNotBlank(materialStatus))
-        {
-            updateWrapper.set(BenefitNoticeDetail::getMaterialStatus, materialStatus);
-        }
-        if (StringUtils.isNotBlank(reviewStatus))
-        {
-            updateWrapper.set(BenefitNoticeDetail::getReviewStatus, reviewStatus);
-        }
-        updateWrapper.set(BenefitNoticeDetail::getUpdateBy, SecurityUtils.getUsername())
-                .set(BenefitNoticeDetail::getUpdateTime, java.time.LocalDateTime.now());
-        benefitNoticeDetailMapper.update(null, updateWrapper);
-    }
-
-    private void refreshBatchStatistics(String batchNo)
-    {
-        if (StringUtils.isBlank(batchNo))
+        if ("approved".equalsIgnoreCase(StringUtils.trimToEmpty(person.getApprovalStatus())))
         {
             return;
         }
-        int total = countDetails(batchNo, null);
-        int pendingReview = countDetails(batchNo, "pending_review");
-        int approved = countDetails(batchNo, "approved");
-        int rejected = countDetails(batchNo, "rejected");
-        String status = "generated";
-        if (approved + rejected > 0)
+        List<String> pendingTypes = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(landList))
         {
-            status = approved + rejected >= total ? "completed" : "processing";
+            pendingTypes.add("失地");
         }
-        benefitNoticeBatchMapper.update(null, new LambdaUpdateWrapper<com.ruoyi.shebao.domain.BenefitNoticeBatch>()
-                .eq(com.ruoyi.shebao.domain.BenefitNoticeBatch::getBatchNo, batchNo)
-                .set(com.ruoyi.shebao.domain.BenefitNoticeBatch::getTotalCount, total)
-                .set(com.ruoyi.shebao.domain.BenefitNoticeBatch::getPendingReviewCount, pendingReview)
-                .set(com.ruoyi.shebao.domain.BenefitNoticeBatch::getApprovedCount, approved)
-                .set(com.ruoyi.shebao.domain.BenefitNoticeBatch::getRejectedCount, rejected)
-                .set(com.ruoyi.shebao.domain.BenefitNoticeBatch::getBatchStatus, status)
-                .set(com.ruoyi.shebao.domain.BenefitNoticeBatch::getUpdateBy, SecurityUtils.getUsername())
-                .set(com.ruoyi.shebao.domain.BenefitNoticeBatch::getUpdateTime, java.time.LocalDateTime.now()));
+        if (!CollectionUtils.isEmpty(demoList))
+        {
+            pendingTypes.add("拆迁");
+        }
+        if (!CollectionUtils.isEmpty(voList))
+        {
+            pendingTypes.add("村干部");
+        }
+        if (!pendingTypes.isEmpty())
+        {
+            String personName = person.getName() == null ? "" : person.getName();
+            throw new ServiceException("人员" + personName + "的"
+                    + String.join("、", pendingTypes) + "补贴尚未复核，请复核通过后再进行核定");
+        }
     }
 
-    private int countDetails(String batchNo, String determinationStatus)
+    @Override
+    public BenefitDeterminationPrepareResp prepareByIdCardNo(String idCardNo)
     {
-        LambdaQueryWrapper<BenefitNoticeDetail> wrapper = new LambdaQueryWrapper<BenefitNoticeDetail>()
-                .eq(BenefitNoticeDetail::getBatchNo, batchNo)
-                .eq(BenefitNoticeDetail::getDelFlag, "0");
-        if (StringUtils.isNotBlank(determinationStatus))
+        if (StringUtils.isBlank(idCardNo))
         {
-            wrapper.eq(BenefitNoticeDetail::getDeterminationStatus, determinationStatus);
+            throw new ServiceException("身份证号不能为空");
         }
-        return Math.toIntExact(benefitNoticeDetailMapper.selectCount(wrapper));
+        SubsidyPerson person = subsidyPersonMapper.selectOne(new LambdaQueryWrapper<SubsidyPerson>()
+                .eq(SubsidyPerson::getIdCardNo, idCardNo)
+                .eq(SubsidyPerson::getDelFlag, "0")
+                .last("limit 1"));
+        if (person == null)
+        {
+            throw new ServiceException("未找到该身份证号的人员信息");
+        }
+        List<LandLossResident> landList = landLossResidentMapper.selectBySubsidyPersonId(person.getId());
+        List<DemolitionResident> demoList = demolitionResidentMapper.selectBySubsidyPersonId(person.getId());
+        List<VillageOfficial> voList = villageOfficialMapper.selectBySubsidyPersonId(person.getId());
+        validateSubsidyReviewStatus(person, landList, demoList, voList);
+
+        boolean approvedDetermination = this.lambdaQuery()
+                .eq(BenefitDetermination::getSubsidyPersonId, person.getId())
+                .eq(BenefitDetermination::getApprovalStatus, "approved")
+                .eq(BenefitDetermination::getDelFlag, "0")
+                .count() > 0;
+        boolean personBenefitActive = StringUtils.isNotBlank(person.getPersonStatus())
+                && !"0".equals(person.getPersonStatus().trim());
+
+        BenefitDeterminationPrepareResp resp = new BenefitDeterminationPrepareResp();
+        boolean already = approvedDetermination || personBenefitActive;
+        resp.setAlreadyDetermined(already);
+        resp.setAlreadyDeterminedMsg(already ? "人员待遇已核定" : null);
+
+        BenefitDeterminationPrepareResp.PersonInfo personInfo = new BenefitDeterminationPrepareResp.PersonInfo();
+        personInfo.setSubsidyPersonId(person.getId());
+        personInfo.setName(person.getName());
+        personInfo.setGender(person.getGender());
+        personInfo.setBirthMonth(person.getBirthday() == null ? null : formatYm(java.time.YearMonth.from(person.getBirthday())));
+        personInfo.setIdCardNo(person.getIdCardNo());
+        if (person.getStreetOfficeId() != null)
+        {
+            StreetOffice so = streetOfficeMapper.selectById(person.getStreetOfficeId());
+            personInfo.setStreetOfficeName(so != null ? so.getStreetName() : null);
+        }
+        if (person.getVillageCommitteeId() != null)
+        {
+            VillageCommittee vc = villageCommitteeMapper.selectById(person.getVillageCommitteeId());
+            personInfo.setVillageCommitteeName(vc != null ? vc.getVillageName() : null);
+        }
+        personInfo.setHouseholdRegistration(person.getHouseholdRegistration());
+        personInfo.setHomeAddress(person.getHomeAddress());
+        personInfo.setPhone(person.getPhone());
+        resp.setPerson(personInfo);
+
+        BenefitDeterminationPrepareResp.SocialInsuranceInfo social = new BenefitDeterminationPrepareResp.SocialInsuranceInfo();
+        social.setSubsidyStatus(person.getSubsidyStatus());
+        social.setPersonStatus(person.getPersonStatus());
+        List<ExpropriateeSubsidy> exList = expropriateeSubsidyMapper.selectBySubsidyPersonId(person.getId());
+        if (!CollectionUtils.isEmpty(exList))
+        {
+            ExpropriateeSubsidy ex = exList.get(0);
+            social.setJoinUrbanRuralInsurance(ex.getJoinUrbanRuralInsurance());
+            social.setJoinEmployeePension(ex.getJoinEmployeePension());
+            social.setHasEmployeePension(ex.getHasEmployeePension());
+            social.setEmployeePensionMonths(ex.getEmployeePensionMonths());
+            social.setFlexibleEmploymentMonths(ex.getFlexibleEmploymentMonths());
+            social.setDifficultySubsidyMonths(ex.getDifficultySubsidyMonths());
+        }
+        resp.setSocialInsurance(social);
+
+        YearMonth eligibleYm = computeEligibleYm(person);
+        YearMonth eligibleNext = eligibleYm == null ? null : eligibleYm.plusMonths(1);
+
+        List<BenefitDeterminationPrepareResp.SubsidyInfo> subsidies = new java.util.ArrayList<>();
+
+        if (!CollectionUtils.isEmpty(landList))
+        {
+            LocalDate minEvent = landList.stream().map(LandLossResident::getLandRequisitionTime).filter(Objects::nonNull).min(LocalDate::compareTo).orElse(null);
+            String villageStreet = landList.stream().map(LandLossResident::getVillageStreet).filter(StringUtils::isNotBlank).findFirst().orElse(null);
+            BenefitDeterminationPrepareResp.SubsidyInfo s = new BenefitDeterminationPrepareResp.SubsidyInfo();
+            s.setSubsidyType("land_loss");
+            s.setVillageStreet(villageStreet);
+            s.setEventDate(minEvent);
+            s.setSubsidyStandard(resolveStandard(person.getId(), "land_loss"));
+            s.setDefaultStartMonth(formatYm(maxYm(eligibleNext, plusOneMonth(minEvent))));
+            subsidies.add(s);
+        }
+
+        if (!CollectionUtils.isEmpty(demoList))
+        {
+            LocalDate minEvent = demoList.stream().map(DemolitionResident::getDemolitionTime).filter(Objects::nonNull).min(LocalDate::compareTo).orElse(null);
+            String villageStreet = demoList.stream().map(DemolitionResident::getVillageStreet).filter(StringUtils::isNotBlank).findFirst().orElse(null);
+            BenefitDeterminationPrepareResp.SubsidyInfo s = new BenefitDeterminationPrepareResp.SubsidyInfo();
+            s.setSubsidyType("demolition");
+            s.setVillageStreet(villageStreet);
+            s.setEventDate(minEvent);
+            s.setSubsidyStandard(resolveStandard(person.getId(), "demolition"));
+            s.setDefaultStartMonth(formatYm(maxYm(eligibleNext, plusOneMonth(minEvent))));
+            subsidies.add(s);
+        }
+
+        if (!CollectionUtils.isEmpty(voList))
+        {
+            BigDecimal maxStd = voList.stream().map(VillageOfficial::getSubsidyAmount).filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(null);
+            String villageStreet = voList.stream().map(VillageOfficial::getVillageStreet).filter(StringUtils::isNotBlank).findFirst().orElse(null);
+            BenefitDeterminationPrepareResp.SubsidyInfo s = new BenefitDeterminationPrepareResp.SubsidyInfo();
+            s.setSubsidyType("village_official");
+            s.setVillageStreet(villageStreet);
+            s.setSubsidyStandard(maxStd);
+            s.setDefaultStartMonth(formatYm(eligibleNext));
+            subsidies.add(s);
+        }
+
+        resp.setSubsidies(subsidies);
+        return resp;
     }
 
-    private Map<Long, MultipartFile> buildAttachmentMap(MultipartFile[] attachmentFiles)
+    @Override
+    @Transactional
+    public Long saveDraft(BenefitDeterminationSaveDraftReq req)
     {
-        Map<Long, MultipartFile> map = new HashMap<>();
-        if (attachmentFiles == null)
+        Assert.notNull(req, "请求不能为空");
+        SubsidyPerson person = subsidyPersonMapper.selectById(req.getSubsidyPersonId());
+        Assert.notNull(person, "被补贴人不存在");
+
+        for (BenefitDeterminationSaveDraftReq.Item it : req.getItems())
         {
-            return map;
-        }
-        for (MultipartFile attachmentFile : attachmentFiles)
-        {
-            if (attachmentFile == null || StringUtils.isBlank(attachmentFile.getOriginalFilename()))
+            if (it == null || StringUtils.isBlank(it.getSubsidyType()))
             {
-                continue;
+                throw new ServiceException("补贴类型不能为空");
             }
-            String name = attachmentFile.getOriginalFilename();
-            int index = Objects.requireNonNull(name).lastIndexOf('.');
-            if (index <= 0)
+            if (!"land_loss".equals(it.getSubsidyType()) && !"demolition".equals(it.getSubsidyType()) && !"village_official".equals(it.getSubsidyType()))
             {
-                continue;
-            }
-            try
-            {
-                Long userId = Long.parseLong(name.substring(0, index));
-                map.put(userId, attachmentFile);
-            }
-            catch (NumberFormatException ignored)
-            {
+                throw new ServiceException("不支持的补贴类型：" + it.getSubsidyType());
             }
         }
-        return map;
+
+        BenefitDetermination determination;
+        if (req.getId() != null)
+        {
+            determination = this.getById(req.getId());
+            Assert.notNull(determination, "待遇核定记录不存在");
+            if (!Objects.equals(determination.getSubsidyPersonId(), req.getSubsidyPersonId()))
+            {
+                throw new ServiceException("人员不匹配，无法修改");
+            }
+            if (!"draft".equals(determination.getApprovalStatus()) && !"rejected".equals(determination.getApprovalStatus()))
+            {
+                throw new ServiceException("仅草稿/驳回状态允许修改");
+            }
+        }
+        else
+        {
+            determination = new BenefitDetermination();
+            determination.setApprovalStatus("draft");
+            determination.setDelFlag("0");
+            determination.setPaymentPlanGenerated("0");
+            determination.setMaterialStatus("pending_upload");
+            determination.setCreateBy(SecurityUtils.getUsername());
+            determination.setCreateTime(new Date());
+        }
+
+        determination.setSubsidyPersonId(req.getSubsidyPersonId());
+        determination.setIdCardNo(req.getIdCardNo());
+        determination.setGrantOrg(req.getGrantOrg());
+        determination.setAccountName(req.getAccountName());
+        determination.setRelationToInsured(StringUtils.isNotBlank(req.getRelationToInsured()) ? req.getRelationToInsured() : "本人");
+        determination.setBankAccount(req.getBankAccount());
+        determination.setGrantRemark(req.getGrantRemark());
+        fillEligibleMonth(determination);
+        determination.setUpdateBy(SecurityUtils.getUsername());
+        determination.setUpdateTime(new Date());
+
+        if (determination.getId() == null)
+        {
+            this.save(determination);
+        }
+        else
+        {
+            this.updateById(determination);
+        }
+
+        // 先软删旧明细，再插入新明细
+        benefitDeterminationItemMapper.update(null, new LambdaUpdateWrapper<BenefitDeterminationItem>()
+                .eq(BenefitDeterminationItem::getDeterminationId, determination.getId())
+                .eq(BenefitDeterminationItem::getDelFlag, "0")
+                .set(BenefitDeterminationItem::getDelFlag, "2")
+                .set(BenefitDeterminationItem::getUpdateBy, SecurityUtils.getUsername())
+                .set(BenefitDeterminationItem::getUpdateTime, java.time.LocalDateTime.now()));
+
+        List<BenefitDeterminationItem> items = req.getItems().stream().map(it -> buildItem(determination.getId(), person, it)).toList();
+        for (BenefitDeterminationItem item : items)
+        {
+            benefitDeterminationItemMapper.insert(item);
+        }
+
+        return determination.getId();
     }
 
     private String stripProfilePrefix(String resourcePath)
     {
         return resourcePath.replaceFirst("^/profile/", "");
+    }
+
+    private BenefitDeterminationItem buildItem(Long determinationId, SubsidyPerson person, BenefitDeterminationSaveDraftReq.Item reqItem)
+    {
+        YearMonth startYm = parseYearMonth(reqItem.getStartMonth(), "享受开始年月");
+        int months = computeBackpayMonths(startYm, YearMonth.now());
+        BigDecimal standard = resolveStandard(person.getId(), reqItem.getSubsidyType());
+        BigDecimal amount = standard.multiply(BigDecimal.valueOf(months)).setScale(2, java.math.RoundingMode.HALF_UP);
+
+        BenefitDeterminationItem item = new BenefitDeterminationItem();
+        item.setDeterminationId(determinationId);
+        item.setSubsidyType(reqItem.getSubsidyType());
+        item.setVillageStreet(reqItem.getVillageStreet());
+        item.setEventDate(StringUtils.isBlank(reqItem.getEventDate()) ? null : LocalDate.parse(reqItem.getEventDate()));
+        item.setSubsidyStandard(standard);
+        item.setBenefitStartYear(startYm.getYear());
+        item.setBenefitStartMonth(startYm.getMonthValue());
+        item.setBenefitMonths(months);
+        item.setBenefitAmount(amount);
+        item.setDelFlag("0");
+        item.setCreateBy(SecurityUtils.getUsername());
+        item.setCreateTime(java.time.LocalDateTime.now());
+        item.setUpdateBy(SecurityUtils.getUsername());
+        item.setUpdateTime(java.time.LocalDateTime.now());
+        return item;
+    }
+
+    private BigDecimal resolveStandard(Long subsidyPersonId, String subsidyType)
+    {
+        if ("land_loss".equals(subsidyType))
+        {
+            return readConfigDecimal(com.ruoyi.shebao.service.impl.SubsidyCalculationServiceImpl.LAND_LOSS_RESIDENT_SUBSIDY_KEY);
+        }
+        if ("demolition".equals(subsidyType))
+        {
+            return readConfigDecimal(com.ruoyi.shebao.service.impl.SubsidyCalculationServiceImpl.CEMETERY_RESIDENT_SUBSIDY_KEY);
+        }
+        if ("village_official".equals(subsidyType))
+        {
+            List<VillageOfficial> list = villageOfficialMapper.selectBySubsidyPersonId(subsidyPersonId);
+            return (list == null ? java.util.stream.Stream.<BigDecimal>empty() : list.stream().map(VillageOfficial::getSubsidyAmount))
+                    .filter(Objects::nonNull)
+                    .max(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private BigDecimal readConfigDecimal(String key)
+    {
+        String val = sysConfigService.selectConfigByKey(key);
+        if (StringUtils.isBlank(val))
+        {
+            return BigDecimal.ZERO;
+        }
+        try
+        {
+            return new BigDecimal(val.trim());
+        }
+        catch (Exception e)
+        {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private static YearMonth parseYearMonth(String text, String fieldName)
+    {
+        if (text == null || !text.matches("\\d{4}-\\d{2}"))
+        {
+            throw new ServiceException(fieldName + "格式错误，应为yyyy-MM");
+        }
+        String[] parts = text.split("-");
+        return YearMonth.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+    }
+
+    private static int computeBackpayMonths(YearMonth startYm, YearMonth currentYm)
+    {
+        if (startYm == null || currentYm == null)
+        {
+            return 0;
+        }
+        long months = java.time.temporal.ChronoUnit.MONTHS.between(startYm, currentYm);
+        return (int) Math.max(months, 0);
+    }
+
+    private static YearMonth computeEligibleYm(SubsidyPerson person)
+    {
+        if (person == null || person.getBirthday() == null)
+        {
+            return null;
+        }
+        return YearMonth.from(person.getBirthday().plusYears(60));
+    }
+
+    private static YearMonth plusOneMonth(LocalDate date)
+    {
+        return date == null ? null : YearMonth.from(date).plusMonths(1);
+    }
+
+    private static YearMonth maxYm(YearMonth a, YearMonth b)
+    {
+        if (a == null) return b;
+        if (b == null) return a;
+        return a.isAfter(b) ? a : b;
+    }
+
+    private static Date yearMonthToDate(Integer year, Integer month)
+    {
+        if (year == null || month == null)
+        {
+            return null;
+        }
+        return java.sql.Date.valueOf(LocalDate.of(year, month, 1));
+    }
+
+    private static String formatYm(YearMonth ym)
+    {
+        return ym == null ? null : String.format("%04d-%02d", ym.getYear(), ym.getMonthValue());
     }
 }

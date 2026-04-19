@@ -9,6 +9,8 @@ import com.ruoyi.shebao.dto.BenefitDeterminationImportDto;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
 import com.ruoyi.shebao.dto.BenefitDeterminationPrintDto;
+import com.ruoyi.shebao.dto.BenefitDeterminationPrepareResp;
+import com.ruoyi.shebao.dto.BenefitDeterminationSaveDraftReq;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -95,11 +97,21 @@ public interface IBenefitDeterminationService extends IService<BenefitDeterminat
      * @param id 待遇核定ID
      * @return 核定表DTO
      */
-    BenefitDeterminationPrintDto buildPrintDto(Long id);
+    List<BenefitDeterminationPrintDto> buildPrintDto(Long id);
 
-    int batchImport(String noticeBatchNo, List<BenefitDeterminationImportDto> rows, MultipartFile[] attachmentFiles) throws Exception;
+    /**
+     * 按身份证号准备待遇核定录入信息（人员基本信息 + 已有补贴信息 + 默认享受开始年月）
+     */
+    BenefitDeterminationPrepareResp prepareByIdCardNo(String idCardNo);
+
+    /**
+     * 保存待遇核定草稿（主表 + 明细行）
+     */
+    Long saveDraft(BenefitDeterminationSaveDraftReq req);
+
+    int batchImport(List<BenefitDeterminationImportDto> rows, MultipartFile[] attachmentFiles) throws Exception;
 
     BenefitAttachment uploadAttachment(Long determinationId, MultipartFile file) throws Exception;
 
-    int batchApprove(List<Long> ids, String noticeBatchNo, String remark);
+    int batchApprove(List<Long> ids, String remark);
 }

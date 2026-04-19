@@ -17,10 +17,6 @@ public class BenefitDeterminationDetailResp
 
     private Long subsidyPersonId;
 
-    private String noticeBatchNo;
-
-    private Long noticeDetailId;
-
     private String name;
 
     private String userCode;
@@ -37,11 +33,15 @@ public class BenefitDeterminationDetailResp
 
     private Integer benefitStartMonth;
 
-    private String bankName;
-
     private String bankAccount;
 
-    private String bankAccountName;
+    private String grantOrg;
+
+    private String accountName;
+
+    private String relationToInsured;
+
+    private String grantRemark;
 
     private BigDecimal subsidyStandard;
 
@@ -68,4 +68,21 @@ public class BenefitDeterminationDetailResp
     private Date reviewTime;
 
     private String reviewRemark;
+
+    private List<BenefitDeterminationItemResp> items;
+
+    @Data
+    public static class BenefitDeterminationItemResp
+    {
+        private Long id;
+        private String subsidyType;
+        private String villageStreet;
+        @JsonFormat(pattern = "yyyy-MM-dd")
+        private java.time.LocalDate eventDate;
+        private BigDecimal subsidyStandard;
+        private Integer benefitStartYear;
+        private Integer benefitStartMonth;
+        private Integer benefitMonths;
+        private BigDecimal benefitAmount;
+    }
 }

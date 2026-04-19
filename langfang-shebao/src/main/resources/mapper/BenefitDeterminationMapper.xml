@@ -10,13 +10,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="name" column="name"/>
         <result property="idCardNo" column="id_card_no"/>
         <result property="userCode" column="user_code"/>
-        <result property="noticeBatchNo" column="notice_batch_no"/>
         <result property="subsidyType" column="subsidy_type"/>
-        <result property="bankName" column="bank_name"/>
         <result property="bankAccount" column="bank_account"/>
-        <result property="subsidyStandard" column="subsidy_standard"/>
-        <result property="benefitMonths" column="benefit_months"/>
-        <result property="benefitAmount" column="benefit_amount"/>
         <result property="approvalStatus" column="approval_status"/>
         <result property="materialStatus" column="material_status"/>
         <result property="paymentPlanGenerated" column="payment_plan_generated"/>
@@ -28,22 +23,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap id="BenefitDeterminationDetailResult" type="com.ruoyi.shebao.dto.BenefitDeterminationDetailResp">
         <result property="id" column="id"/>
         <result property="subsidyPersonId" column="subsidy_person_id"/>
-        <result property="noticeBatchNo" column="notice_batch_no"/>
-        <result property="noticeDetailId" column="notice_detail_id"/>
         <result property="name" column="name"/>
         <result property="userCode" column="user_code"/>
         <result property="idCardNo" column="id_card_no"/>
-        <result property="subsidyType" column="subsidy_type"/>
         <result property="eligibleYear" column="eligible_year"/>
         <result property="eligibleMonth" column="eligible_month"/>
-        <result property="benefitStartYear" column="benefit_start_year"/>
-        <result property="benefitStartMonth" column="benefit_start_month"/>
-        <result property="bankName" column="bank_name"/>
         <result property="bankAccount" column="bank_account"/>
-        <result property="bankAccountName" column="bank_account_name"/>
-        <result property="subsidyStandard" column="subsidy_standard"/>
-        <result property="benefitMonths" column="benefit_months"/>
-        <result property="benefitAmount" column="benefit_amount"/>
+        <result property="grantOrg" column="grant_org"/>
+        <result property="accountName" column="account_name"/>
+        <result property="relationToInsured" column="relation_to_insured"/>
+        <result property="grantRemark" column="grant_remark"/>
         <result property="approvalStatus" column="approval_status"/>
         <result property="materialStatus" column="material_status"/>
         <result property="materialZipPath" column="material_zip_path"/>
@@ -55,18 +44,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <select id="selectBenefitDeterminationPage" resultMap="BenefitDeterminationPageResult">
-        select bd.id, bd.subsidy_person_id, bd.notice_batch_no, bd.subsidy_type,
-               bd.bank_name, bd.bank_account, bd.subsidy_standard, bd.benefit_months,
-               bd.benefit_amount, bd.approval_status, bd.material_status, bd.payment_plan_generated,
+        select bd.id, bd.subsidy_person_id,
+               bd.bank_account, bd.approval_status, bd.material_status, bd.payment_plan_generated,
                bd.submit_by, bd.submit_time, bd.create_time,
                coalesce(bd.id_card_no, sp.id_card_no) as id_card_no,
+               group_concat(distinct bdi.subsidy_type order by bdi.subsidy_type separator '/') as subsidy_type,
                sp.name, sp.user_code
         from benefit_determination bd
         left join shebao_subsidy_person sp on bd.subsidy_person_id = sp.id
+        left join benefit_determination_item bdi on bdi.determination_id = bd.id and bdi.del_flag = '0'
         where bd.del_flag = '0'
-        <if test="req.noticeBatchNo != null and req.noticeBatchNo != ''">
-            and bd.notice_batch_no = #{req.noticeBatchNo}
-        </if>
         <if test="req.name != null and req.name != ''">
             and sp.name like concat('%', #{req.name}, '%')
         </if>
@@ -74,7 +61,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and coalesce(bd.id_card_no, sp.id_card_no) like concat('%', #{req.idCardNo}, '%')
         </if>
         <if test="req.subsidyType != null and req.subsidyType != ''">
-            and bd.subsidy_type = #{req.subsidyType}
+            and exists (
+                select 1 from benefit_determination_item bdi2
+                where bdi2.determination_id = bd.id and bdi2.del_flag = '0'
+                  and (
+                    (#{req.subsidyType} = '1' and bdi2.subsidy_type in ('land_loss','land_loss_resident'))
+                    or (#{req.subsidyType} = '2' and bdi2.subsidy_type in ('expropriatee','expropriatee_subsidy'))
+                    or (#{req.subsidyType} = '3' and bdi2.subsidy_type in ('demolition','demolition_resident'))
+                    or (#{req.subsidyType} = '4' and bdi2.subsidy_type = 'village_official')
+                    or (#{req.subsidyType} = '5' and bdi2.subsidy_type in ('teacher','teacher_subsidy'))
+                    or (#{req.subsidyType} not in ('1','2','3','4','5') and bdi2.subsidy_type = #{req.subsidyType})
+                  )
+            )
         </if>
         <if test="req.approvalStatus != null and req.approvalStatus != ''">
             and bd.approval_status = #{req.approvalStatus}
@@ -82,14 +80,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <if test="req.materialStatus != null and req.materialStatus != ''">
             and bd.material_status = #{req.materialStatus}
         </if>
+        group by bd.id, bd.subsidy_person_id, bd.bank_account, bd.approval_status, bd.material_status, bd.payment_plan_generated,
+                 bd.submit_by, bd.submit_time, bd.create_time, coalesce(bd.id_card_no, sp.id_card_no), sp.name, sp.user_code
         order by bd.create_time desc, bd.id desc
     </select>
 
     <select id="selectBenefitDeterminationDetail" resultMap="BenefitDeterminationDetailResult">
-        select bd.id, bd.subsidy_person_id, bd.notice_batch_no, bd.notice_detail_id,
-               bd.subsidy_type, bd.eligible_year, bd.eligible_month, bd.benefit_start_year,
-               bd.benefit_start_month, bd.bank_name, bd.bank_account, bd.bank_account_name,
-               bd.subsidy_standard, bd.benefit_months, bd.benefit_amount, bd.approval_status,
+        select bd.id, bd.subsidy_person_id,
+               bd.eligible_year, bd.eligible_month,
+               bd.grant_org, bd.account_name, bd.relation_to_insured, bd.grant_remark,
+               bd.bank_account, bd.approval_status,
                bd.material_status, bd.material_zip_path, bd.material_image_paths, bd.submit_by,
                bd.submit_time, bd.review_by, bd.review_time, bd.review_remark,
                coalesce(bd.id_card_no, sp.id_card_no) as id_card_no, sp.name, sp.user_code
@@ -103,31 +103,41 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectEligibleForPaymentPlan" resultType="com.ruoyi.shebao.domain.BenefitDetermination">
         select bd.id,
                bd.subsidy_person_id,
-               bd.subsidy_type,
-               bd.benefit_start_year,
-               bd.benefit_start_month,
+               bdi.id as determination_item_id,
+               bdi.subsidy_type,
+               bdi.benefit_start_year,
+               bdi.benefit_start_month,
                bd.bank_account,
-               bd.bank_account_name,
-               bd.subsidy_standard,
-               bd.benefit_amount,
+               bd.account_name as bank_account_name,
+               bdi.subsidy_standard,
+               bdi.benefit_amount,
                bd.approval_status,
                bd.del_flag
-        from benefit_determination bd
+        from benefit_determination_item bdi
+        left join benefit_determination bd on bdi.determination_id = bd.id
         left join shebao_subsidy_person sp on bd.subsidy_person_id = sp.id
         where bd.del_flag = '0'
+          and bdi.del_flag = '0'
           and bd.approval_status = 'approved'
         <if test="subsidyType != null and subsidyType != ''">
-            and bd.subsidy_type = #{subsidyType}
+            and (
+                (#{subsidyType} = '1' and bdi.subsidy_type in ('land_loss','land_loss_resident'))
+                or (#{subsidyType} = '2' and bdi.subsidy_type in ('expropriatee','expropriatee_subsidy'))
+                or (#{subsidyType} = '3' and bdi.subsidy_type in ('demolition','demolition_resident'))
+                or (#{subsidyType} = '4' and bdi.subsidy_type = 'village_official')
+                or (#{subsidyType} = '5' and bdi.subsidy_type in ('teacher','teacher_subsidy'))
+                or (#{subsidyType} not in ('1','2','3','4','5') and bdi.subsidy_type = #{subsidyType})
+            )
         </if>
         <if test="benefitStartYear != null">
-            and bd.benefit_start_year = #{benefitStartYear}
+            and bdi.benefit_start_year = #{benefitStartYear}
         </if>
         <if test="benefitStartMonth != null">
-            and bd.benefit_start_month = #{benefitStartMonth}
+            and bdi.benefit_start_month = #{benefitStartMonth}
         </if>
         <if test="streetOfficeId != null">
             and sp.street_office_id = #{streetOfficeId}
         </if>
-        order by bd.id asc
+        order by bd.id asc, bdi.id asc
     </select>
 </mapper>

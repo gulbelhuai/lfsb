@@ -76,6 +76,6 @@ public class BenefitReviewController extends BaseController
     @PostMapping("/batchApprove")
     public AjaxResult batchApprove(@RequestBody BenefitReviewBatchReq req)
     {
-        return toAjax(benefitDeterminationService.batchApprove(req.getIds(), req.getNoticeBatchNo(), req.getRemark()));
+        return toAjax(benefitDeterminationService.batchApprove(req.getIds(), req.getRemark()));
     }
 }

@@ -1,14 +1,14 @@
 <template>
   <div class="app-container" data-testid="benefit-review-page">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
-      <el-form-item label="通知批次号">
-        <el-input v-model="queryParams.noticeBatchNo" placeholder="请输入通知批次号" clearable data-testid="review-query-batch-no" />
-      </el-form-item>
       <el-form-item label="姓名">
         <el-input v-model="queryParams.name" clearable data-testid="review-query-name" />
       </el-form-item>
+      <el-form-item label="身份证号">
+        <el-input v-model="queryParams.idCardNo" clearable />
+      </el-form-item>
       <el-form-item label="补贴类型">
-        <el-input v-model="queryParams.subsidyType" clearable data-testid="review-query-subsidy-type" />
+        <el-input v-model="queryParams.subsidyType" clearable data-testid="review-query-subsidy-type" placeholder="列表聚合类型或明细编码" />
       </el-form-item>
       <el-form-item label="审批状态">
         <el-select v-model="queryParams.approvalStatus" placeholder="全部" clearable data-testid="review-query-approval-status">
@@ -30,22 +30,20 @@
         <el-button type="success" plain icon="el-icon-check" size="mini" :disabled="multiple" @click="handleBatchApprove" v-hasPermi="['shebao:benefit:review:approve']" data-testid="review-batch-approve">批量通过</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="warning" plain icon="el-icon-connection" size="mini" :disabled="!queryParams.noticeBatchNo" @click="goPaymentPlan" data-testid="review-go-payment-plan">去支付计划</el-button>
+        <el-button type="warning" plain icon="el-icon-connection" size="mini" @click="goPaymentPlan" data-testid="review-go-payment-plan">支付计划</el-button>
       </el-col>
     </el-row>
 
     <el-table v-loading="loading" :data="dataList" @selection-change="handleSelectionChange" data-testid="review-table">
       <el-table-column type="selection" width="55" />
       <el-table-column type="index" label="序号" width="50" />
-      <el-table-column label="通知批次号" prop="noticeBatchNo" min-width="180" />
       <el-table-column label="姓名" prop="name" width="100" />
       <el-table-column label="身份证号" prop="idCardNo" min-width="180" />
-      <el-table-column label="补贴类型" width="140">
+      <el-table-column label="补贴类型" min-width="200">
         <template slot-scope="scope">
-          <span>{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</span>
+          <span>{{ formatSubsidyTypeMix(scope.row.subsidyType) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="补贴标准" prop="subsidyStandard" width="100" />
       <el-table-column label="银行账号" prop="bankAccount" min-width="180" />
       <el-table-column label="材料状态" width="100">
         <template slot-scope="scope">
@@ -68,17 +66,28 @@
 
     <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
 
-    <el-dialog title="核定抽查详情" :visible.sync="detailOpen" width="900px" data-testid="review-detail-dialog">
+    <el-dialog title="核定抽查详情" :visible.sync="detailOpen" width="1000px" data-testid="review-detail-dialog">
       <el-descriptions :column="2" border v-if="detailData.id">
-        <el-descriptions-item label="通知批次号">{{ detailData.noticeBatchNo }}</el-descriptions-item>
         <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
         <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
-        <el-descriptions-item label="补贴类型">{{ getSubsidyTypeLabel(detailData.subsidyType) }}</el-descriptions-item>
-        <el-descriptions-item label="银行名称">{{ detailData.bankName }}</el-descriptions-item>
-        <el-descriptions-item label="银行卡号">{{ detailData.bankAccount }}</el-descriptions-item>
-        <el-descriptions-item label="账户名">{{ detailData.bankAccountName }}</el-descriptions-item>
+        <el-descriptions-item label="发放机构">{{ grantOrgLabel(detailData.grantOrg) }}</el-descriptions-item>
+        <el-descriptions-item label="开户名">{{ detailData.accountName }}</el-descriptions-item>
+        <el-descriptions-item label="与参保人关系">{{ detailData.relationToInsured }}</el-descriptions-item>
+        <el-descriptions-item label="银行账号">{{ detailData.bankAccount }}</el-descriptions-item>
         <el-descriptions-item label="材料状态">{{ detailData.materialStatus }}</el-descriptions-item>
       </el-descriptions>
+      <el-table :data="detailData.items || []" border size="mini" class="mt12">
+        <el-table-column label="补贴类型" width="120">
+          <template slot-scope="scope">{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</template>
+        </el-table-column>
+        <el-table-column label="认定时所在村街" prop="villageStreet" min-width="120" />
+        <el-table-column label="补贴标准" prop="subsidyStandard" width="100" />
+        <el-table-column label="享受开始年月" min-width="120">
+          <template slot-scope="scope">{{ formatStartMonth(scope.row) }}</template>
+        </el-table-column>
+        <el-table-column label="补发月数" prop="benefitMonths" width="90" />
+        <el-table-column label="补发金额" prop="benefitAmount" width="100" />
+      </el-table>
       <div class="mt12" v-if="detailData.materialImagePaths && detailData.materialImagePaths.length">
         <div class="section-title">证明材料预览</div>
         <div class="preview-list">
@@ -94,11 +103,13 @@
 
 <script>
 import { batchApproveBenefitReview, getBenefitDetermination, listBenefitReview, reviewBenefitPass, reviewBenefitReject } from '@/api/shebao/benefit'
+import { selectDictLabel } from '@/utils/ruoyi'
 import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
 import ImagePreview from '@/components/ImagePreview'
 
 export default {
   name: 'BenefitReview',
+  dicts: ['shebao_grant_org'],
   components: { ApprovalStatus, ImagePreview },
   data() {
     return {
@@ -110,13 +121,13 @@ export default {
       multiple: true,
       detailOpen: false,
       detailData: {},
-      queryParams: { 
-        pageNum: 1, 
-        pageSize: 10, 
-        noticeBatchNo: null, 
-        name: null, 
-        subsidyType: null, 
-        approvalStatus: null  // 修改：初始值改为null，而不是pending_review
+      queryParams: {
+        pageNum: 1,
+        pageSize: 10,
+        name: null,
+        idCardNo: null,
+        subsidyType: null,
+        approvalStatus: null
       }
     }
   },
@@ -124,14 +135,30 @@ export default {
     this.getList()
   },
   methods: {
+    grantOrgLabel(val) {
+      return selectDictLabel(this.dict.type.shebao_grant_org || [], val)
+    },
     getSubsidyTypeLabel(subsidyType) {
       return {
-        land_loss_resident: '失地居民',
-        demolition_resident: '拆迁居民',
-        village_official: '村干部',
+        land_loss: '失地补贴',
+        demolition: '拆迁补贴',
+        village_official: '村干部补贴',
+        land_loss_resident: '失地补贴',
+        demolition_resident: '拆迁补贴',
         expropriatee_subsidy: '被征地居民',
         teacher_subsidy: '教师'
       }[subsidyType] || subsidyType || '未知'
+    },
+    formatSubsidyTypeMix(text) {
+      if (!text) return '-'
+      return text.split('/').map(s => this.getSubsidyTypeLabel(s)).join(' / ')
+    },
+    formatStartMonth(row) {
+      if (!row) return ''
+      if (row.benefitStartYear != null && row.benefitStartMonth != null) {
+        return `${row.benefitStartYear}-${String(row.benefitStartMonth).padStart(2, '0')}`
+      }
+      return ''
     },
     getList() {
       this.loading = true
@@ -148,7 +175,6 @@ export default {
     },
     resetQuery() {
       this.resetForm('queryForm')
-      // 重置后保持 null（查询全部），不设置为 'pending_review'
       this.queryParams.approvalStatus = null
       this.handleQuery()
     },
@@ -183,7 +209,6 @@ export default {
         cancelButtonText: '取消'
       }).then(({ value }) => {
         return batchApproveBenefitReview({
-          noticeBatchNo: this.queryParams.noticeBatchNo,
           ids: this.ids,
           remark: value || ''
         })
@@ -193,11 +218,7 @@ export default {
       })
     },
     goPaymentPlan() {
-      if (!this.queryParams.noticeBatchNo) {
-        this.$modal.msgWarning('请先输入通知批次号')
-        return
-      }
-      this.$router.push({ path: '/shebao/payment/plan', query: { noticeBatchNo: this.queryParams.noticeBatchNo } })
+      this.$router.push({ path: '/shebao/payment/plan' })
     }
   }
 }

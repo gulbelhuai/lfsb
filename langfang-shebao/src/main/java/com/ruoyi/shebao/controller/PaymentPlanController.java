@@ -6,7 +6,6 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
-import com.ruoyi.shebao.dto.BenefitPaymentPlanGenerateReq;
 import com.ruoyi.shebao.dto.PaymentPlanListReq;
 import com.ruoyi.shebao.dto.SubsidyDistributionFormDto;
 import com.ruoyi.shebao.dto.SubsidyDistributionListResp;
@@ -157,14 +156,4 @@ public class PaymentPlanController extends BaseController
         return toAjax(subsidyDistributionService.generatePaymentPlans(subsidyType, month, null));
     }
 
-    /**
-     * 按通知批次生成支付计划
-     */
-    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:generate')")
-    @Log(title = "按通知批次生成支付计划", businessType = BusinessType.INSERT)
-    @PostMapping("/generateByNoticeBatch")
-    public AjaxResult generateByNoticeBatch(@RequestBody BenefitPaymentPlanGenerateReq req)
-    {
-        return toAjax(subsidyDistributionService.generateFromNoticeBatch(req.getNoticeBatchNo()));
-    }
 }

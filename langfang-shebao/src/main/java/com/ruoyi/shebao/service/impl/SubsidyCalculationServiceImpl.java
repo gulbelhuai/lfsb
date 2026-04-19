@@ -37,11 +37,19 @@ public class SubsidyCalculationServiceImpl implements SubsidyCalculationService
 
     /** 年平均工资系统参数key */
     private static final String AVERAGE_ANNUAL_SALARY_KEY = "shebao.average.annual.salary";
-
+    /** 村干部补贴标准key */
     public static final String POSITION_SECRETARY_AND_DIRECTOR_SUBSIDY_KEY = "shebao.official.secretary.and.director.subsidy";
     public static final String POSITION_SECRETARY_OR_DIRECTOR_SUBSIDY_KEY = "shebao.official.secretary.or.director.subsidy";
     public static final String POSITION_TWO_COMMITTEES_SUBSIDY_KEY = "shebao.official.two.committees.subsidy";
 
+    /**
+     * 失地居民每月补贴KEY
+     */
+    public static final String LAND_LOSS_RESIDENT_SUBSIDY_KEY = "shebao.land.loss.subsidy";
+    /**
+     * 拆迁居民每月补贴KEY
+     */
+    public static final String CEMETERY_RESIDENT_SUBSIDY_KEY = "shebao.demolition.subsidy";
     /**
      * 计算被征地参保补贴年限
      * 根据截至基准日的年龄计算补贴年限

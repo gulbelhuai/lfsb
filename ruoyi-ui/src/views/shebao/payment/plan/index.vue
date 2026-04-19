@@ -50,17 +50,16 @@
         </el-row>
         <el-row>
           <el-col :span="24">
-            <el-divider content-position="left">两种生成方式（二选一）</el-divider>
+            <el-divider content-position="left">按条件批量生成</el-divider>
           </el-col>
         </el-row>
         <el-row>
           <el-col :span="24">
             <div class="generate-methods">
-              <!-- 方式一：按条件生成 -->
               <div class="method-item">
                 <el-card shadow="hover">
                   <div slot="header" class="clearfix">
-                    <span>方式一：按条件批量生成</span>
+                    <span>按条件批量生成</span>
                   </div>
                   <p class="tip-text">根据上方条件筛选符合发放条件的人员，批量生成支付计划</p>
                   <el-button type="primary" icon="el-icon-view" data-testid="payment-plan-preview" @click="handlePreview" :loading="previewLoading">
@@ -72,19 +71,6 @@
                   <div v-if="previewDataReady" class="preview-summary">
                     <el-tag type="success" size="small">已预览：{{ statistics.totalCount }}人，{{ statistics.totalAmount }}元</el-tag>
                   </div>
-                </el-card>
-              </div>
-              <!-- 方式二：按通知批次生成 -->
-              <div class="method-item">
-                <el-card shadow="hover">
-                  <div slot="header" class="clearfix">
-                    <span>方式二：按通知批次生成</span>
-                  </div>
-                  <el-input v-model="generateForm.noticeBatchNo" placeholder="请输入预到龄通知批次号" clearable data-testid="payment-plan-notice-batch-no" class="mb10" />
-                  <p class="tip-text">直接从已审核通过的预到龄通知批次生成支付计划</p>
-                  <el-button type="warning" icon="el-icon-connection" data-testid="payment-plan-generate-by-notice-batch" @click="handleGenerateByNoticeBatch" :loading="generateLoading">
-                    <span class="btn-text">按通知批次生成</span>
-                  </el-button>
                 </el-card>
               </div>
             </div>
@@ -247,7 +233,7 @@
 </template>
 
 <script>
-import { listPaymentPlan, generatePaymentPlan, generatePaymentPlanByNoticeBatch, deletePaymentPlan, getPaymentStatistics, createBatch } from '@/api/shebao/payment'
+import { listPaymentPlan, generatePaymentPlan, deletePaymentPlan, getPaymentStatistics, createBatch } from '@/api/shebao/payment'
 import { listStreetOffice } from '@/api/shebao/streetOffice'
 
 export default {
@@ -270,8 +256,7 @@ export default {
       generateForm: {
         subsidyType: null,
         paymentMonth: null,
-        streetOfficeId: null,
-        noticeBatchNo: null
+        streetOfficeId: null
       },
       queryParams: {
         pageNum: 1,
@@ -285,11 +270,6 @@ export default {
     }
   },
   created() {
-    // 支持URL传参自动填充通知批次号
-    if (this.$route.query.noticeBatchNo) {
-      this.generateForm.noticeBatchNo = this.$route.query.noticeBatchNo
-      this.$message.info(`已自动填充通知批次号: ${this.$route.query.noticeBatchNo}`)
-    }
     this.getList()
     this.getStreetOfficeList()
   },
@@ -376,39 +356,10 @@ export default {
         this.generateLoading = false
       })
     },
-    handleGenerateByNoticeBatch() {
-      if (!this.generateForm.noticeBatchNo) {
-        this.$modal.msgWarning('请输入通知批次号')
-        return
-      }
-      this.$modal.confirm(`是否按通知批次 ${this.generateForm.noticeBatchNo} 生成支付计划？`, '确认生成', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        this.generateLoading = true
-        return generatePaymentPlanByNoticeBatch({ noticeBatchNo: this.generateForm.noticeBatchNo })
-      }).then(response => {
-        const count = response.data || 0
-        this.$modal.msgSuccess(`按通知批次生成支付计划成功，共生成 ${count} 条记录`)
-        this.currentStep = 2
-        this.getList()
-        // 清空批次号，避免重复生成
-        this.generateForm.noticeBatchNo = ''
-      }).catch(error => {
-        if (error.msg) {
-          this.$modal.msgError(error.msg)
-        }
-        this.currentStep = 1
-      }).finally(() => {
-        this.generateLoading = false
-      })
-    },
     resetGenerateForm() {
       this.generateForm.subsidyType = null
       this.generateForm.paymentMonth = null
       this.generateForm.streetOfficeId = null
-      this.generateForm.noticeBatchNo = null
       this.currentStep = 0
       this.previewDataReady = false
     },

@@ -18,15 +18,6 @@ export function generatePaymentPlan(data) {
   })
 }
 
-// 按通知批次生成支付计划
-export function generatePaymentPlanByNoticeBatch(data) {
-  return request({
-    url: '/shebao/payment/plan/generateByNoticeBatch',
-    method: 'post',
-    data: data
-  })
-}
-
 // 删除支付计划
 export function deletePaymentPlan(ids) {
   return request({

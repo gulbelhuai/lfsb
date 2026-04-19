@@ -33,50 +33,42 @@ public class BenefitDetermination extends BaseEntity
     /** 被补贴人ID */
     private Long subsidyPersonId;
 
-    /** 补贴类型 */
-    private String subsidyType;
-
     /** 到龄-年 */
     private Integer eligibleYear;
 
     /** 到龄-月 */
     private Integer eligibleMonth;
 
-    /** 补贴享受开始-年 */
-    private Integer benefitStartYear;
+    /**
+     * 发放机构（字典：shebao_grant_org）
+     */
+    private String grantOrg;
 
-    /** 补贴享受开始-月 */
-    private Integer benefitStartMonth;
+    /**
+     * 开户名（默认当前用户姓名，可人工修改）
+     */
+    private String accountName;
 
-    /** 发放银行ID */
-    private Long bankId;
+    /**
+     * 与参保人关系（默认：本人）
+     */
+    private String relationToInsured;
 
-    /** 银行账号 */
+    /**
+     * 银行账号
+     */
     private String bankAccount;
 
-    /** 银行户名 */
-    private String bankAccountName;
-
-    /** 补贴标准 */
-    private BigDecimal subsidyStandard;
-
-    /** 补发月数 */
-    private Integer benefitMonths;
-
-    /** 补发金额 */
-    private BigDecimal benefitAmount;
+    /**
+     * 发放备注
+     */
+    private String grantRemark;
 
     /** 审批状态 */
     private String approvalStatus;
 
     /** 审批批次号 */
     private String approvalBatchNo;
-
-    /** 预到龄通知批次号 */
-    private String noticeBatchNo;
-
-    /** 预到龄通知明细ID */
-    private Long noticeDetailId;
 
     /** 身份证号快照 */
     private String idCardNo;
@@ -120,7 +112,29 @@ public class BenefitDetermination extends BaseEntity
     private String rejectReason;
 
     /** 银行名称 */
+    @TableField(exist = false, select = false)
     private String bankName;
+
+    /**
+     * 以下字段迁移到明细表（为兼容历史代码/支付计划查询，保留为非持久化字段）
+     */
+    @TableField(exist = false, select = false)
+    private String subsidyType;
+
+    @TableField(exist = false, select = false)
+    private Integer benefitStartYear;
+
+    @TableField(exist = false, select = false)
+    private Integer benefitStartMonth;
+
+    @TableField(exist = false, select = false)
+    private BigDecimal subsidyStandard;
+
+    @TableField(exist = false, select = false)
+    private Integer benefitMonths;
+
+    @TableField(exist = false, select = false)
+    private BigDecimal benefitAmount;
 
     @TableField(exist = false, select = false)
     private String supplementType;
@@ -136,4 +150,10 @@ public class BenefitDetermination extends BaseEntity
 
     @TableField(exist = false, select = false)
     private String filePath;
+
+    /**
+     * 支付计划查询用：核定明细行 ID（不落主表）
+     */
+    @TableField(exist = false, select = false)
+    private Long determinationItemId;
 }

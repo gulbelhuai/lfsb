@@ -3,6 +3,8 @@ package com.ruoyi.common.utils;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,6 +20,7 @@ import com.ruoyi.common.exception.ServiceException;
  * 
  * @author ruoyi
  */
+@Slf4j
 public class SecurityUtils
 {
 
@@ -75,8 +78,12 @@ public class SecurityUtils
         {
             return (LoginUser) getAuthentication().getPrincipal();
         }
+        catch (ClassCastException e1) {
+            throw new ServiceException("获取用户信息异常", HttpStatus.UNAUTHORIZED);
+        }
         catch (Exception e)
         {
+            log.error("获取用户信息异常", e);
             throw new ServiceException("获取用户信息异常", HttpStatus.UNAUTHORIZED);
         }
     }

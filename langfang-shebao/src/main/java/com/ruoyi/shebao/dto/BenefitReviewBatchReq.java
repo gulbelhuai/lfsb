@@ -10,8 +10,6 @@ import java.util.List;
 @Data
 public class BenefitReviewBatchReq
 {
-    private String noticeBatchNo;
-
     private List<Long> ids;
 
     private String remark;

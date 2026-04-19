@@ -17,8 +17,6 @@ public class BenefitAttachment extends BaseDomain
 
     private Long businessId;
 
-    private String noticeBatchNo;
-
     private Long subsidyPersonId;
 
     private String originalFileName;
