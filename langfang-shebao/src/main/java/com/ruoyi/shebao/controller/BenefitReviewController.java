@@ -36,8 +36,8 @@ public class BenefitReviewController extends BaseController
     {
         if (req.getPageNum() == null) req.setPageNum(1);
         if (req.getPageSize() == null) req.setPageSize(10);
-        // 注释掉自动设置为"待审核"的逻辑，让前端可以查询所有状态
-        // if (req.getApprovalStatus() == null) req.setApprovalStatus("pending_review");
+        // 审核页面仅展示待复核记录
+        req.setApprovalStatus("pending_review");
         Page<BenefitDeterminationListResp> page = benefitDeterminationService.selectBenefitDeterminationList(req);
         TableDataInfo rspData = new TableDataInfo();
         rspData.setCode(200);
