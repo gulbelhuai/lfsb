@@ -10,6 +10,14 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
+      <el-form-item label="身份证号" prop="idCardNo">
+        <el-input
+          v-model="queryParams.idCardNo"
+          placeholder="请输入身份证号"
+          clearable
+          @keyup.enter.native="handleQuery"
+        />
+      </el-form-item>
       <el-form-item label="补贴类型" prop="subsidyType">
         <el-select v-model="queryParams.subsidyType" placeholder="请选择补贴类型" clearable>
           <el-option label="失地居民" value="land_loss_resident" />
@@ -240,6 +248,7 @@ export default {
         pageNum: 1,
         pageSize: 10,
         name: null,
+        idCardNo: null,
         subsidyType: null,
         approvalStatus: 'pending_review'
       },
