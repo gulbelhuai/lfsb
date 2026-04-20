@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -28,7 +29,7 @@ public final class ZipPreviewUtils
     public static List<String> extractImages(Path zipFile, Path targetDir, Path profileDir) throws IOException
     {
         Files.createDirectories(targetDir);
-        List<String> relativePaths = new ArrayList<>();
+        Set<String> relativePathSet = new LinkedHashSet<>();
         try (InputStream inputStream = Files.newInputStream(zipFile);
              ZipInputStream zipInputStream = new ZipInputStream(inputStream))
         {
@@ -39,23 +40,28 @@ public final class ZipPreviewUtils
                 {
                     continue;
                 }
-                String fileName = Path.of(entry.getName()).getFileName().toString();
+                String entryName = entry.getName().replace("\\", "/");
+                if (isIgnoredZipEntry(entryName))
+                {
+                    continue;
+                }
+                String fileName = Path.of(entryName).getFileName().toString();
                 String extension = extensionOf(fileName);
                 if (!IMAGE_EXTENSIONS.contains(extension))
                 {
                     continue;
                 }
-                Path resolved = targetDir.resolve(fileName).normalize();
+                Path resolved = targetDir.resolve(entryName).normalize();
                 if (!resolved.startsWith(targetDir.normalize()))
                 {
                     throw new IOException("ZIP 文件包含非法路径");
                 }
                 Files.createDirectories(resolved.getParent());
                 Files.copy(zipInputStream, resolved, StandardCopyOption.REPLACE_EXISTING);
-                relativePaths.add(toResourcePath(profileDir, resolved));
+                relativePathSet.add(toResourcePath(profileDir, resolved));
             }
         }
-        return relativePaths;
+        return new ArrayList<>(relativePathSet);
     }
 
     public static void deleteDirectory(Path path) throws IOException
@@ -93,5 +99,20 @@ public final class ZipPreviewUtils
     {
         String relative = profileDir.normalize().relativize(absolutePath.normalize()).toString().replace("\\", "/");
         return Constants.RESOURCE_PREFIX + "/" + relative;
+    }
+
+    private static boolean isIgnoredZipEntry(String entryName)
+    {
+        if (entryName == null || entryName.isBlank())
+        {
+            return true;
+        }
+        String normalized = entryName.replace("\\", "/");
+        if (normalized.startsWith("__MACOSX/"))
+        {
+            return true;
+        }
+        String fileName = Path.of(normalized).getFileName().toString();
+        return fileName.startsWith("._") || ".DS_Store".equalsIgnoreCase(fileName);
     }
 }

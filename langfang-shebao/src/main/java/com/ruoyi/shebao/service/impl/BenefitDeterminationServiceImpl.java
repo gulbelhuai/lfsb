@@ -109,6 +109,38 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
     {
         BenefitDeterminationDetailResp detail = this.baseMapper.selectBenefitDeterminationDetail(id);
         Assert.notNull(detail, "待遇核定记录不存在");
+        SubsidyPerson person = subsidyPersonMapper.selectById(detail.getSubsidyPersonId());
+        if (person != null)
+        {
+            detail.setGender(person.getGender());
+            detail.setBirthday(person.getBirthday());
+            detail.setHouseholdRegistration(person.getHouseholdRegistration());
+            detail.setHomeAddress(person.getHomeAddress());
+            detail.setPhone(person.getPhone());
+            detail.setSubsidyStatus(person.getSubsidyStatus());
+            detail.setPersonStatus(person.getPersonStatus());
+            if (person.getStreetOfficeId() != null)
+            {
+                StreetOffice streetOffice = streetOfficeMapper.selectById(person.getStreetOfficeId());
+                detail.setStreetOfficeName(streetOffice == null ? null : streetOffice.getStreetName());
+            }
+            if (person.getVillageCommitteeId() != null)
+            {
+                VillageCommittee villageCommittee = villageCommitteeMapper.selectById(person.getVillageCommitteeId());
+                detail.setVillageCommitteeName(villageCommittee == null ? null : villageCommittee.getVillageName());
+            }
+            List<ExpropriateeSubsidy> exList = expropriateeSubsidyMapper.selectBySubsidyPersonId(person.getId());
+            if (!CollectionUtils.isEmpty(exList))
+            {
+                ExpropriateeSubsidy ex = exList.get(0);
+                detail.setJoinUrbanRuralInsurance(ex.getJoinUrbanRuralInsurance());
+                detail.setJoinEmployeePension(ex.getJoinEmployeePension());
+                detail.setHasEmployeePension(ex.getHasEmployeePension());
+                detail.setEmployeePensionMonths(ex.getEmployeePensionMonths());
+                detail.setFlexibleEmploymentMonths(ex.getFlexibleEmploymentMonths());
+                detail.setDifficultySubsidyMonths(ex.getDifficultySubsidyMonths());
+            }
+        }
         BenefitDetermination entity = this.getById(id);
         if (entity != null && StringUtils.isNotBlank(entity.getMaterialImagePaths()))
         {

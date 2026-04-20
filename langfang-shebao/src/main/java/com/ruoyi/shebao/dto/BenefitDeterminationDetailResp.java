@@ -23,6 +23,37 @@ public class BenefitDeterminationDetailResp
 
     private String idCardNo;
 
+    private String gender;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private java.time.LocalDate birthday;
+
+    private String householdRegistration;
+
+    private String homeAddress;
+
+    private String phone;
+
+    private String streetOfficeName;
+
+    private String villageCommitteeName;
+
+    private String subsidyStatus;
+
+    private String personStatus;
+
+    private String joinUrbanRuralInsurance;
+
+    private String joinEmployeePension;
+
+    private String hasEmployeePension;
+
+    private Integer employeePensionMonths;
+
+    private Integer flexibleEmploymentMonths;
+
+    private Integer difficultySubsidyMonths;
+
     private String subsidyType;
 
     private Integer eligibleYear;

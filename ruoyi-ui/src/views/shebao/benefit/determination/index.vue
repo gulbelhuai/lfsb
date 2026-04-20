@@ -34,7 +34,7 @@
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="dataList">
+    <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
       <el-table-column type="index" label="序号" width="50" />
       <el-table-column label="姓名" prop="name" width="100" />
       <el-table-column label="身份证号" prop="idCardNo" min-width="180" />
@@ -111,7 +111,7 @@
 
         <el-card shadow="never" class="mb8" v-if="subsidyRows.length">
           <div slot="header" class="section-title">补贴信息</div>
-          <el-table :data="subsidyRows" border size="mini">
+          <el-table class="rx-table--compact" :data="subsidyRows" border size="mini">
             <el-table-column label="补贴类型" width="120">
               <template slot-scope="scope">{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</template>
             </el-table-column>
@@ -162,7 +162,7 @@
 
         <el-card shadow="never" class="mb8" v-if="subsidyRows.length">
           <div slot="header" class="section-title">待遇信息</div>
-          <el-table :data="benefitRows" border size="mini">
+          <el-table class="rx-table--compact" :data="benefitRows" border size="mini">
             <el-table-column label="补贴类型" width="120">
               <template slot-scope="scope">{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</template>
             </el-table-column>
@@ -191,30 +191,79 @@
       </div>
     </el-dialog>
 
-    <el-dialog title="核定详情" :visible.sync="detailOpen" width="1000px">
-      <el-descriptions :column="2" border v-if="detailData.id">
-        <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
-        <el-descriptions-item label="身份证号">{{ detailData.idCardNo }}</el-descriptions-item>
-        <el-descriptions-item label="发放机构">{{ grantOrgLabel(detailData.grantOrg) }}</el-descriptions-item>
-        <el-descriptions-item label="开户名">{{ detailData.accountName }}</el-descriptions-item>
-        <el-descriptions-item label="与参保人关系">{{ detailData.relationToInsured }}</el-descriptions-item>
-        <el-descriptions-item label="银行账号">{{ detailData.bankAccount }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ detailData.grantRemark }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ detailData.approvalStatus }}</el-descriptions-item>
-        <el-descriptions-item label="材料状态">{{ detailData.materialStatus }}</el-descriptions-item>
-      </el-descriptions>
-      <el-table :data="detailData.items || []" border size="mini" class="mt12">
-        <el-table-column label="补贴类型" width="120">
-          <template slot-scope="scope">{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</template>
-        </el-table-column>
-        <el-table-column label="认定时所在村街" prop="villageStreet" min-width="120" />
-        <el-table-column label="补贴标准" prop="subsidyStandard" width="120" />
-        <el-table-column label="享受开始年月" min-width="120">
-          <template slot-scope="scope">{{ formatStartMonth(scope.row) }}</template>
-        </el-table-column>
-        <el-table-column label="补发月数" prop="benefitMonths" width="100" />
-        <el-table-column label="补发金额" prop="benefitAmount" width="120" />
-      </el-table>
+    <el-dialog title="核定详情" :visible.sync="detailOpen" width="1100px">
+      <el-card shadow="never" class="mb8" v-if="detailData.id">
+        <div slot="header" class="section-title">人员基本信息</div>
+        <el-descriptions :column="3" border size="small">
+          <el-descriptions-item label="姓名">{{ detailData.name || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="性别">{{ detailData.gender === '1' ? '男' : detailData.gender === '2' ? '女' : (detailData.gender || '-') }}</el-descriptions-item>
+          <el-descriptions-item label="出生年月">{{ detailData.birthday || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="用户编号">{{ detailData.userCode || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="身份证号" :span="2">{{ detailData.idCardNo || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="所属街道办">{{ detailData.streetOfficeName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="所属村委会">{{ detailData.villageCommitteeName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ detailData.phone || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="户籍所在地" :span="3">{{ detailData.householdRegistration || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="家庭住址" :span="3">{{ detailData.homeAddress || '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </el-card>
+
+      <el-card shadow="never" class="mb8" v-if="detailData.id">
+        <div slot="header" class="section-title">社保信息</div>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="参保状态">{{ detailData.subsidyStatus || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="人员状态">{{ detailData.personStatus || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="参加城乡居保">{{ ynLabel(detailData.joinUrbanRuralInsurance) }}</el-descriptions-item>
+          <el-descriptions-item label="参加职工养老">{{ ynLabel(detailData.joinEmployeePension) }}</el-descriptions-item>
+          <el-descriptions-item label="已领职工养老待遇">{{ ynLabel(detailData.hasEmployeePension) }}</el-descriptions-item>
+          <el-descriptions-item label="职工养老月数">{{ detailData.employeePensionMonths !== null && detailData.employeePensionMonths !== undefined ? detailData.employeePensionMonths : '-' }}</el-descriptions-item>
+          <el-descriptions-item label="灵活就业养老月数">{{ detailData.flexibleEmploymentMonths !== null && detailData.flexibleEmploymentMonths !== undefined ? detailData.flexibleEmploymentMonths : '-' }}</el-descriptions-item>
+          <el-descriptions-item label="困难补贴月数">{{ detailData.difficultySubsidyMonths !== null && detailData.difficultySubsidyMonths !== undefined ? detailData.difficultySubsidyMonths : '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </el-card>
+
+      <el-card shadow="never" class="mb8" v-if="detailData.id">
+        <div slot="header" class="section-title">发放方式</div>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="发放机构">{{ grantOrgLabel(detailData.grantOrg) || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="开户名">{{ detailData.accountName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="与参保人关系">{{ detailData.relationToInsured || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="银行账号">{{ detailData.bankAccount || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ detailData.grantRemark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </el-card>
+
+      <el-card shadow="never" class="mb8" v-if="(detailData.items || []).length">
+        <div slot="header" class="section-title">补贴与待遇信息</div>
+        <el-table class="rx-table--compact" :data="detailData.items || []" border size="mini">
+          <el-table-column label="补贴类型" width="120">
+            <template slot-scope="scope">{{ getSubsidyTypeLabel(scope.row.subsidyType) }}</template>
+          </el-table-column>
+          <el-table-column label="认定时所在村街" prop="villageStreet" min-width="120" />
+          <el-table-column label="征地/拆迁时间" prop="eventDate" width="120" />
+          <el-table-column label="补贴标准" prop="subsidyStandard" width="120" />
+          <el-table-column label="享受开始年月" min-width="120">
+            <template slot-scope="scope">{{ formatStartMonth(scope.row) || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="补发月数" prop="benefitMonths" width="100" />
+          <el-table-column label="补发金额" prop="benefitAmount" width="120" />
+        </el-table>
+      </el-card>
+
+      <el-card shadow="never" class="mb8" v-if="detailData.id">
+        <div slot="header" class="section-title">审批信息</div>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="审批状态">{{ approvalStatusLabel(detailData.approvalStatus) }}</el-descriptions-item>
+          <el-descriptions-item label="材料状态">{{ materialStatusLabel(detailData.materialStatus) }}</el-descriptions-item>
+          <el-descriptions-item label="到龄年月">{{ formatEligibleMonth(detailData) }}</el-descriptions-item>
+          <el-descriptions-item label="提交时间">{{ detailData.submitTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="提交人">{{ detailData.submitBy || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="复核时间">{{ detailData.reviewTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="复核人">{{ detailData.reviewBy || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="复核意见" :span="2">{{ detailData.reviewRemark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </el-card>
+
       <div class="mt12" v-if="detailData.materialImagePaths && detailData.materialImagePaths.length">
         <div class="section-title">证明材料预览</div>
         <div class="preview-list">
@@ -456,6 +505,25 @@ export default {
     handleAttachmentRemove() {
       this.selectedAttachment = null
       this.attachmentFileList = []
+    },
+    approvalStatusLabel(status) {
+      return {
+        draft: '待录入',
+        pending_review: '待复核',
+        approved: '已通过',
+        rejected: '已驳回'
+      }[status] || status || '-'
+    },
+    materialStatusLabel(status) {
+      return {
+        pending_upload: '待上传',
+        uploaded: '已上传',
+        verified: '已核验'
+      }[status] || status || '-'
+    },
+    formatEligibleMonth(row) {
+      if (!row || !row.eligibleYear || !row.eligibleMonth) return '-'
+      return `${row.eligibleYear}-${String(row.eligibleMonth).padStart(2, '0')}`
     },
     grantOrgLabel(val) {
       return selectDictLabel(this.dict.type.shebao_grant_org || [], val)
