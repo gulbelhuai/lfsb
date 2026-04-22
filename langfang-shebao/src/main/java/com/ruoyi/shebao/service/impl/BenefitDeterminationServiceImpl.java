@@ -536,6 +536,12 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         List<VillageOfficial> voList = villageOfficialMapper.selectBySubsidyPersonId(person.getId());
         validateSubsidyReviewStatus(person, landList, demoList, voList);
 
+        boolean existsDetermination = this.lambdaQuery()
+                .eq(BenefitDetermination::getDelFlag, "0")
+                .and(w -> w.eq(BenefitDetermination::getSubsidyPersonId, person.getId())
+                        .or()
+                        .eq(BenefitDetermination::getIdCardNo, idCardNo))
+                .count() > 0;
         boolean approvedDetermination = this.lambdaQuery()
                 .eq(BenefitDetermination::getSubsidyPersonId, person.getId())
                 .eq(BenefitDetermination::getApprovalStatus, "approved")
@@ -545,9 +551,11 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
                 && !"0".equals(person.getPersonStatus().trim());
 
         BenefitDeterminationPrepareResp resp = new BenefitDeterminationPrepareResp();
-        boolean already = approvedDetermination || personBenefitActive;
+        boolean already = existsDetermination || approvedDetermination || personBenefitActive;
         resp.setAlreadyDetermined(already);
-        resp.setAlreadyDeterminedMsg(already ? "人员待遇已核定" : null);
+        resp.setAlreadyDeterminedMsg(already
+                ? (existsDetermination ? "已有待遇核定记录" : "人员待遇已核定")
+                : null);
 
         BenefitDeterminationPrepareResp.PersonInfo personInfo = new BenefitDeterminationPrepareResp.PersonInfo();
         personInfo.setSubsidyPersonId(person.getId());
@@ -669,6 +677,16 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         }
         else
         {
+            long existed = this.lambdaQuery()
+                    .eq(BenefitDetermination::getDelFlag, "0")
+                    .and(w -> w.eq(BenefitDetermination::getSubsidyPersonId, req.getSubsidyPersonId())
+                            .or()
+                            .eq(BenefitDetermination::getIdCardNo, req.getIdCardNo()))
+                    .count();
+            if (existed > 0)
+            {
+                throw new ServiceException("已有待遇核定记录");
+            }
             determination = new BenefitDetermination();
             determination.setApprovalStatus("draft");
             determination.setDelFlag("0");
