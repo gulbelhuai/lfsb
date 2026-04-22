@@ -11,6 +11,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="idCardNo" column="id_card_no"/>
         <result property="userCode" column="user_code"/>
         <result property="subsidyType" column="subsidy_type"/>
+        <result property="grantOrg" column="grant_org"/>
+        <result property="accountName" column="account_name"/>
+        <result property="relationToInsured" column="relation_to_insured"/>
         <result property="bankAccount" column="bank_account"/>
         <result property="approvalStatus" column="approval_status"/>
         <result property="materialStatus" column="material_status"/>
@@ -45,6 +48,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectBenefitDeterminationPage" resultMap="BenefitDeterminationPageResult">
         select bd.id, bd.subsidy_person_id,
+               bd.grant_org, bd.account_name, bd.relation_to_insured,
                bd.bank_account, bd.approval_status, bd.material_status, bd.payment_plan_generated,
                bd.submit_by, bd.submit_time, bd.create_time,
                coalesce(bd.id_card_no, sp.id_card_no) as id_card_no,
@@ -80,7 +84,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <if test="req.materialStatus != null and req.materialStatus != ''">
             and bd.material_status = #{req.materialStatus}
         </if>
-        group by bd.id, bd.subsidy_person_id, bd.bank_account, bd.approval_status, bd.material_status, bd.payment_plan_generated,
+        group by bd.id, bd.subsidy_person_id, bd.grant_org, bd.account_name, bd.relation_to_insured, bd.bank_account, bd.approval_status, bd.material_status, bd.payment_plan_generated,
                  bd.submit_by, bd.submit_time, bd.create_time, coalesce(bd.id_card_no, sp.id_card_no), sp.name, sp.user_code
         order by bd.create_time desc, bd.id desc
     </select>

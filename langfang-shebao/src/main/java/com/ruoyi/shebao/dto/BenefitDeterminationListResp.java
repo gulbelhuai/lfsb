@@ -33,6 +33,15 @@ public class BenefitDeterminationListResp
     /** 补贴类型 */
     private String subsidyType;
 
+    /** 发放机构 */
+    private String grantOrg;
+
+    /** 开户名 */
+    private String accountName;
+
+    /** 与参保人关系 */
+    private String relationToInsured;
+
     /** 到龄年月 */
     @JsonFormat(pattern = "yyyy-MM")
     private Date eligibleMonth;
