@@ -755,6 +755,8 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         item.setBenefitStartMonth(startYm.getMonthValue());
         item.setBenefitMonths(months);
         item.setBenefitAmount(amount);
+        item.setBenefitStatus("0");
+        item.setPauseStartMonth(null);
         item.setDelFlag("0");
         item.setCreateBy(SecurityUtils.getUsername());
         item.setCreateTime(java.time.LocalDateTime.now());

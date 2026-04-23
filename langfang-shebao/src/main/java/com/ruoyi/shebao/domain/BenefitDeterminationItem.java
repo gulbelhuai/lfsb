@@ -1,11 +1,13 @@
 package com.ruoyi.shebao.domain;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.common.core.domain.BaseDomain;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * 待遇核定明细（每种补贴一行）
@@ -41,5 +43,12 @@ public class BenefitDeterminationItem extends BaseDomain
 
     /** 补发金额 */
     private BigDecimal benefitAmount;
+
+    /** 待遇状态（0正常 1暂停） */
+    private String benefitStatus;
+
+    /** 暂停开始年月 */
+    @JsonFormat(pattern = "yyyy-MM")
+    private Date pauseStartMonth;
 }
 

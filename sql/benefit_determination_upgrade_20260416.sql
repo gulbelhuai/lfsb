@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS `benefit_determination_item` (
   `benefit_start_month` int DEFAULT NULL COMMENT '享受开始月',
   `benefit_months` int DEFAULT '0' COMMENT '补发月数',
   `benefit_amount` decimal(12,2) DEFAULT '0.00' COMMENT '补发金额',
+  `benefit_status` char(1) DEFAULT '0' COMMENT '待遇状态（0正常 1暂停）',
+  `pause_start_month` date DEFAULT NULL COMMENT '暂停开始年月',
   `del_flag` char(1) DEFAULT '0' COMMENT '删除标志(0正常 2删除)',
   `create_by` varchar(64) DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,

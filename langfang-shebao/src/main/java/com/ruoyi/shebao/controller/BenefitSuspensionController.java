@@ -1,14 +1,15 @@
 package com.ruoyi.shebao.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
-import com.ruoyi.shebao.dto.LandLossResidentListReq;
-import com.ruoyi.shebao.dto.LandLossResidentListResp;
-import com.ruoyi.shebao.service.LandLossResidentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.ruoyi.shebao.dto.BenefitSuspensionCreateReq;
+import com.ruoyi.shebao.dto.BenefitSuspensionListReq;
+import com.ruoyi.shebao.service.BenefitSuspensionService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,63 +21,60 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/shebao/management/suspension")
+@RequiredArgsConstructor
 public class BenefitSuspensionController extends BaseController
 {
-    @Autowired
-    private LandLossResidentService landLossResidentService;
+    private final BenefitSuspensionService benefitSuspensionService;
 
     /**
-     * 查询人员列表（用于暂停/恢复）
+     * 查询待遇暂停记录列表
      */
     @PreAuthorize("@ss.hasPermi('shebao:management:suspension:list')")
     @GetMapping("/list")
-    public AjaxResult list(LandLossResidentListReq req)
+    public TableDataInfo list(BenefitSuspensionListReq req)
     {
-        // 设置分页参数默认值
         if (req.getPageNum() == null) {
             req.setPageNum(1);
         }
         if (req.getPageSize() == null) {
             req.setPageSize(10);
         }
-        Page<LandLossResidentListResp> page = landLossResidentService.selectLandLossResidentList(req);
-        return AjaxResult.success(page);
+        var page = benefitSuspensionService.list(req);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setRows(page.getRecords());
+        rsp.setTotal(page.getTotal());
+        return rsp;
     }
 
     /**
-     * 暂停待遇
+     * 按身份证查询待遇人员（仅已通过待遇核定）
      */
-    @PreAuthorize("@ss.hasPermi('shebao:management:suspension:suspend')")
-    @Log(title = "待遇暂停", businessType = BusinessType.UPDATE)
-    @PostMapping("/suspend/{id}")
-    public AjaxResult suspend(@PathVariable Long id,
-                             @RequestParam String reason,
-                             @RequestParam(required = false) String startDate,
-                             @RequestParam(required = false) String endDate)
+    @PreAuthorize("@ss.hasPermi('shebao:management:suspension:add')")
+    @GetMapping("/candidate")
+    public AjaxResult candidate(@RequestParam String idCardNo)
     {
-        // TODO: 实现待遇暂停逻辑
-        return AjaxResult.success("待遇已暂停");
+        return AjaxResult.success(benefitSuspensionService.findCandidateByIdCardNo(idCardNo));
     }
 
     /**
-     * 恢复待遇
+     * 新增待遇暂停记录
      */
-    @PreAuthorize("@ss.hasPermi('shebao:management:suspension:resume')")
-    @Log(title = "待遇恢复", businessType = BusinessType.UPDATE)
-    @PostMapping("/resume/{id}")
-    public AjaxResult resume(@PathVariable Long id, @RequestParam(required = false) String remark)
+    @PreAuthorize("@ss.hasPermi('shebao:management:suspension:add')")
+    @Log(title = "待遇暂停", businessType = BusinessType.INSERT)
+    @PostMapping("/pause")
+    public AjaxResult pause(@Valid @RequestBody BenefitSuspensionCreateReq req)
     {
-        // TODO: 实现待遇恢复逻辑
-        return AjaxResult.success("待遇已恢复");
+        return AjaxResult.success(benefitSuspensionService.create(req));
     }
 
     /**
-     * 获取暂停记录
+     * 获取待遇暂停详情
      */
     @PreAuthorize("@ss.hasPermi('shebao:management:suspension:query')")
     @GetMapping("/{id}")
     public AjaxResult getInfo(@PathVariable Long id)
     {
-        return AjaxResult.success(landLossResidentService.selectLandLossResidentFormById(id));
+        return AjaxResult.success(benefitSuspensionService.getDetail(id));
     }
 }
