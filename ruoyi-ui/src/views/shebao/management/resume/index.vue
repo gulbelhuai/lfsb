@@ -26,7 +26,7 @@
       </el-col>
     </el-row>
 
-    <el-table v-loading="loading" :data="dataList">
+    <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
       <el-table-column type="index" label="序号" width="50" />
       <el-table-column label="姓名" prop="name" />
       <el-table-column label="身份证号" prop="idCardNo" width="180" />
@@ -65,7 +65,7 @@
         </el-descriptions>
 
         <div class="section-title">待遇恢复</div>
-        <el-table :data="editResumeItems" border size="small">
+        <el-table class="rx-table--compact" :data="editResumeItems" border size="small">
           <el-table-column label="补贴类型" min-width="130">
             <template slot-scope="scope">{{ subsidyTypeLabel(scope.row.subsidyType) }}</template>
           </el-table-column>
@@ -133,14 +133,15 @@
 
     <el-dialog title="待遇恢复详情" :visible.sync="detailOpen" width="1100px" append-to-body>
       <div v-if="detailData.id">
-        <el-descriptions title="基本信息" :column="3" border size="small">
+        <el-descriptions title="基本信息" :column="2" border size="small">
           <el-descriptions-item label="姓名">{{ detailData.name }}</el-descriptions-item>
+          <el-descriptions-item label="身份证号">{{ detailData.idCardNo || '-' }}</el-descriptions-item>
           <el-descriptions-item label="街道">{{ detailData.streetOfficeName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="村委会">{{ detailData.villageCommitteeName || '-' }}</el-descriptions-item>
         </el-descriptions>
 
         <div class="section-title">待遇恢复</div>
-        <el-table :data="detailData.resumeItems || []" border size="small">
+        <el-table class="rx-table--compact" :data="detailData.resumeItems || []" border size="small">
           <el-table-column label="补贴类型" min-width="130">
             <template slot-scope="scope">{{ subsidyTypeLabel(scope.row.subsidyType) }}</template>
           </el-table-column>
