@@ -119,15 +119,23 @@ export default {
       meta: { title: '发放信息修改', icon: 'edit' },
       hidden: false
     },
-    // 3.2 待遇暂停/恢复
+    // 3.2 待遇暂停
     {
       path: 'management/suspension',
       component: () => import('@/views/shebao/management/suspension/index'),
       name: 'BenefitSuspension',
-      meta: { title: '待遇暂停/恢复', icon: 'lock' },
+      meta: { title: '待遇暂停', icon: 'lock' },
       hidden: false
     },
-    // 3.3 待遇认证
+    // 3.3 待遇恢复
+    {
+      path: 'management/resume',
+      component: () => import('@/views/shebao/management/resume/index'),
+      name: 'BenefitResume',
+      meta: { title: '待遇恢复', icon: 'unlock' },
+      hidden: false
+    },
+    // 3.4 待遇认证
     {
       path: 'management/certification',
       component: () => import('@/views/shebao/management/certification/index'),
