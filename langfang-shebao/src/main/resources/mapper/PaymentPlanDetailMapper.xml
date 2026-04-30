@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.PaymentPlanDetailMapper">
+
+    <insert id="batchInsert">
+        insert into shebao_payment_plan_detail
+        (plan_id, determination_id, determination_item_id, subsidy_type, street_name, village_name,
+         person_name, id_card_no, business_period, payment_month, distribution_amount, grant_org,
+         account_name, bank_account, relation_to_insured, del_flag, create_by, create_time, update_by, update_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.planId}, #{item.determinationId}, #{item.determinationItemId}, #{item.subsidyType}, #{item.streetName}, #{item.villageName},
+             #{item.personName}, #{item.idCardNo}, #{item.businessPeriod}, #{item.paymentMonth}, #{item.distributionAmount}, #{item.grantOrg},
+             #{item.accountName}, #{item.bankAccount}, #{item.relationToInsured}, #{item.delFlag}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <select id="selectByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
+        select d.id,
+               d.plan_id,
+               d.determination_id,
+               d.determination_item_id,
+               d.subsidy_type,
+               d.street_name,
+               d.village_name,
+               d.person_name,
+               d.id_card_no,
+               date_format(d.business_period, '%Y-%m') as business_period,
+               d.payment_month,
+               d.distribution_amount,
+               d.grant_org,
+               d.account_name,
+               d.bank_account,
+               d.relation_to_insured
+        from shebao_payment_plan_detail d
+        where d.plan_id = #{planId}
+          and d.del_flag = '0'
+        order by d.id asc
+    </select>
+
+    <select id="selectPreviewDetails" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
+        select null as id,
+               null as plan_id,
+               bd.id as determination_id,
+               bdi.id as determination_item_id,
+               bdi.subsidy_type,
+               sso.street_name,
+               svc.village_name,
+               sp.name as person_name,
+               coalesce(bd.id_card_no, sp.id_card_no) as id_card_no,
+               date_format(#{businessPeriod}, '%Y-%m') as business_period,
+               case when bdi.benefit_start_year is not null and bdi.benefit_start_month is not null
+                    then concat(bdi.benefit_start_year, '-', lpad(bdi.benefit_start_month, 2, '0'))
+                    else null end as payment_month,
+               ifnull(bdi.subsidy_standard, 0) as distribution_amount,
+               bd.grant_org,
+               bd.account_name,
+               bd.bank_account,
+               bd.relation_to_insured
+        from benefit_determination_item bdi
+                 left join benefit_determination bd on bdi.determination_id = bd.id
+                 left join shebao_subsidy_person sp on bd.subsidy_person_id = sp.id
+                 left join shebao_street_office sso on sp.street_office_id = sso.id
+                 left join shebao_village_committee svc on sp.village_committee_id = svc.id
+        where bd.del_flag = '0'
+          and bdi.del_flag = '0'
+          and bd.approval_status = 'approved'
+          and ifnull(bdi.benefit_status, '0') = '0'
+          and not exists (
+                select 1
+                from shebao_payment_plan_detail pd
+                         left join shebao_payment_plan pp on pd.plan_id = pp.id and pp.del_flag = '0'
+                where pd.determination_item_id = bdi.id
+                  and pd.business_period = #{businessPeriod}
+                  and pd.del_flag = '0'
+          )
+        order by bdi.id asc
+    </select>
+</mapper>

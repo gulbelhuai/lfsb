@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.PaymentPlanSummaryMapper">
+
+    <insert id="batchInsert">
+        insert into shebao_payment_plan_summary
+        (plan_id, business_period, subsidy_type, grant_org, total_count, total_amount, del_flag,
+         create_by, create_time, update_by, update_time, remark)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.planId}, #{item.businessPeriod}, #{item.subsidyType}, #{item.grantOrg}, #{item.totalCount}, #{item.totalAmount}, #{item.delFlag},
+             #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <select id="selectByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanSummaryResp">
+        select s.id,
+               s.plan_id,
+               date_format(s.business_period, '%Y-%m') as business_period,
+               s.subsidy_type,
+               s.grant_org,
+               s.total_count,
+               s.total_amount
+        from shebao_payment_plan_summary s
+        where s.plan_id = #{planId}
+          and s.del_flag = '0'
+        order by s.subsidy_type asc, s.grant_org asc, s.id asc
+    </select>
+</mapper>

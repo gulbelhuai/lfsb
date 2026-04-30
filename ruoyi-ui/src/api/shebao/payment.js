@@ -18,22 +18,34 @@ export function generatePaymentPlan(data) {
   })
 }
 
-// 删除支付计划
-export function deletePaymentPlan(ids) {
+// 预览支付计划
+export function previewPaymentPlan(data) {
   return request({
-    url: '/shebao/payment/plan/' + ids,
-    method: 'delete'
-  })
-}
-
-// 获取支付计划统计
-export function getPaymentStatistics(data) {
-  return request({
-    url: '/shebao/payment/plan/statistics',
+    url: '/shebao/payment/plan/preview',
     method: 'post',
     data: data
   })
 }
+
+// 汇总详情
+export function getPaymentPlanSummary(id) {
+  return request({
+    url: `/shebao/payment/plan/${id}/summary`,
+    method: 'get'
+  })
+}
+
+// 明细详情
+export function getPaymentPlanDetail(id, query) {
+  return request({
+    url: `/shebao/payment/plan/${id}/detail`,
+    method: 'get',
+    params: query
+  })
+}
+
+// 兼容旧方法名
+export const getPaymentStatistics = previewPaymentPlan
 
 // 创建发放批次
 export function createBatch(data) {

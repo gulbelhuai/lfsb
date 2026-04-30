@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.PaymentPlanMapper">
+    <select id="selectPaymentPlanList" resultType="com.ruoyi.shebao.dto.PaymentPlanListResp">
+        select p.id,
+               p.determination_type,
+               date_format(p.business_period, '%Y-%m') as business_period,
+               p.total_count,
+               p.total_amount,
+               p.operator_name,
+               p.operator_time,
+               p.approval_status
+        from shebao_payment_plan p
+        where p.del_flag = '0'
+        <if test="req.determinationType != null and req.determinationType != ''">
+            and p.determination_type = #{req.determinationType}
+        </if>
+        <if test="req.approvalStatus != null and req.approvalStatus != ''">
+            and p.approval_status = #{req.approvalStatus}
+        </if>
+        <if test="req.operatorName != null and req.operatorName != ''">
+            and p.operator_name like concat('%', #{req.operatorName}, '%')
+        </if>
+        <if test="req.businessPeriodDate != null">
+            and p.business_period = #{req.businessPeriodDate}
+        </if>
+        order by p.create_time desc, p.id desc
+    </select>
+</mapper>
