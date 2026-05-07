@@ -12,8 +12,11 @@ public interface PaymentPlanService
     PaymentPlanPreviewResp preview(PaymentPlanPreviewReq req);
 
     Long generate(PaymentPlanGenerateReq req);
+    Long saveOrSubmit(PaymentPlanGenerateReq req);
+    int changeStatus(Long planId, PaymentPlanStatusChangeReq req);
 
     List<PaymentPlanSummaryResp> selectSummaryByPlanId(Long planId);
+    List<PaymentPlanAuditResp> selectAuditByPlanId(Long planId);
 
     Page<PaymentPlanDetailResp> selectDetailByPlanId(Long planId, Integer pageNum, Integer pageSize);
 }

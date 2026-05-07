@@ -96,4 +96,36 @@ public class PaymentPlanController extends BaseController
     {
         return AjaxResult.success("操作成功", paymentPlanService.generate(req));
     }
+
+    /**
+     * 保存或提交
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:generate')")
+    @Log(title = "支付计划", businessType = BusinessType.UPDATE)
+    @PostMapping("/save")
+    public AjaxResult save(@RequestBody PaymentPlanGenerateReq req)
+    {
+        return AjaxResult.success("操作成功", paymentPlanService.saveOrSubmit(req));
+    }
+
+    /**
+     * 状态变更（提交/撤回）
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:generate')")
+    @Log(title = "支付计划状态变更", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/status")
+    public AjaxResult changeStatus(@PathVariable("id") Long id, @RequestBody PaymentPlanStatusChangeReq req)
+    {
+        return toAjax(paymentPlanService.changeStatus(id, req));
+    }
+
+    /**
+     * 详情-审核记录
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:query')")
+    @GetMapping(value = "/{id}/audit")
+    public AjaxResult getAudit(@PathVariable("id") Long id)
+    {
+        return AjaxResult.success(paymentPlanService.selectAuditByPlanId(id));
+    }
 }

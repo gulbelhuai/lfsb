@@ -13,6 +13,10 @@
         </foreach>
     </insert>
 
+    <delete id="deleteByPlanId">
+        delete from shebao_payment_plan_summary where plan_id = #{planId}
+    </delete>
+
     <select id="selectByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanSummaryResp">
         select s.id,
                s.plan_id,

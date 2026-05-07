@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.shebao.domain.PaymentPlan;
+import com.ruoyi.shebao.domain.PaymentPlanAudit;
 import com.ruoyi.shebao.domain.PaymentPlanDetail;
 import com.ruoyi.shebao.domain.PaymentPlanSummary;
 import com.ruoyi.shebao.dto.*;
+import com.ruoyi.shebao.mapper.PaymentPlanAuditMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanSummaryMapper;
@@ -27,6 +29,13 @@ import java.util.stream.Collectors;
 public class PaymentPlanServiceImpl implements PaymentPlanService
 {
     private static final String TYPE_NORMAL = "normal";
+    private static final String STATUS_DRAFT = "draft";
+    private static final String STATUS_PENDING_REVIEW = "pending_review";
+    private static final String STATUS_PENDING_APPROVE = "pending_approve";
+    private static final String STATUS_APPROVED = "approved";
+    private static final String STATUS_REVIEW_REJECTED = "review_rejected";
+    private static final String STATUS_APPROVE_REJECTED = "approve_rejected";
+    private static final Set<String> SUBMIT_ALLOWED = Set.of(STATUS_DRAFT, STATUS_REVIEW_REJECTED, STATUS_APPROVE_REJECTED);
 
     @Autowired
     private PaymentPlanMapper paymentPlanMapper;
@@ -34,6 +43,8 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private PaymentPlanSummaryMapper paymentPlanSummaryMapper;
     @Autowired
     private PaymentPlanDetailMapper paymentPlanDetailMapper;
+    @Autowired
+    private PaymentPlanAuditMapper paymentPlanAuditMapper;
 
     @Override
     public Page<PaymentPlanListResp> selectPaymentPlanList(PaymentPlanListReq req)
@@ -62,6 +73,14 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     @Transactional(rollbackFor = Exception.class)
     public Long generate(PaymentPlanGenerateReq req)
     {
+        req.setTargetStatus(STATUS_PENDING_REVIEW);
+        return saveOrSubmit(req);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long saveOrSubmit(PaymentPlanGenerateReq req)
+    {
         PaymentPlanPreviewReq previewReq = new PaymentPlanPreviewReq();
         BeanUtils.copyProperties(req, previewReq);
         PaymentPlanPreviewResp preview = preview(previewReq);
@@ -71,29 +90,58 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         }
         if (preview.getDetailList().isEmpty())
         {
-            throw new ServiceException("没有可生成的支付计划数据");
+            throw new ServiceException("没有可保存的支付计划数据");
         }
         LocalDate period = parseBusinessPeriod(req.getBusinessPeriod());
         Date now = new Date();
         String operatorName = resolveOperatorName();
+        String username = SecurityUtils.getUsername();
+        String targetStatus = normalizeTargetStatus(req.getTargetStatus());
 
-        PaymentPlan plan = new PaymentPlan();
-        plan.setDeterminationType(req.getDeterminationType());
-        plan.setBusinessPeriod(period);
+        PaymentPlan plan = req.getPlanId() == null ? null : paymentPlanMapper.selectById(req.getPlanId());
+        String previousStatus = null;
+        if (plan == null)
+        {
+            plan = new PaymentPlan();
+            plan.setDeterminationType(req.getDeterminationType());
+            plan.setBusinessPeriod(period);
+            plan.setDelFlag("0");
+            plan.setCreateBy(username);
+            plan.setCreateTime(now);
+            previousStatus = null;
+        }
+        else
+        {
+            previousStatus = plan.getApprovalStatus();
+            if (!SUBMIT_ALLOWED.contains(previousStatus))
+            {
+                throw new ServiceException("当前状态不允许保存或提交");
+            }
+            if (!Objects.equals(plan.getBusinessPeriod(), period) || !Objects.equals(plan.getDeterminationType(), req.getDeterminationType()))
+            {
+                throw new ServiceException("仅支持在原业务期和核定方式下重算保存");
+            }
+        }
+
         plan.setTotalCount(preview.getTotalCount());
         plan.setTotalAmount(preview.getTotalAmount());
         plan.setOperatorName(operatorName);
         plan.setOperatorTime(now);
-        plan.setApprovalStatus("pending_review");
-        plan.setDelFlag("0");
-        plan.setCreateBy(SecurityUtils.getUsername());
-        plan.setCreateTime(now);
-        plan.setUpdateBy(SecurityUtils.getUsername());
+        plan.setApprovalStatus(targetStatus);
+        plan.setUpdateBy(username);
         plan.setUpdateTime(now);
-        paymentPlanMapper.insert(plan);
-
-        List<PaymentPlanSummary> summaryRows = preview.getSummaryList().stream().map(item ->
+        if (plan.getId() == null)
         {
+            paymentPlanMapper.insert(plan);
+        }
+        else
+        {
+            paymentPlanMapper.updateById(plan);
+            paymentPlanSummaryMapper.deleteByPlanId(plan.getId());
+            paymentPlanDetailMapper.deleteByPlanId(plan.getId());
+        }
+
+        List<PaymentPlanSummary> summaryRows = preview.getSummaryList().stream().map(item -> {
             PaymentPlanSummary row = new PaymentPlanSummary();
             row.setPlanId(plan.getId());
             row.setBusinessPeriod(period);
@@ -102,9 +150,9 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setTotalCount(item.getTotalCount());
             row.setTotalAmount(item.getTotalAmount());
             row.setDelFlag("0");
-            row.setCreateBy(SecurityUtils.getUsername());
+            row.setCreateBy(username);
             row.setCreateTime(now);
-            row.setUpdateBy(SecurityUtils.getUsername());
+            row.setUpdateBy(username);
             row.setUpdateTime(now);
             return row;
         }).toList();
@@ -113,8 +161,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             paymentPlanSummaryMapper.batchInsert(summaryRows);
         }
 
-        List<PaymentPlanDetail> detailRows = preview.getDetailList().stream().map(item ->
-        {
+        List<PaymentPlanDetail> detailRows = preview.getDetailList().stream().map(item -> {
             PaymentPlanDetail row = new PaymentPlanDetail();
             row.setPlanId(plan.getId());
             row.setDeterminationId(item.getDeterminationId());
@@ -132,9 +179,9 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setBankAccount(item.getBankAccount());
             row.setRelationToInsured(item.getRelationToInsured());
             row.setDelFlag("0");
-            row.setCreateBy(SecurityUtils.getUsername());
+            row.setCreateBy(username);
             row.setCreateTime(now);
-            row.setUpdateBy(SecurityUtils.getUsername());
+            row.setUpdateBy(username);
             row.setUpdateTime(now);
             return row;
         }).toList();
@@ -142,13 +189,64 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         {
             paymentPlanDetailMapper.batchInsert(detailRows);
         }
+
+        if (!Objects.equals(previousStatus, targetStatus) && STATUS_PENDING_REVIEW.equals(targetStatus))
+        {
+            insertAudit(plan.getId(), targetStatus, req.getRemark());
+        }
         return plan.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int changeStatus(Long planId, PaymentPlanStatusChangeReq req)
+    {
+        PaymentPlan plan = paymentPlanMapper.selectById(planId);
+        if (plan == null || !"0".equals(plan.getDelFlag()))
+        {
+            throw new ServiceException("支付计划不存在");
+        }
+        String target = normalizeChangeStatus(req.getTargetStatus());
+        String current = plan.getApprovalStatus();
+        if (STATUS_PENDING_REVIEW.equals(target))
+        {
+            if (!SUBMIT_ALLOWED.contains(current))
+            {
+                throw new ServiceException("当前状态不可提交");
+            }
+        }
+        else if (STATUS_DRAFT.equals(target))
+        {
+            if (!STATUS_PENDING_REVIEW.equals(current))
+            {
+                throw new ServiceException("仅待复核状态支持撤回");
+            }
+        }
+        else
+        {
+            throw new ServiceException("不支持的状态变更");
+        }
+        plan.setApprovalStatus(target);
+        plan.setUpdateBy(SecurityUtils.getUsername());
+        plan.setUpdateTime(new Date());
+        int updated = paymentPlanMapper.updateById(plan);
+        if (updated > 0)
+        {
+            insertAudit(planId, target, req.getRemark());
+        }
+        return updated;
     }
 
     @Override
     public List<PaymentPlanSummaryResp> selectSummaryByPlanId(Long planId)
     {
         return paymentPlanSummaryMapper.selectByPlanId(planId);
+    }
+
+    @Override
+    public List<PaymentPlanAuditResp> selectAuditByPlanId(Long planId)
+    {
+        return paymentPlanAuditMapper.selectByPlanId(planId);
     }
 
     @Override
@@ -239,5 +337,43 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             // 回退到用户名
         }
         return SecurityUtils.getUsername();
+    }
+
+    private String normalizeTargetStatus(String status)
+    {
+        if (status == null || status.isBlank() || STATUS_DRAFT.equals(status))
+        {
+            return STATUS_DRAFT;
+        }
+        if (STATUS_PENDING_REVIEW.equals(status))
+        {
+            return STATUS_PENDING_REVIEW;
+        }
+        throw new ServiceException("targetStatus仅支持draft或pending_review");
+    }
+
+    private String normalizeChangeStatus(String status)
+    {
+        if (STATUS_PENDING_REVIEW.equals(status) || STATUS_DRAFT.equals(status))
+        {
+            return status;
+        }
+        throw new ServiceException("仅支持提交为待复核或撤回为草稿");
+    }
+
+    private void insertAudit(Long planId, String status, String remark)
+    {
+        PaymentPlanAudit audit = new PaymentPlanAudit();
+        audit.setPlanId(planId);
+        audit.setOperationStatus(status);
+        audit.setOperatorName(resolveOperatorName());
+        audit.setOperationTime(new Date());
+        audit.setRemark(remark);
+        audit.setDelFlag("0");
+        audit.setCreateBy(SecurityUtils.getUsername());
+        audit.setCreateTime(new Date());
+        audit.setUpdateBy(SecurityUtils.getUsername());
+        audit.setUpdateTime(new Date());
+        paymentPlanAuditMapper.insert(audit);
     }
 }

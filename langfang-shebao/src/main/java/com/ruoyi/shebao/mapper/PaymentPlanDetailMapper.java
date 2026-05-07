@@ -14,6 +14,7 @@ import java.util.List;
 public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
 {
     int batchInsert(@Param("list") List<PaymentPlanDetail> list);
+    int deleteByPlanId(@Param("planId") Long planId);
 
     Page<PaymentPlanDetailResp> selectByPlanId(Page<PaymentPlanDetailResp> page, @Param("planId") Long planId);
 

@@ -18,6 +18,15 @@ export function generatePaymentPlan(data) {
   })
 }
 
+// 保存/提交支付计划
+export function savePaymentPlan(data) {
+  return request({
+    url: '/shebao/payment/plan/save',
+    method: 'post',
+    data: data
+  })
+}
+
 // 预览支付计划
 export function previewPaymentPlan(data) {
   return request({
@@ -41,6 +50,23 @@ export function getPaymentPlanDetail(id, query) {
     url: `/shebao/payment/plan/${id}/detail`,
     method: 'get',
     params: query
+  })
+}
+
+// 审核记录
+export function getPaymentPlanAudit(id) {
+  return request({
+    url: `/shebao/payment/plan/${id}/audit`,
+    method: 'get'
+  })
+}
+
+// 状态变更（提交/撤回）
+export function changePaymentPlanStatus(id, data) {
+  return request({
+    url: `/shebao/payment/plan/${id}/status`,
+    method: 'post',
+    data: data
   })
 }
 

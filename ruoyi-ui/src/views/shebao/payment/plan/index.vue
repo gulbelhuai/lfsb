@@ -13,10 +13,12 @@
         </el-form-item>
         <el-form-item label="审批状态">
           <el-select v-model="queryParams.approvalStatus" clearable placeholder="全部">
+            <el-option label="草稿" value="draft" />
             <el-option label="待复核" value="pending_review" />
             <el-option label="待审批" value="pending_approve" />
-            <el-option label="已驳回" value="rejected" />
-            <el-option label="已完成" value="completed" />
+            <el-option label="审批通过" value="approved" />
+            <el-option label="复核驳回" value="review_rejected" />
+            <el-option label="审批驳回" value="approve_rejected" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -34,14 +36,31 @@
         <el-table-column label="业务期" prop="businessPeriod" width="100" />
         <el-table-column label="发放人次" prop="totalCount" width="100" />
         <el-table-column label="总金额" prop="totalAmount" width="120" />
+        <el-table-column label="发放机构" prop="grantOrg" width="120">
+          <template slot-scope="scope">
+            <dict-tag :options="dict.type.shebao_grant_org" :value="scope.row.grantOrg" />
+          </template>
+        </el-table-column>
         <el-table-column label="经办人" prop="operatorName" width="100" />
         <el-table-column label="经办时间" prop="operatorTime" width="170" />
         <el-table-column label="审批状态" prop="approvalStatus" width="120">
           <template slot-scope="scope">{{ approvalStatusText(scope.row.approvalStatus) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template slot-scope="scope">
             <el-button type="text" size="mini" @click="openDetailDialog(scope.row)">详情</el-button>
+            <el-button
+              v-if="canSubmit(scope.row.approvalStatus)"
+              type="text"
+              size="mini"
+              @click="handleSubmit(scope.row)"
+            >提交</el-button>
+            <el-button
+              v-if="scope.row.approvalStatus === 'pending_review'"
+              type="text"
+              size="mini"
+              @click="handleWithdraw(scope.row)"
+            >撤回</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -106,6 +125,7 @@
 
       <div slot="footer">
         <el-button type="primary" :loading="saveLoading" @click="handleSave">保存</el-button>
+        <el-button type="success" :loading="submitLoading" @click="handleSubmitFromAdd">提交</el-button>
         <el-button @click="handleRecalculate">重算</el-button>
         <el-button @click="addOpen=false">取消</el-button>
       </div>
@@ -148,13 +168,37 @@
           </el-table>
           <pagination v-show="detailTotal>0" :total="detailTotal" :page.sync="detailQuery.pageNum" :limit.sync="detailQuery.pageSize" @pagination="loadDetailData" />
         </el-tab-pane>
+        <el-tab-pane label="审核记录" name="audit">
+          <el-table :data="detailAuditList" border>
+            <el-table-column type="index" label="序号" width="60" />
+            <el-table-column label="操作状态" prop="operationStatus">
+              <template slot-scope="scope">{{ approvalStatusText(scope.row.operationStatus) }}</template>
+            </el-table-column>
+            <el-table-column label="操作人" prop="operatorName" width="120" />
+            <el-table-column label="操作时间" prop="operationTime" width="180" />
+            <el-table-column label="备注" prop="remark" />
+          </el-table>
+        </el-tab-pane>
       </el-tabs>
+      <div slot="footer" v-if="canEditInDetail">
+        <el-button type="primary" :loading="saveLoading" @click="handleSaveFromDetail">保存</el-button>
+        <el-button type="success" :loading="submitLoading" @click="handleSubmitFromDetail">提交</el-button>
+        <el-button @click="handleRecalculateDetail">重算</el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { listPaymentPlan, previewPaymentPlan, generatePaymentPlan, getPaymentPlanSummary, getPaymentPlanDetail } from '@/api/shebao/payment'
+import {
+  listPaymentPlan,
+  previewPaymentPlan,
+  savePaymentPlan,
+  getPaymentPlanSummary,
+  getPaymentPlanDetail,
+  getPaymentPlanAudit,
+  changePaymentPlanStatus
+} from '@/api/shebao/payment'
 import { selectDictLabel } from '@/utils/ruoyi'
 
 export default {
@@ -167,6 +211,7 @@ export default {
       dataList: [],
       previewLoading: false,
       saveLoading: false,
+      submitLoading: false,
       addOpen: false,
       detailOpen: false,
       addTabName: 'summary',
@@ -178,8 +223,10 @@ export default {
       },
       detailSummaryList: [],
       detailDataList: [],
+      detailAuditList: [],
       detailLoading: false,
       detailTotal: 0,
+      currentPlan: null,
       addForm: {
         businessPeriod: '',
         operatorName: '',
@@ -253,9 +300,10 @@ export default {
     },
     handleSave() {
       this.saveLoading = true
-      generatePaymentPlan({
+      savePaymentPlan({
         determinationType: this.addForm.determinationType,
-        businessPeriod: this.addForm.businessPeriod
+        businessPeriod: this.addForm.businessPeriod,
+        targetStatus: 'draft'
       }).then(response => {
         this.$modal.msgSuccess('保存成功，计划ID：' + response.data)
         this.addOpen = false
@@ -264,18 +312,36 @@ export default {
         this.saveLoading = false
       })
     },
+    handleSubmitFromAdd() {
+      this.submitLoading = true
+      savePaymentPlan({
+        determinationType: this.addForm.determinationType,
+        businessPeriod: this.addForm.businessPeriod,
+        targetStatus: 'pending_review'
+      }).then(response => {
+        this.$modal.msgSuccess('提交成功，计划ID：' + response.data)
+        this.addOpen = false
+        this.getList()
+      }).finally(() => {
+        this.submitLoading = false
+      })
+    },
     openDetailDialog(row) {
       this.currentPlanId = row.id
+      this.currentPlan = { ...row }
       this.detailOpen = true
       this.detailTabName = 'summary'
       this.detailQuery.pageNum = 1
+      this.detailAuditList = []
       this.loadSummaryData()
     },
     loadDetailTab(tab) {
       if (tab.name === 'summary') {
         this.loadSummaryData()
-      } else {
+      } else if (tab.name === 'detail') {
         this.loadDetailData()
+      } else {
+        this.loadAuditData()
       }
     },
     loadSummaryData() {
@@ -292,15 +358,91 @@ export default {
         this.detailLoading = false
       })
     },
+    loadAuditData() {
+      getPaymentPlanAudit(this.currentPlanId).then(response => {
+        this.detailAuditList = response.data || []
+      })
+    },
+    handleSubmit(row) {
+      this.$modal.confirm('确认提交该支付计划为“待复核”吗？').then(() => {
+        return changePaymentPlanStatus(row.id, { targetStatus: 'pending_review' })
+      }).then(() => {
+        this.$modal.msgSuccess('提交成功')
+        this.getList()
+      })
+    },
+    handleWithdraw(row) {
+      this.$modal.confirm('确认撤回该支付计划为“草稿”吗？').then(() => {
+        return changePaymentPlanStatus(row.id, { targetStatus: 'draft' })
+      }).then(() => {
+        this.$modal.msgSuccess('撤回成功')
+        this.getList()
+      })
+    },
+    handleSaveFromDetail() {
+      this.saveLoading = true
+      savePaymentPlan({
+        planId: this.currentPlanId,
+        determinationType: this.currentPlan.determinationType,
+        businessPeriod: this.currentPlan.businessPeriod,
+        targetStatus: 'draft'
+      }).then(() => {
+        this.$modal.msgSuccess('保存成功')
+        this.currentPlan.approvalStatus = 'draft'
+        this.getList()
+        this.loadSummaryData()
+      }).finally(() => {
+        this.saveLoading = false
+      })
+    },
+    handleSubmitFromDetail() {
+      this.submitLoading = true
+      savePaymentPlan({
+        planId: this.currentPlanId,
+        determinationType: this.currentPlan.determinationType,
+        businessPeriod: this.currentPlan.businessPeriod,
+        targetStatus: 'pending_review'
+      }).then(() => {
+        this.$modal.msgSuccess('提交成功')
+        this.currentPlan.approvalStatus = 'pending_review'
+        this.getList()
+        this.loadSummaryData()
+        this.loadAuditData()
+      }).finally(() => {
+        this.submitLoading = false
+      })
+    },
+    handleRecalculateDetail() {
+      this.detailLoading = true
+      previewPaymentPlan({
+        determinationType: this.currentPlan.determinationType,
+        businessPeriod: this.currentPlan.businessPeriod
+      }).then(response => {
+        const previewData = response.data || { summaryList: [], detailList: [] }
+        this.detailSummaryList = previewData.summaryList || []
+        this.detailDataList = previewData.detailList || []
+        this.detailTotal = this.detailDataList.length
+      }).finally(() => {
+        this.detailLoading = false
+      })
+    },
+    canSubmit(status) {
+      return ['draft', 'review_rejected', 'approve_rejected'].includes(status)
+    },
+    canEditStatus(status) {
+      return ['draft', 'review_rejected', 'approve_rejected'].includes(status)
+    },
     determinationTypeText(val) {
       return val === 'second' ? '二次发放' : '正常发放'
     },
     approvalStatusText(val) {
       const map = {
+        draft: '草稿',
         pending_review: '待复核',
         pending_approve: '待审批',
-        rejected: '已驳回',
-        completed: '已完成'
+        approved: '审批通过',
+        review_rejected: '复核驳回',
+        approve_rejected: '审批驳回'
       }
       return map[val] || val
     },
@@ -316,6 +458,11 @@ export default {
     },
     grantOrgLabel(val) {
       return selectDictLabel(this.dict.type.shebao_grant_org || [], val) || val || '-'
+    }
+  },
+  computed: {
+    canEditInDetail() {
+      return this.currentPlan && this.canEditStatus(this.currentPlan.approvalStatus)
     }
   }
 }

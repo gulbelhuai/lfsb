@@ -9,7 +9,8 @@
                p.total_amount,
                p.operator_name,
                p.operator_time,
-               p.approval_status
+               p.approval_status,
+               (select min(s.grant_org) from shebao_payment_plan_summary s where s.plan_id = p.id and s.del_flag = '0') as grant_org
         from shebao_payment_plan p
         where p.del_flag = '0'
         <if test="req.determinationType != null and req.determinationType != ''">

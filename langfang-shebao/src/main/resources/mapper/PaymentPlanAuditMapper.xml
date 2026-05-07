@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.PaymentPlanAuditMapper">
+    <select id="selectByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanAuditResp">
+        select a.id,
+               a.plan_id,
+               a.operation_status,
+               a.operator_name,
+               a.operation_time,
+               a.remark
+        from shebao_payment_plan_audit a
+        where a.plan_id = #{planId}
+          and a.del_flag = '0'
+        order by a.operation_time asc, a.id asc
+    </select>
+</mapper>

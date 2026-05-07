@@ -12,6 +12,7 @@ import java.util.List;
 public interface PaymentPlanSummaryMapper extends BaseMapper<PaymentPlanSummary>
 {
     int batchInsert(@Param("list") List<PaymentPlanSummary> list);
+    int deleteByPlanId(@Param("planId") Long planId);
 
     List<PaymentPlanSummaryResp> selectByPlanId(@Param("planId") Long planId);
 }

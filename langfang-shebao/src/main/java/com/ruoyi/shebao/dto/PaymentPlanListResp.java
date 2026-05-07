@@ -18,4 +18,5 @@ public class PaymentPlanListResp
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date operatorTime;
     private String approvalStatus;
+    private String grantOrg;
 }
