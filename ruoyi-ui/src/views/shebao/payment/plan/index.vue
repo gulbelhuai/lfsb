@@ -200,6 +200,7 @@ import {
   changePaymentPlanStatus
 } from '@/api/shebao/payment'
 import { selectDictLabel } from '@/utils/ruoyi'
+import { paymentPlanStatusLabel, promptPlanAction } from './planUiShared'
 
 export default {
   name: 'PaymentPlan',
@@ -313,11 +314,14 @@ export default {
       })
     },
     handleSubmitFromAdd() {
-      this.submitLoading = true
-      savePaymentPlan({
-        determinationType: this.addForm.determinationType,
-        businessPeriod: this.addForm.businessPeriod,
-        targetStatus: 'pending_review'
+      promptPlanAction(this, 'pending_review').then((value) => {
+        this.submitLoading = true
+        return savePaymentPlan({
+          determinationType: this.addForm.determinationType,
+          businessPeriod: this.addForm.businessPeriod,
+          targetStatus: 'pending_review',
+          remark: value
+        })
       }).then(response => {
         this.$modal.msgSuccess('提交成功，计划ID：' + response.data)
         this.addOpen = false
@@ -364,16 +368,16 @@ export default {
       })
     },
     handleSubmit(row) {
-      this.$modal.confirm('确认提交该支付计划为“待复核”吗？').then(() => {
-        return changePaymentPlanStatus(row.id, { targetStatus: 'pending_review' })
+      promptPlanAction(this, 'pending_review').then((value) => {
+        return changePaymentPlanStatus(row.id, { targetStatus: 'pending_review', remark: value })
       }).then(() => {
         this.$modal.msgSuccess('提交成功')
         this.getList()
       })
     },
     handleWithdraw(row) {
-      this.$modal.confirm('确认撤回该支付计划为“草稿”吗？').then(() => {
-        return changePaymentPlanStatus(row.id, { targetStatus: 'draft' })
+      promptPlanAction(this, 'draft').then((value) => {
+        return changePaymentPlanStatus(row.id, { targetStatus: 'draft', remark: value })
       }).then(() => {
         this.$modal.msgSuccess('撤回成功')
         this.getList()
@@ -396,12 +400,15 @@ export default {
       })
     },
     handleSubmitFromDetail() {
-      this.submitLoading = true
-      savePaymentPlan({
-        planId: this.currentPlanId,
-        determinationType: this.currentPlan.determinationType,
-        businessPeriod: this.currentPlan.businessPeriod,
-        targetStatus: 'pending_review'
+      promptPlanAction(this, 'pending_review').then((value) => {
+        this.submitLoading = true
+        return savePaymentPlan({
+          planId: this.currentPlanId,
+          determinationType: this.currentPlan.determinationType,
+          businessPeriod: this.currentPlan.businessPeriod,
+          targetStatus: 'pending_review',
+          remark: value
+        })
       }).then(() => {
         this.$modal.msgSuccess('提交成功')
         this.currentPlan.approvalStatus = 'pending_review'
@@ -436,15 +443,7 @@ export default {
       return val === 'second' ? '二次发放' : '正常发放'
     },
     approvalStatusText(val) {
-      const map = {
-        draft: '草稿',
-        pending_review: '待复核',
-        pending_approve: '待审批',
-        approved: '审批通过',
-        review_rejected: '复核驳回',
-        approve_rejected: '审批驳回'
-      }
-      return map[val] || val
+      return paymentPlanStatusLabel(val)
     },
     subsidyTypeText(val) {
       const map = {

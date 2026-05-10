@@ -13,10 +13,10 @@ import com.ruoyi.shebao.mapper.LandLossResidentMapper;
 import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
 import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
 import com.ruoyi.shebao.service.LandLossResidentService;
-import com.ruoyi.shebao.service.SubsidyPersonService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,13 +39,17 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
     private LandLossResidentMapper landLossResidentMapper;
 
     @Autowired
-    private SubsidyPersonMapper subsidyPersonMapper;
-
-    @Autowired
-    private SubsidyPersonService subsidyPersonService;
+    private SubsidyPersonServiceImpl subsidyPersonService;
 
     @Autowired
     private SubsidyDistributionMapper subsidyDistributionMapper;
+
+    /**
+     * 通过代理调用本类事务方法，避免 this 调用导致 @Transactional 失效。
+     */
+    @Lazy
+    @Autowired
+    private LandLossResidentService landLossResidentService;
 
     /**
      * 查询失地居民信息列表
@@ -266,7 +270,7 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
             try
             {
                 formDto.setPersonExists(false); // 导入时重新检查
-                this.insertLandLossResident(formDto);
+                landLossResidentService.insertLandLossResident(formDto);
                 successNum++;
                 successMsg.append("<br/>" + successNum + "、失地居民 " + formDto.getName() + " 导入成功");
             }

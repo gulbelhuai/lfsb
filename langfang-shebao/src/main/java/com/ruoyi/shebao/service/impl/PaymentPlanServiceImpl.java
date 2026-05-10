@@ -140,10 +140,11 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             paymentPlanSummaryMapper.deleteByPlanId(plan.getId());
             paymentPlanDetailMapper.deleteByPlanId(plan.getId());
         }
+        final Long persistedPlanId = plan.getId();
 
         List<PaymentPlanSummary> summaryRows = preview.getSummaryList().stream().map(item -> {
             PaymentPlanSummary row = new PaymentPlanSummary();
-            row.setPlanId(plan.getId());
+            row.setPlanId(persistedPlanId);
             row.setBusinessPeriod(period);
             row.setSubsidyType(item.getSubsidyType());
             row.setGrantOrg(item.getGrantOrg());
@@ -163,7 +164,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
 
         List<PaymentPlanDetail> detailRows = preview.getDetailList().stream().map(item -> {
             PaymentPlanDetail row = new PaymentPlanDetail();
-            row.setPlanId(plan.getId());
+            row.setPlanId(persistedPlanId);
             row.setDeterminationId(item.getDeterminationId());
             row.setDeterminationItemId(item.getDeterminationItemId());
             row.setSubsidyType(item.getSubsidyType());
@@ -208,24 +209,8 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         }
         String target = normalizeChangeStatus(req.getTargetStatus());
         String current = plan.getApprovalStatus();
-        if (STATUS_PENDING_REVIEW.equals(target))
-        {
-            if (!SUBMIT_ALLOWED.contains(current))
-            {
-                throw new ServiceException("当前状态不可提交");
-            }
-        }
-        else if (STATUS_DRAFT.equals(target))
-        {
-            if (!STATUS_PENDING_REVIEW.equals(current))
-            {
-                throw new ServiceException("仅待复核状态支持撤回");
-            }
-        }
-        else
-        {
-            throw new ServiceException("不支持的状态变更");
-        }
+        validateTransition(current, target);
+        validateRemark(req.getRemark(), target);
         plan.setApprovalStatus(target);
         plan.setUpdateBy(SecurityUtils.getUsername());
         plan.setUpdateTime(new Date());
@@ -354,11 +339,59 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
 
     private String normalizeChangeStatus(String status)
     {
-        if (STATUS_PENDING_REVIEW.equals(status) || STATUS_DRAFT.equals(status))
+        if (Set.of(
+                STATUS_DRAFT,
+                STATUS_PENDING_REVIEW,
+                STATUS_PENDING_APPROVE,
+                STATUS_APPROVED,
+                STATUS_REVIEW_REJECTED,
+                STATUS_APPROVE_REJECTED).contains(status))
         {
             return status;
         }
-        throw new ServiceException("仅支持提交为待复核或撤回为草稿");
+        throw new ServiceException("不支持的状态变更");
+    }
+
+    private void validateTransition(String current, String target)
+    {
+        if (STATUS_PENDING_REVIEW.equals(target) && SUBMIT_ALLOWED.contains(current))
+        {
+            return; // 提交
+        }
+        if (STATUS_DRAFT.equals(target) && STATUS_PENDING_REVIEW.equals(current))
+        {
+            return; // 撤回
+        }
+        if (STATUS_PENDING_APPROVE.equals(target) && STATUS_PENDING_REVIEW.equals(current))
+        {
+            return; // 复核通过
+        }
+        if (STATUS_REVIEW_REJECTED.equals(target) && STATUS_PENDING_REVIEW.equals(current))
+        {
+            return; // 复核驳回
+        }
+        if (STATUS_PENDING_REVIEW.equals(target) && (STATUS_PENDING_APPROVE.equals(current) || STATUS_REVIEW_REJECTED.equals(current)))
+        {
+            return; // 撤销复核
+        }
+        if (STATUS_APPROVED.equals(target) && STATUS_PENDING_APPROVE.equals(current))
+        {
+            return; // 审批通过
+        }
+        if (STATUS_APPROVE_REJECTED.equals(target) && STATUS_PENDING_APPROVE.equals(current))
+        {
+            return; // 审批驳回
+        }
+        throw new ServiceException("当前状态不支持该操作");
+    }
+
+    private void validateRemark(String remark, String target)
+    {
+        if ((STATUS_REVIEW_REJECTED.equals(target) || STATUS_APPROVE_REJECTED.equals(target))
+                && (remark == null || remark.isBlank()))
+        {
+            throw new ServiceException("驳回时备注必填");
+        }
     }
 
     private void insertAudit(Long planId, String status, String remark)
