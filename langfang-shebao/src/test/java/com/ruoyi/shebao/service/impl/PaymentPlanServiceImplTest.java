@@ -34,6 +34,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.mockito.ArgumentCaptor;
+
 @ExtendWith(MockitoExtension.class)
 class PaymentPlanServiceImplTest {
 
@@ -128,6 +130,8 @@ class PaymentPlanServiceImplTest {
         when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1)))
                 .thenReturn(List.of(d));
 
+        when(paymentPlanMapper.selectMaxBatchSeqSuffix("20260401")).thenReturn(0);
+
         PaymentPlanGenerateReq req = new PaymentPlanGenerateReq();
         req.setDeterminationType("normal");
         req.setBusinessPeriod("2026-04");
@@ -135,7 +139,10 @@ class PaymentPlanServiceImplTest {
         Long id = paymentPlanService.generate(req);
 
         assertEquals(100L, id);
-        verify(paymentPlanMapper).insert(any(PaymentPlan.class));
+        ArgumentCaptor<PaymentPlan> planCaptor = ArgumentCaptor.forClass(PaymentPlan.class);
+        verify(paymentPlanMapper).insert(planCaptor.capture());
+        assertEquals("20260401001", planCaptor.getValue().getBatchNo());
+        verify(paymentPlanMapper).selectMaxBatchSeqSuffix("20260401");
         verify(paymentPlanSummaryMapper).batchInsert(anyList());
         verify(paymentPlanDetailMapper).batchInsert(anyList());
     }

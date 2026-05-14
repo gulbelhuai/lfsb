@@ -14,6 +14,7 @@
         <template slot-scope="scope">{{ scope.row.determinationType === 'second' ? '二次发放' : '正常发放' }}</template>
       </el-table-column>
       <el-table-column label="业务期" prop="businessPeriod" width="100" />
+      <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
       <el-table-column label="发放人次" prop="totalCount" width="100" />
       <el-table-column label="总金额" prop="totalAmount" width="120" />
       <el-table-column label="发放机构" prop="grantOrg" width="120">

@@ -34,6 +34,7 @@
           <template slot-scope="scope">{{ determinationTypeText(scope.row.determinationType) }}</template>
         </el-table-column>
         <el-table-column label="业务期" prop="businessPeriod" width="100" />
+        <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
         <el-table-column label="发放人次" prop="totalCount" width="100" />
         <el-table-column label="总金额" prop="totalAmount" width="120" />
         <el-table-column label="发放机构" prop="grantOrg" width="120">
@@ -132,6 +133,7 @@
     </el-dialog>
 
     <el-dialog title="支付计划详情" :visible.sync="detailOpen" width="1200px">
+      <div v-if="currentPlan" class="plan-batch-meta">批次号：{{ planDetailBatchNo }}</div>
       <el-tabs v-model="detailTabName" @tab-click="loadDetailTab">
         <el-tab-pane label="汇总表" name="summary">
           <el-table :data="detailSummaryList" border>
@@ -462,6 +464,10 @@ export default {
   computed: {
     canEditInDetail() {
       return this.currentPlan && this.canEditStatus(this.currentPlan.approvalStatus)
+    },
+    planDetailBatchNo() {
+      if (!this.currentPlan) return '—'
+      return this.currentPlan.batchNo || this.currentPlan.batch_no || '—'
     }
   }
 }
@@ -470,6 +476,11 @@ export default {
 <style scoped>
 .mb20 {
   margin-bottom: 20px;
+}
+.plan-batch-meta {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #606266;
 }
 </style>
 

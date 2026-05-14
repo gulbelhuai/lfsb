@@ -12,4 +12,11 @@ import org.apache.ibatis.annotations.Param;
 public interface PaymentPlanMapper extends BaseMapper<PaymentPlan>
 {
     Page<PaymentPlanListResp> selectPaymentPlanList(Page<PaymentPlanListResp> page, @Param("req") PaymentPlanListReq req);
+
+    /**
+     * 同业务期年月+类型前缀下，已用最大三位序号（无前缀记录则 0）
+     *
+     * @param prefix8 前 8 位：yyyyMM + 01/02
+     */
+    int selectMaxBatchSeqSuffix(@Param("prefix8") String prefix8);
 }

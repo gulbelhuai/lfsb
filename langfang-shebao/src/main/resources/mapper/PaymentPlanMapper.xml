@@ -2,15 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.shebao.mapper.PaymentPlanMapper">
     <select id="selectPaymentPlanList" resultType="com.ruoyi.shebao.dto.PaymentPlanListResp">
-        select p.id,
-               p.determination_type,
-               date_format(p.business_period, '%Y-%m') as business_period,
-               p.total_count,
-               p.total_amount,
-               p.operator_name,
-               p.operator_time,
-               p.approval_status,
-               (select min(s.grant_org) from shebao_payment_plan_summary s where s.plan_id = p.id and s.del_flag = '0') as grant_org
+        select p.id as id,
+               p.determination_type as determinationType,
+               date_format(p.business_period, '%Y-%m') as businessPeriod,
+               p.batch_no as batchNo,
+               p.total_count as totalCount,
+               p.total_amount as totalAmount,
+               p.operator_name as operatorName,
+               p.operator_time as operatorTime,
+               p.approval_status as approvalStatus,
+               (select min(s.grant_org) from shebao_payment_plan_summary s where s.plan_id = p.id and s.del_flag = '0') as grantOrg
         from shebao_payment_plan p
         where p.del_flag = '0'
         <if test="req.determinationType != null and req.determinationType != ''">
@@ -26,5 +27,14 @@
             and p.business_period = #{req.businessPeriodDate}
         </if>
         order by p.create_time desc, p.id desc
+    </select>
+
+    <select id="selectMaxBatchSeqSuffix" resultType="int">
+        select ifnull(max(cast(right(p.batch_no, 3) as unsigned)), 0)
+        from shebao_payment_plan p
+        where p.del_flag = '0'
+          and p.batch_no is not null
+          and length(p.batch_no) = 11
+          and left(p.batch_no, 8) = #{prefix8}
     </select>
 </mapper>

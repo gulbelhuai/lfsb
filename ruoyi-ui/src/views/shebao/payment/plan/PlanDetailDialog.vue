@@ -1,5 +1,6 @@
 <template>
   <el-dialog :title="title" :visible.sync="visibleInner" width="1200px" @close="onClose">
+    <div v-if="currentPlan" class="plan-batch-meta">批次号：{{ planBatchNoText }}</div>
     <el-tabs v-model="activeTab" @tab-click="handleTabChange">
       <el-tab-pane label="汇总表" name="summary">
         <el-table :data="summaryList" border>
@@ -90,6 +91,10 @@ export default {
     visibleActions() {
       const status = this.currentPlan ? this.currentPlan.approvalStatus : ''
       return (this.actionButtons || []).filter(btn => !btn.statuses || btn.statuses.includes(status))
+    },
+    planBatchNoText() {
+      if (!this.currentPlan) return '—'
+      return this.currentPlan.batchNo || this.currentPlan.batch_no || '—'
     }
   },
   watch: {
@@ -143,3 +148,11 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.plan-batch-meta {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #606266;
+}
+</style>

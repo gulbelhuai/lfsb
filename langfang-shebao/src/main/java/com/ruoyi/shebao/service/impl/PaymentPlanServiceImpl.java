@@ -132,6 +132,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         plan.setUpdateTime(now);
         if (plan.getId() == null)
         {
+            plan.setBatchNo(nextBatchNo(period, req.getDeterminationType()));
             paymentPlanMapper.insert(plan);
         }
         else
@@ -408,5 +409,22 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         audit.setUpdateBy(SecurityUtils.getUsername());
         audit.setUpdateTime(new Date());
         paymentPlanAuditMapper.insert(audit);
+    }
+
+    /**
+     * 批次号：业务期年月 6 位 + 类型 2 位（01 正常 / 02 二次）+ 三位自增序号。
+     */
+    private String nextBatchNo(LocalDate businessPeriod, String determinationType)
+    {
+        String yyyymm = String.format("%04d%02d", businessPeriod.getYear(), businessPeriod.getMonthValue());
+        String typeCode = TYPE_NORMAL.equals(determinationType) ? "01" : "02";
+        String prefix8 = yyyymm + typeCode;
+        int maxSeq = paymentPlanMapper.selectMaxBatchSeqSuffix(prefix8);
+        int next = maxSeq + 1;
+        if (next > 999)
+        {
+            throw new ServiceException("该业务期与类型下批次序号已超过999");
+        }
+        return prefix8 + String.format("%03d", next);
     }
 }

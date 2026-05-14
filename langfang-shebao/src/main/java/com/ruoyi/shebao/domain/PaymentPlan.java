@@ -1,6 +1,8 @@
 package com.ruoyi.shebao.domain;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -29,6 +31,10 @@ public class PaymentPlan extends BaseEntity
     /** 业务期(月初日期) */
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate businessPeriod;
+
+    /** 批次号(yyyyMM+01/02+序号)，首次保存生成后不再更新 */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
+    private String batchNo;
 
     /** 发放人次 */
     private Integer totalCount;

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `shebao_payment_plan` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `determination_type` varchar(20) NOT NULL COMMENT '核定方式(normal/second)',
   `business_period` date NOT NULL COMMENT '业务期(当月1号)',
+  `batch_no` varchar(16) DEFAULT NULL COMMENT '批次号(yyyyMM+类型01/02+三位序号)',
   `total_count` int NOT NULL DEFAULT 0 COMMENT '发放人次',
   `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '总金额',
   `operator_name` varchar(64) DEFAULT NULL COMMENT '经办人',
@@ -19,7 +20,8 @@ CREATE TABLE IF NOT EXISTS `shebao_payment_plan` (
   PRIMARY KEY (`id`),
   KEY `idx_plan_period` (`business_period`),
   KEY `idx_plan_status` (`approval_status`),
-  KEY `idx_plan_type` (`determination_type`)
+  KEY `idx_plan_type` (`determination_type`),
+  UNIQUE KEY `uk_payment_plan_batch_no` (`batch_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='支付计划主表';
 
 -- 支付计划汇总表
