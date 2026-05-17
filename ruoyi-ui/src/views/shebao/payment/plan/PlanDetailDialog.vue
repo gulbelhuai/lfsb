@@ -53,13 +53,23 @@
     </el-tabs>
 
     <div slot="footer">
-      <el-button
-        v-for="btn in visibleActions"
-        :key="btn.key"
-        :type="btn.type || 'default'"
-        :loading="loadingActionKey === btn.key"
-        @click="$emit('action-click', btn.key, currentPlan)"
-      >{{ btn.label }}</el-button>
+      <template v-for="btn in visibleActions">
+        <el-button
+          v-if="btn.perm"
+          :key="btn.key"
+          v-hasPermi="[btn.perm]"
+          :type="btn.type || 'default'"
+          :loading="loadingActionKey === btn.key"
+          @click="$emit('action-click', btn.key, currentPlan)"
+        >{{ btn.label }}</el-button>
+        <el-button
+          v-else
+          :key="btn.key + '-noperm'"
+          :type="btn.type || 'default'"
+          :loading="loadingActionKey === btn.key"
+          @click="$emit('action-click', btn.key, currentPlan)"
+        >{{ btn.label }}</el-button>
+      </template>
     </div>
   </el-dialog>
 </template>
@@ -78,6 +88,8 @@ export default {
     loadingActionKey: { type: String, default: '' },
     subsidyTypeFormatter: { type: Function, required: true },
     statusFormatter: { type: Function, required: true },
+    /** 用于控制详情底部按钮可见性的状态字段，默认 approvalStatus */
+    statusField: { type: String, default: 'approvalStatus' },
     fetchSummary: { type: Function, required: true },
     fetchDetail: { type: Function, required: true },
     fetchAudit: { type: Function, required: true }
@@ -94,7 +106,9 @@ export default {
   },
   computed: {
     visibleActions() {
-      const status = this.currentPlan ? this.currentPlan.approvalStatus : ''
+      if (!this.currentPlan) return []
+      const field = this.statusField || 'approvalStatus'
+      const status = this.currentPlan[field] || this.currentPlan[field === 'financeStatus' ? 'finance_status' : 'approval_status'] || ''
       return (this.actionButtons || []).filter(btn => !btn.statuses || btn.statuses.includes(status))
     },
     planBatchNoText() {

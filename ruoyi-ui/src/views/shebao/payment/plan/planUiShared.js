@@ -15,7 +15,8 @@ export const PAYMENT_PLAN_FINANCE_STATUS_LABELS = {
   pending_finance: '待财务',
   finance_pending_review: '待复核',
   finance_pending_approve: '待审批',
-  finance_approved: '已通过'
+  finance_approved: '已通过',
+  finance_rejected: '已驳回'
 }
 
 export function paymentPlanFinanceStatusLabel(status) {
@@ -33,7 +34,8 @@ const FINANCE_OPERATION_STATUSES = new Set([
   'pending_finance',
   'finance_pending_review',
   'finance_pending_approve',
-  'finance_approved'
+  'finance_approved',
+  'finance_rejected'
 ])
 
 export function isPaymentPlanFinanceOperationStatus(status) {
@@ -64,6 +66,28 @@ export const PAYMENT_PLAN_ACTION_META = {
   review_rejected: { title: '复核驳回', reject: true },
   approved: { title: '审批通过', reject: false },
   approve_rejected: { title: '审批驳回', reject: true }
+}
+
+export const FINANCE_BATCH_ACTION_META = {
+  financePass: { title: '财务通过', reject: false },
+  financeReject: { title: '财务驳回', reject: true },
+  reviewPass: { title: '复核通过', reject: false },
+  reviewReject: { title: '复核驳回', reject: true },
+  approvePass: { title: '审批通过', reject: false },
+  approveReject: { title: '审批驳回', reject: true }
+}
+
+export function promptFinanceBatchAction(vm, actionKey) {
+  const meta = FINANCE_BATCH_ACTION_META[actionKey] || { title: '确认操作', reject: false }
+  return vm.$prompt('请输入备注说明', `确认${meta.title}`, {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputPlaceholder: meta.reject ? '驳回时备注必填' : '备注选填',
+    inputValidator: (v) => {
+      if (!meta.reject) return true
+      return (v && v.trim()) ? true : '驳回时备注必填'
+    }
+  }).then(({ value }) => value)
 }
 
 export function promptPlanAction(vm, targetStatus) {

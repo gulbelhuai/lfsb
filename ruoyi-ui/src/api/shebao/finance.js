@@ -1,11 +1,68 @@
 import request from '@/utils/request'
 
-// 查询批次列表
+/** 财务批次管理：支付计划列表（已进入财务流程） */
+export function listFinanceBatch(query) {
+  return request({
+    url: '/shebao/finance/batch/list',
+    method: 'get',
+    params: query
+  })
+}
+
+// 查询批次列表（旧发放批次，银行发放等仍可能使用）
 export function listBatch(query) {
   return request({
     url: '/shebao/finance/batch/list',
     method: 'get',
     params: query
+  })
+}
+
+export function financeBatchPass(id, data) {
+  return request({
+    url: `/shebao/finance/batch/${id}/finance-pass`,
+    method: 'post',
+    data: data || {}
+  })
+}
+
+export function financeBatchReject(id, data) {
+  return request({
+    url: `/shebao/finance/batch/${id}/finance-reject`,
+    method: 'post',
+    data
+  })
+}
+
+export function financeBatchReviewPass(id, data) {
+  return request({
+    url: `/shebao/finance/batch/${id}/review-pass`,
+    method: 'post',
+    data: data || {}
+  })
+}
+
+export function financeBatchReviewReject(id, data) {
+  return request({
+    url: `/shebao/finance/batch/${id}/review-reject`,
+    method: 'post',
+    data
+  })
+}
+
+export function financeBatchApprovePass(id, data) {
+  return request({
+    url: `/shebao/finance/batch/${id}/approve-pass`,
+    method: 'post',
+    data: data || {}
+  })
+}
+
+export function financeBatchApproveReject(id, data) {
+  return request({
+    url: `/shebao/finance/batch/${id}/approve-reject`,
+    method: 'post',
+    data
   })
 }
 

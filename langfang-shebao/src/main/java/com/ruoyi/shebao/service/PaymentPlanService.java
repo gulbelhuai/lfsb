@@ -22,4 +22,16 @@ public interface PaymentPlanService
 
     /** 上传财务：将财务状态置为待财务并记财务审核流水 */
     int submitFinanceUpload(Long planId);
+
+    int financePass(Long planId, PaymentPlanFinanceStatusChangeReq req);
+
+    int financeReject(Long planId, PaymentPlanFinanceStatusChangeReq req);
+
+    int financeReviewPass(Long planId, PaymentPlanFinanceStatusChangeReq req);
+
+    int financeReviewReject(Long planId, PaymentPlanFinanceStatusChangeReq req);
+
+    int financeApprovePass(Long planId, PaymentPlanFinanceStatusChangeReq req);
+
+    int financeApproveReject(Long planId, PaymentPlanFinanceStatusChangeReq req);
 }

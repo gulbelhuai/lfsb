@@ -24,6 +24,12 @@ public class PaymentPlanListReq extends PageReq
     /** 按批次号精确查询 */
     private String batchNo;
 
+    /** 财务状态筛选 */
+    private String financeStatus;
+
+    /** 仅查询已进入财务流程的记录(finance_status 非空) */
+    private Boolean financeEnteredOnly;
+
     public LocalDate getBusinessPeriodDate()
     {
         if (businessPeriod == null || businessPeriod.isBlank())

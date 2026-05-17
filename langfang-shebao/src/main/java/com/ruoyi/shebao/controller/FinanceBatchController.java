@@ -6,41 +6,39 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
-import com.ruoyi.shebao.domain.DistributionBatch;
-import com.ruoyi.shebao.dto.DistributionBatchListReq;
-import com.ruoyi.shebao.service.IDistributionBatchService;
+import com.ruoyi.shebao.dto.PaymentPlanFinanceStatusChangeReq;
+import com.ruoyi.shebao.dto.PaymentPlanListReq;
+import com.ruoyi.shebao.dto.PaymentPlanListResp;
+import com.ruoyi.shebao.service.PaymentPlanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 财务批次管理Controller
- *
- * @author ruoyi
- * @date 2025-01-20
+ * 财务批次管理（基于支付计划）
  */
 @RestController
 @RequestMapping("/shebao/finance/batch")
 public class FinanceBatchController extends BaseController
 {
     @Autowired
-    private IDistributionBatchService distributionBatchService;
+    private PaymentPlanService paymentPlanService;
 
     /**
-     * 查询批次列表
+     * 查询已进入财务流程的支付计划列表
      */
     @PreAuthorize("@ss.hasPermi('shebao:finance:batch:list')")
     @GetMapping("/list")
-    public TableDataInfo list(DistributionBatchListReq req)
+    public TableDataInfo list(PaymentPlanListReq req)
     {
-        // 设置分页参数默认值
         if (req.getPageNum() == null) {
             req.setPageNum(1);
         }
         if (req.getPageSize() == null) {
             req.setPageSize(10);
         }
-        Page<DistributionBatch> page = distributionBatchService.selectDistributionBatchList(req);
+        req.setFinanceEnteredOnly(true);
+        Page<PaymentPlanListResp> page = paymentPlanService.selectPaymentPlanList(req);
         TableDataInfo rsp = new TableDataInfo();
         rsp.setCode(200);
         rsp.setRows(page.getRecords());
@@ -48,70 +46,51 @@ public class FinanceBatchController extends BaseController
         return rsp;
     }
 
-    /**
-     * 获取批次详细信息
-     */
-    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:query')")
-    @GetMapping("/{id}")
-    public AjaxResult getInfo(@PathVariable Long id)
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:financePass')")
+    @Log(title = "财务批次-财务通过", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/finance-pass")
+    public AjaxResult financePass(@PathVariable Long id, @RequestBody(required = false) PaymentPlanFinanceStatusChangeReq req)
     {
-        return AjaxResult.success(distributionBatchService.getById(id));
+        return toAjax(paymentPlanService.financePass(id, req));
     }
 
-    /**
-     * 根据批次号获取批次详情
-     */
-    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:query')")
-    @GetMapping("/detail/{batchNo}")
-    public AjaxResult getDetail(@PathVariable String batchNo)
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:financeReject')")
+    @Log(title = "财务批次-财务驳回", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/finance-reject")
+    public AjaxResult financeReject(@PathVariable Long id, @RequestBody PaymentPlanFinanceStatusChangeReq req)
     {
-        return AjaxResult.success(distributionBatchService.getBatchDetailByBatchNo(batchNo));
+        return toAjax(paymentPlanService.financeReject(id, req));
     }
 
-    /**
-     * 提交银行发放
-     */
-    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:submit')")
-    @Log(title = "提交银行发放", businessType = BusinessType.UPDATE)
-    @PostMapping("/submit/{id}")
-    public AjaxResult submitToBank(@PathVariable Long id)
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:reviewPass')")
+    @Log(title = "财务批次-复核通过", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/review-pass")
+    public AjaxResult reviewPass(@PathVariable Long id, @RequestBody(required = false) PaymentPlanFinanceStatusChangeReq req)
     {
-        DistributionBatch batch = distributionBatchService.getById(id);
-        if (batch == null)
-        {
-            return AjaxResult.error("批次不存在");
-        }
-        return toAjax(distributionBatchService.submitToBank(batch.getBatchNo()));
+        return toAjax(paymentPlanService.financeReviewPass(id, req));
     }
 
-    /**
-     * 导入银行发放结果
-     */
-    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:import')")
-    @Log(title = "导入发放结果", businessType = BusinessType.IMPORT)
-    @PostMapping("/importResult/{id}")
-    public AjaxResult importResult(@PathVariable Long id)
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:reviewReject')")
+    @Log(title = "财务批次-复核驳回", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/review-reject")
+    public AjaxResult reviewReject(@PathVariable Long id, @RequestBody PaymentPlanFinanceStatusChangeReq req)
     {
-        DistributionBatch batch = distributionBatchService.getById(id);
-        if (batch == null)
-        {
-            return AjaxResult.error("批次不存在");
-        }
-        return AjaxResult.error("请使用 /shebao/finance/bank/import 接口上传银行结果文件");
+        return toAjax(paymentPlanService.financeReviewReject(id, req));
     }
 
-    /**
-     * 完成批次
-     */
-    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:complete')")
-    @Log(title = "完成批次", businessType = BusinessType.UPDATE)
-    @PostMapping("/complete/{id}")
-    public AjaxResult complete(@PathVariable Long id)
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:approvePass')")
+    @Log(title = "财务批次-审批通过", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/approve-pass")
+    public AjaxResult approvePass(@PathVariable Long id, @RequestBody(required = false) PaymentPlanFinanceStatusChangeReq req)
     {
-        boolean updated = distributionBatchService.lambdaUpdate()
-                .eq(DistributionBatch::getId, id)
-                .set(DistributionBatch::getStatus, "completed")
-                .update();
-        return updated ? AjaxResult.success("批次已完成") : AjaxResult.error("批次不存在或更新失败");
+        return toAjax(paymentPlanService.financeApprovePass(id, req));
+    }
+
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:approveReject')")
+    @Log(title = "财务批次-审批驳回", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/approve-reject")
+    public AjaxResult approveReject(@PathVariable Long id, @RequestBody PaymentPlanFinanceStatusChangeReq req)
+    {
+        return toAjax(paymentPlanService.financeApproveReject(id, req));
     }
 }

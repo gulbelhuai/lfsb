@@ -1,25 +1,22 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
-      <el-form-item label="批次号" prop="batchNo">
-        <el-input v-model="queryParams.batchNo" placeholder="请输入批次号" clearable />
+      <el-form-item label="业务期">
+        <el-date-picker v-model="queryParams.businessPeriod" type="month" value-format="yyyy-MM" placeholder="选择业务期" />
       </el-form-item>
-      <el-form-item label="补贴类型" prop="subsidyType">
-        <el-select v-model="queryParams.subsidyType" placeholder="请选择" clearable>
-          <el-option label="失地居民" value="1" />
-          <el-option label="被征地居民" value="2" />
-          <el-option label="拆迁居民" value="3" />
-          <el-option label="村干部" value="4" />
-          <el-option label="教师" value="5" />
+      <el-form-item label="核定方式">
+        <el-select v-model="queryParams.determinationType" clearable placeholder="全部">
+          <el-option label="正常发放" value="normal" />
+          <el-option label="二次发放" value="second" />
         </el-select>
       </el-form-item>
-      <el-form-item label="审批状态" prop="approvalStatus">
-        <el-select v-model="queryParams.approvalStatus" placeholder="请选择" clearable>
-          <el-option label="待复核" value="pending_review" />
-          <el-option label="待审批" value="pending_approve" />
-          <el-option label="已通过" value="approved" />
-          <el-option label="待财务" value="pending_finance" />
+      <el-form-item label="财务状态">
+        <el-select v-model="queryParams.financeStatus" clearable placeholder="全部">
+          <el-option v-for="item in financeStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
+      </el-form-item>
+      <el-form-item label="批次号">
+        <el-input v-model="queryParams.batchNo" clearable placeholder="精确查询" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
@@ -27,120 +24,177 @@
       </el-form-item>
     </el-form>
 
-    <el-table v-loading="loading" :data="dataList">
-      <el-table-column type="index" label="序号" width="50" />
-      <el-table-column label="批次号" prop="batchNo" width="160" />
-      <el-table-column label="补贴类型" prop="subsidyType" width="120">
+    <el-table v-loading="loading" :data="dataList" border>
+      <el-table-column type="index" label="序号" width="60" />
+      <el-table-column label="核定方式" prop="determinationType" width="100">
+        <template slot-scope="scope">{{ determinationTypeText(scope.row.determinationType) }}</template>
+      </el-table-column>
+      <el-table-column label="业务期" prop="businessPeriod" width="100" />
+      <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
+      <el-table-column label="发放人次" prop="totalCount" width="100" />
+      <el-table-column label="总金额" prop="totalAmount" width="120" />
+      <el-table-column label="发放机构" prop="grantOrg" width="120">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.subsidy_type" :value="scope.row.subsidyType"/>
+          <dict-tag :options="dict.type.shebao_grant_org" :value="scope.row.grantOrg" />
         </template>
       </el-table-column>
-      <el-table-column label="发放月份" prop="paymentMonth" width="100" />
-      <el-table-column label="总人数" prop="totalCount" width="80" />
-      <el-table-column label="总金额(元)" prop="totalAmount" width="120" />
-      <el-table-column label="审批状态" align="center" width="100">
-        <template slot-scope="scope">
-          <approval-status :status="scope.row.approvalStatus" />
-        </template>
+      <el-table-column label="经办人" prop="operatorName" width="100" />
+      <el-table-column label="经办时间" prop="operatorTime" width="170" />
+      <el-table-column label="补贴审批" prop="approvalStatus" width="110">
+        <template slot-scope="scope">{{ subsidyStatusLabel(scope.row.approvalStatus) }}</template>
       </el-table-column>
-      <el-table-column label="创建时间" prop="createTime" width="160" />
-      <el-table-column label="操作" align="center" width="250">
+      <el-table-column label="财务状态" prop="financeStatus" width="100">
+        <template slot-scope="scope">{{ financeStatusLabel(scope.row) }}</template>
+      </el-table-column>
+      <el-table-column label="操作" align="center" width="200">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" :data-testid="`finance-batch-view-${scope.row.batchNo}`" @click="handleView(scope.row)">详情</el-button>
-          <el-button size="mini" type="text" :data-testid="`finance-batch-generate-${scope.row.batchNo}`" @click="handleGenerateFile(scope.row)" v-if="scope.row.approvalStatus === 'pending_finance'">生成银行文件</el-button>
-          <el-button size="mini" type="text" :data-testid="`finance-batch-submit-${scope.row.batchNo}`" @click="handleSubmitBank(scope.row)" v-if="scope.row.approvalStatus === 'pending_finance'">提交银行</el-button>
-          <el-button size="mini" type="text" :data-testid="`finance-batch-import-${scope.row.batchNo}`" @click="handleImportResult(scope.row)" v-if="scope.row.bankSubmitTime">导入结果</el-button>
+          <el-button type="text" size="mini" @click="openDetail(scope.row)">详情</el-button>
+          <el-button
+            v-if="scope.row.financeStatus === 'pending_finance'"
+            v-hasPermi="['shebao:finance:batch:financePass']"
+            type="text"
+            size="mini"
+            @click="doAction(scope.row, 'financePass')"
+          >财务通过</el-button>
+          <el-button
+            v-if="scope.row.financeStatus === 'pending_finance'"
+            v-hasPermi="['shebao:finance:batch:financeReject']"
+            type="text"
+            size="mini"
+            @click="doAction(scope.row, 'financeReject')"
+          >财务驳回</el-button>
+          <el-button
+            v-if="scope.row.financeStatus === 'finance_pending_review'"
+            v-hasPermi="['shebao:finance:batch:reviewPass']"
+            type="text"
+            size="mini"
+            @click="doAction(scope.row, 'reviewPass')"
+          >复核通过</el-button>
+          <el-button
+            v-if="scope.row.financeStatus === 'finance_pending_review'"
+            v-hasPermi="['shebao:finance:batch:reviewReject']"
+            type="text"
+            size="mini"
+            @click="doAction(scope.row, 'reviewReject')"
+          >复核驳回</el-button>
+          <el-button
+            v-if="scope.row.financeStatus === 'finance_pending_approve'"
+            v-hasPermi="['shebao:finance:batch:approvePass']"
+            type="text"
+            size="mini"
+            @click="doAction(scope.row, 'approvePass')"
+          >审批通过</el-button>
+          <el-button
+            v-if="scope.row.financeStatus === 'finance_pending_approve'"
+            v-hasPermi="['shebao:finance:batch:approveReject']"
+            type="text"
+            size="mini"
+            @click="doAction(scope.row, 'approveReject')"
+          >审批驳回</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <pagination v-show="total>0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
 
-    <!-- 批次详情对话框 -->
-    <el-dialog title="批次详情" :visible.sync="detailOpen" width="1200px">
-      <el-descriptions :column="3" border>
-        <el-descriptions-item label="批次号">{{ detailData.batchNo }}</el-descriptions-item>
-        <el-descriptions-item label="补贴类型">
-          <dict-tag :options="dict.type.subsidy_type" :value="detailData.subsidyType"/>
-        </el-descriptions-item>
-        <el-descriptions-item label="发放月份">{{ detailData.paymentMonth }}</el-descriptions-item>
-        <el-descriptions-item label="总人数">{{ detailData.totalCount }}</el-descriptions-item>
-        <el-descriptions-item label="总金额">{{ detailData.totalAmount }}元</el-descriptions-item>
-        <el-descriptions-item label="审批状态">
-          <approval-status :status="detailData.approvalStatus" />
-        </el-descriptions-item>
-      </el-descriptions>
-
-      <el-divider content-position="left">发放明细</el-divider>
-      <el-table :data="detailList" max-height="400">
-        <el-table-column type="index" label="序号" width="50" />
-        <el-table-column label="姓名" prop="name" width="100" />
-        <el-table-column label="身份证号" prop="idCardNo" width="180" />
-        <el-table-column label="应发金额" prop="distributionAmount" width="100" />
-        <el-table-column label="银行账号" prop="bankAccountNo" width="180" />
-        <el-table-column label="发放状态" prop="paymentStatus" width="100">
-          <template slot-scope="scope">
-            <el-tag v-if="scope.row.paymentStatus === 'success'" type="success">成功</el-tag>
-            <el-tag v-else-if="scope.row.paymentStatus === 'failed'" type="danger">失败</el-tag>
-            <el-tag v-else type="info">待发放</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-divider content-position="left">审批历史</el-divider>
-      <approval-history :history="approvalHistory" />
-    </el-dialog>
-
-    <!-- 导入结果对话框 -->
-    <el-dialog title="导入发放结果" :visible.sync="importOpen" width="400px">
-      <el-upload
-        class="upload-demo"
-        drag
-        :action="uploadUrl"
-        :headers="uploadHeaders"
-        :data="{ batchNo: currentBatchNo }"
-        :on-success="handleImportSuccess"
-        :on-error="handleImportError"
-        accept=".xlsx,.xls">
-        <i class="el-icon-upload"></i>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <div class="el-upload__tip" slot="tip">上传银行发放结果Excel文件</div>
-      </el-upload>
-    </el-dialog>
+    <plan-detail-dialog
+      :visible.sync="detailOpen"
+      :current-plan="currentPlan"
+      :grant-org-options="dict.type.shebao_grant_org || []"
+      :subsidy-type-formatter="subsidyTypeLabel"
+      :status-formatter="financeStatusLabelForAudit"
+      status-field="financeStatus"
+      :fetch-summary="fetchSummary"
+      :fetch-detail="fetchDetail"
+      :fetch-audit="fetchAudit"
+      :action-buttons="detailActions"
+      :loading-action-key="loadingActionKey"
+      @action-click="handleDetailAction"
+    />
   </div>
 </template>
 
 <script>
-import { listBatch, getBatchDetail, generateBankFile, submitToBank } from '@/api/shebao/finance'
-import { getApprovalHistory } from '@/api/shebao/approval'
-import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
-import ApprovalHistory from '@/components/Shebao/ApprovalHistory'
-import { getToken } from '@/utils/auth'
+import {
+  listFinanceBatch,
+  financeBatchPass,
+  financeBatchReject,
+  financeBatchReviewPass,
+  financeBatchReviewReject,
+  financeBatchApprovePass,
+  financeBatchApproveReject
+} from '@/api/shebao/finance'
+import { getPaymentPlanSummary, getPaymentPlanDetail, getPaymentPlanAudit } from '@/api/shebao/payment'
+import {
+  paymentPlanStatusLabel,
+  paymentPlanFinanceStatusLabel,
+  PAYMENT_PLAN_FINANCE_STATUS_LABELS,
+  promptFinanceBatchAction,
+  paymentPlanAuditOperationLabel
+} from '../../payment/plan/planUiShared'
+import PlanDetailDialog from '../../payment/plan/PlanDetailDialog'
+
+function currentMonth() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
+
+const ACTION_API = {
+  financePass: financeBatchPass,
+  financeReject: financeBatchReject,
+  reviewPass: financeBatchReviewPass,
+  reviewReject: financeBatchReviewReject,
+  approvePass: financeBatchApprovePass,
+  approveReject: financeBatchApproveReject
+}
+
+const ACTION_NEXT_STATUS = {
+  financePass: 'finance_pending_review',
+  financeReject: 'finance_rejected',
+  reviewPass: 'finance_pending_approve',
+  reviewReject: 'finance_rejected',
+  approvePass: 'finance_approved',
+  approveReject: 'finance_rejected'
+}
 
 export default {
   name: 'FinanceBatch',
-  dicts: ['subsidy_type'],
-  components: { ApprovalStatus, ApprovalHistory },
+  components: { PlanDetailDialog },
+  dicts: ['shebao_grant_org'],
   data() {
     return {
-      loading: true,
+      loading: false,
       total: 0,
       dataList: [],
       detailOpen: false,
-      importOpen: false,
-      detailData: {},
-      detailList: [],
-      approvalHistory: [],
-      currentBatchNo: null,
-      uploadUrl: process.env.VUE_APP_BASE_API + '/shebao/finance/bank/import',
-      uploadHeaders: { Authorization: 'Bearer ' + getToken() },
+      currentPlan: null,
+      loadingActionKey: '',
+      financeStatusOptions: Object.keys(PAYMENT_PLAN_FINANCE_STATUS_LABELS).map(value => ({
+        value,
+        label: PAYMENT_PLAN_FINANCE_STATUS_LABELS[value]
+      })),
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        batchNo: null,
-        subsidyType: null,
-        approvalStatus: null
+        businessPeriod: null,
+        determinationType: null,
+        financeStatus: null,
+        batchNo: null
       }
+    }
+  },
+  computed: {
+    detailActions() {
+      return [
+        { key: 'financePass', label: '财务通过', type: 'success', statuses: ['pending_finance'], perm: 'shebao:finance:batch:financePass' },
+        { key: 'financeReject', label: '财务驳回', type: 'danger', statuses: ['pending_finance'], perm: 'shebao:finance:batch:financeReject' },
+        { key: 'reviewPass', label: '复核通过', type: 'success', statuses: ['finance_pending_review'], perm: 'shebao:finance:batch:reviewPass' },
+        { key: 'reviewReject', label: '复核驳回', type: 'danger', statuses: ['finance_pending_review'], perm: 'shebao:finance:batch:reviewReject' },
+        { key: 'approvePass', label: '审批通过', type: 'success', statuses: ['finance_pending_approve'], perm: 'shebao:finance:batch:approvePass' },
+        { key: 'approveReject', label: '审批驳回', type: 'danger', statuses: ['finance_pending_approve'], perm: 'shebao:finance:batch:approveReject' }
+      ]
     }
   },
   created() {
@@ -149,9 +203,10 @@ export default {
   methods: {
     getList() {
       this.loading = true
-      listBatch(this.queryParams).then(response => {
-        this.dataList = response.rows
-        this.total = response.total
+      listFinanceBatch(this.queryParams).then(res => {
+        this.dataList = res.rows || []
+        this.total = res.total || 0
+      }).finally(() => {
         this.loading = false
       })
     },
@@ -160,59 +215,74 @@ export default {
       this.getList()
     },
     resetQuery() {
-      this.resetForm('queryForm')
-      this.handleQuery()
-    },
-    handleView(row) {
-      this.detailOpen = true
-      // 获取批次详情
-      getBatchDetail(row.batchNo).then(response => {
-        this.detailData = response.data.batch || row
-        this.detailList = response.data.details || []
-      })
-      // 获取审批历史
-      getApprovalHistory('payment_batch', row.id).then(response => {
-        this.approvalHistory = response.data
-      })
-    },
-    handleGenerateFile(row) {
-      this.$modal.confirm('是否生成银行发放文件？').then(() => {
-        return generateBankFile(row.batchNo)
-      }).then(data => {
-        // 下载文件
-        const blob = new Blob([data], { type: 'text/plain;charset=utf-8' })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `bank_file_${row.batchNo}.txt`
-        link.click()
-        window.URL.revokeObjectURL(url)
-        this.$modal.msgSuccess('文件生成成功')
-      })
-    },
-    handleSubmitBank(row) {
-      this.$modal.confirm('是否确认提交银行发放？').then(() => {
-        return submitToBank({ batchNo: row.batchNo })
-      }).then(() => {
-        this.$modal.msgSuccess('提交成功')
-        this.getList()
-      })
-    },
-    handleImportResult(row) {
-      this.currentBatchNo = row.batchNo
-      this.importOpen = true
-    },
-    handleImportSuccess(response) {
-      if (response.code !== 200) {
-        this.$modal.msgError(response.msg || '导入失败')
-        return
+      this.queryParams = {
+        pageNum: 1,
+        pageSize: 10,
+        businessPeriod: currentMonth(),
+        determinationType: null,
+        financeStatus: null,
+        batchNo: null
       }
-      this.$modal.msgSuccess('导入成功')
-      this.importOpen = false
       this.getList()
     },
-    handleImportError() {
-      this.$modal.msgError('导入失败')
+    openDetail(row) {
+      this.currentPlan = { ...row }
+      this.detailOpen = true
+    },
+    fetchSummary(planId) {
+      return getPaymentPlanSummary(planId).then(res => res.data || [])
+    },
+    fetchDetail(planId) {
+      return getPaymentPlanDetail(planId, { pageNum: 1, pageSize: 1000 }).then(res => res.rows || [])
+    },
+    fetchAudit(planId) {
+      return getPaymentPlanAudit(planId).then(res => res.data || [])
+    },
+    handleDetailAction(actionKey, row) {
+      this.doAction(row, actionKey)
+    },
+    doAction(row, actionKey) {
+      const api = ACTION_API[actionKey]
+      if (!api) return
+      promptFinanceBatchAction(this, actionKey).then(remark => {
+        this.loadingActionKey = actionKey
+        return api(row.id, { remark })
+      }).then(() => {
+        this.$modal.msgSuccess('操作成功')
+        const next = ACTION_NEXT_STATUS[actionKey]
+        if (this.detailOpen && this.currentPlan && this.currentPlan.id === row.id) {
+          this.currentPlan.financeStatus = next
+        }
+        this.getList()
+      }).finally(() => {
+        this.loadingActionKey = ''
+      })
+    },
+    determinationTypeText(val) {
+      return val === 'second' ? '二次发放' : '正常发放'
+    },
+    subsidyStatusLabel(val) {
+      return paymentPlanStatusLabel(val)
+    },
+    financeStatusLabel(row) {
+      const s = row.financeStatus || row.finance_status
+      return s ? paymentPlanFinanceStatusLabel(s) : '—'
+    },
+    financeStatusLabelForAudit(statusOrRow) {
+      if (statusOrRow && typeof statusOrRow === 'object') {
+        return paymentPlanAuditOperationLabel(statusOrRow)
+      }
+      return paymentPlanFinanceStatusLabel(statusOrRow)
+    },
+    subsidyTypeLabel(val) {
+      const map = {
+        land_loss: '失地',
+        land_loss_resident: '失地',
+        demolition: '拆迁',
+        demolition_resident: '拆迁',
+        village_official: '村干部'
+      }
+      return map[val] || val
     }
   }
 }

@@ -42,6 +42,10 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private static final String AUDIT_STAGE_FINANCE = "finance";
     /** 上传财务后进入待财务 */
     private static final String FINANCE_PENDING = "pending_finance";
+    private static final String FINANCE_PENDING_REVIEW = "finance_pending_review";
+    private static final String FINANCE_PENDING_APPROVE = "finance_pending_approve";
+    private static final String FINANCE_APPROVED = "finance_approved";
+    private static final String FINANCE_REJECTED = "finance_rejected";
 
     @Autowired
     private PaymentPlanMapper paymentPlanMapper;
@@ -274,6 +278,78 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         if (rows > 0)
         {
             insertAudit(planId, FINANCE_PENDING, null, AUDIT_STAGE_FINANCE);
+        }
+        return rows;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int financePass(Long planId, PaymentPlanFinanceStatusChangeReq req)
+    {
+        return changeFinanceStatus(planId, FINANCE_PENDING, FINANCE_PENDING_REVIEW, req, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int financeReject(Long planId, PaymentPlanFinanceStatusChangeReq req)
+    {
+        return changeFinanceStatus(planId, FINANCE_PENDING, FINANCE_REJECTED, req, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int financeReviewPass(Long planId, PaymentPlanFinanceStatusChangeReq req)
+    {
+        return changeFinanceStatus(planId, FINANCE_PENDING_REVIEW, FINANCE_PENDING_APPROVE, req, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int financeReviewReject(Long planId, PaymentPlanFinanceStatusChangeReq req)
+    {
+        return changeFinanceStatus(planId, FINANCE_PENDING_REVIEW, FINANCE_REJECTED, req, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int financeApprovePass(Long planId, PaymentPlanFinanceStatusChangeReq req)
+    {
+        return changeFinanceStatus(planId, FINANCE_PENDING_APPROVE, FINANCE_APPROVED, req, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int financeApproveReject(Long planId, PaymentPlanFinanceStatusChangeReq req)
+    {
+        return changeFinanceStatus(planId, FINANCE_PENDING_APPROVE, FINANCE_REJECTED, req, true);
+    }
+
+    private int changeFinanceStatus(Long planId, String expectedCurrent, String target,
+                                    PaymentPlanFinanceStatusChangeReq req, boolean remarkRequired)
+    {
+        PaymentPlan plan = paymentPlanMapper.selectById(planId);
+        if (plan == null || !"0".equals(plan.getDelFlag()))
+        {
+            throw new ServiceException("支付计划不存在");
+        }
+        if (!expectedCurrent.equals(plan.getFinanceStatus()))
+        {
+            throw new ServiceException("当前财务状态不支持该操作");
+        }
+        String remark = req == null ? null : req.getRemark();
+        if (remarkRequired && (remark == null || remark.isBlank()))
+        {
+            throw new ServiceException("驳回时备注必填");
+        }
+        PaymentPlan upd = new PaymentPlan();
+        upd.setId(planId);
+        upd.setFinanceStatus(target);
+        upd.setUpdateBy(SecurityUtils.getUsername());
+        upd.setUpdateTime(new Date());
+        int rows = paymentPlanMapper.updateById(upd);
+        if (rows > 0)
+        {
+            insertAudit(planId, target, remark, AUDIT_STAGE_FINANCE);
         }
         return rows;
     }

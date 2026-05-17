@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `shebao_payment_plan` (
   `operator_name` varchar(64) DEFAULT NULL COMMENT '经办人',
   `operator_time` datetime DEFAULT NULL COMMENT '经办时间',
   `approval_status` varchar(20) NOT NULL DEFAULT 'draft' COMMENT '审批状态(draft/pending_review/pending_approve/approved/review_rejected/approve_rejected)',
-  `finance_status` varchar(32) DEFAULT NULL COMMENT '财务状态(pending_finance/finance_pending_review/finance_pending_approve/finance_approved)',
+  `finance_status` varchar(32) DEFAULT NULL COMMENT '财务状态(pending_finance/finance_pending_review/finance_pending_approve/finance_approved/finance_rejected)',
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志(0正常 2删除)',
   `create_by` varchar(64) DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,

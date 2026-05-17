@@ -4,6 +4,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.shebao.domain.PaymentPlan;
 import com.ruoyi.shebao.domain.PaymentPlanAudit;
 import com.ruoyi.shebao.dto.PaymentPlanDetailResp;
+import com.ruoyi.shebao.dto.PaymentPlanFinanceStatusChangeReq;
 import com.ruoyi.shebao.dto.PaymentPlanGenerateReq;
 import com.ruoyi.shebao.dto.PaymentPlanPreviewReq;
 import com.ruoyi.shebao.dto.PaymentPlanPreviewResp;
@@ -170,6 +171,25 @@ class PaymentPlanServiceImplTest {
         verify(paymentPlanAuditMapper).insert(auditCap.capture());
         assertEquals("pending_finance", auditCap.getValue().getOperationStatus());
         assertEquals("finance", auditCap.getValue().getApprovalStage());
+    }
+
+    @Test
+    @DisplayName("待财务可财务通过进入待复核")
+    void financePass_fromPendingFinance() {
+        PaymentPlan plan = new PaymentPlan();
+        plan.setId(8L);
+        plan.setDelFlag("0");
+        plan.setFinanceStatus("pending_finance");
+        when(paymentPlanMapper.selectById(8L)).thenReturn(plan);
+        when(paymentPlanMapper.updateById(any(PaymentPlan.class))).thenReturn(1);
+
+        int rows = paymentPlanService.financePass(8L, new PaymentPlanFinanceStatusChangeReq());
+
+        assertEquals(1, rows);
+        ArgumentCaptor<PaymentPlanAudit> cap = ArgumentCaptor.forClass(PaymentPlanAudit.class);
+        verify(paymentPlanAuditMapper).insert(cap.capture());
+        assertEquals("finance_pending_review", cap.getValue().getOperationStatus());
+        assertEquals("finance", cap.getValue().getApprovalStage());
     }
 
     @Test
