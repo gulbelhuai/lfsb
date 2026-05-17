@@ -39,8 +39,11 @@
       <el-tab-pane label="审核记录" name="audit">
         <el-table :data="auditList" border>
           <el-table-column type="index" label="序号" width="60" />
-          <el-table-column label="操作状态" prop="operationStatus">
-            <template slot-scope="scope">{{ statusFormatter(scope.row.operationStatus) }}</template>
+          <el-table-column label="审批阶段" prop="approvalStage" width="100">
+            <template slot-scope="scope">{{ paymentPlanAuditStageLabelFromRow(scope.row) }}</template>
+          </el-table-column>
+          <el-table-column label="操作状态" prop="operationStatus" width="120">
+            <template slot-scope="scope">{{ paymentPlanAuditOperationLabel(scope.row) }}</template>
           </el-table-column>
           <el-table-column label="操作人" prop="operatorName" width="120" />
           <el-table-column label="操作时间" prop="operationTime" width="180" />
@@ -62,6 +65,8 @@
 </template>
 
 <script>
+import { paymentPlanAuditOperationLabel, paymentPlanAuditStageLabelFromRow } from './planUiShared'
+
 export default {
   name: 'PlanDetailDialog',
   props: {
@@ -113,6 +118,8 @@ export default {
     }
   },
   methods: {
+    paymentPlanAuditOperationLabel,
+    paymentPlanAuditStageLabelFromRow,
     onClose() {
       this.$emit('update:visible', false)
     },

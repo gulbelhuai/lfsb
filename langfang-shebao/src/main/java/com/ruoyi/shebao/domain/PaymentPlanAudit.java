@@ -19,6 +19,8 @@ public class PaymentPlanAudit extends BaseEntity
     private Long id;
     private Long planId;
     private String operationStatus;
+    /** subsidy=补贴审核, finance=财务审核 */
+    private String approvalStage;
     private String operatorName;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date operationTime;

@@ -11,9 +11,16 @@
                p.operator_name as operatorName,
                p.operator_time as operatorTime,
                p.approval_status as approvalStatus,
+               p.finance_status as financeStatus,
+               (select group_concat(distinct s.subsidy_type order by s.subsidy_type separator ',')
+                from shebao_payment_plan_summary s
+                where s.plan_id = p.id and s.del_flag = '0') as subsidyTypes,
                (select min(s.grant_org) from shebao_payment_plan_summary s where s.plan_id = p.id and s.del_flag = '0') as grantOrg
         from shebao_payment_plan p
         where p.del_flag = '0'
+        <if test="req.batchNo != null and req.batchNo != ''">
+            and p.batch_no = #{req.batchNo}
+        </if>
         <if test="req.determinationType != null and req.determinationType != ''">
             and p.determination_type = #{req.determinationType}
         </if>

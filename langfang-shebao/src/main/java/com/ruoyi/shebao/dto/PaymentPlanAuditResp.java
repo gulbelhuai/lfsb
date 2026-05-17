@@ -11,6 +11,7 @@ public class PaymentPlanAuditResp
     private Long id;
     private Long planId;
     private String operationStatus;
+    private String approvalStage;
     private String operatorName;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date operationTime;

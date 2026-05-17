@@ -19,4 +19,7 @@ public interface PaymentPlanService
     List<PaymentPlanAuditResp> selectAuditByPlanId(Long planId);
 
     Page<PaymentPlanDetailResp> selectDetailByPlanId(Long planId, Integer pageNum, Integer pageSize);
+
+    /** 上传财务：将财务状态置为待财务并记财务审核流水 */
+    int submitFinanceUpload(Long planId);
 }

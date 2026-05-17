@@ -20,5 +20,9 @@ public class PaymentPlanListResp
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date operatorTime;
     private String approvalStatus;
+    /** 财务状态 */
+    private String financeStatus;
+    /** 汇总涉及的补贴类型（展示用） */
+    private String subsidyTypes;
     private String grantOrg;
 }

@@ -2,10 +2,12 @@ package com.ruoyi.shebao.service.impl;
 
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.shebao.domain.PaymentPlan;
+import com.ruoyi.shebao.domain.PaymentPlanAudit;
 import com.ruoyi.shebao.dto.PaymentPlanDetailResp;
 import com.ruoyi.shebao.dto.PaymentPlanGenerateReq;
 import com.ruoyi.shebao.dto.PaymentPlanPreviewReq;
 import com.ruoyi.shebao.dto.PaymentPlanPreviewResp;
+import com.ruoyi.shebao.mapper.PaymentPlanAuditMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanSummaryMapper;
@@ -45,6 +47,8 @@ class PaymentPlanServiceImplTest {
     private PaymentPlanSummaryMapper paymentPlanSummaryMapper;
     @Mock
     private PaymentPlanDetailMapper paymentPlanDetailMapper;
+    @Mock
+    private PaymentPlanAuditMapper paymentPlanAuditMapper;
 
     @InjectMocks
     private PaymentPlanServiceImpl paymentPlanService;
@@ -145,6 +149,27 @@ class PaymentPlanServiceImplTest {
         verify(paymentPlanMapper).selectMaxBatchSeqSuffix("20260401");
         verify(paymentPlanSummaryMapper).batchInsert(anyList());
         verify(paymentPlanDetailMapper).batchInsert(anyList());
+        verify(paymentPlanAuditMapper).insert(any(PaymentPlanAudit.class));
+    }
+
+    @Test
+    @DisplayName("审批通过且无财务状态时可上传财务")
+    void submitFinanceUpload_setsPendingFinance() {
+        PaymentPlan plan = new PaymentPlan();
+        plan.setId(7L);
+        plan.setDelFlag("0");
+        plan.setApprovalStatus("approved");
+        plan.setFinanceStatus(null);
+        when(paymentPlanMapper.selectById(7L)).thenReturn(plan);
+        when(paymentPlanMapper.updateById(any(PaymentPlan.class))).thenReturn(1);
+
+        int rows = paymentPlanService.submitFinanceUpload(7L);
+
+        assertEquals(1, rows);
+        ArgumentCaptor<PaymentPlanAudit> auditCap = ArgumentCaptor.forClass(PaymentPlanAudit.class);
+        verify(paymentPlanAuditMapper).insert(auditCap.capture());
+        assertEquals("pending_finance", auditCap.getValue().getOperationStatus());
+        assertEquals("finance", auditCap.getValue().getApprovalStage());
     }
 
     @Test

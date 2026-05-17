@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS `shebao_payment_plan` (
   `operator_name` varchar(64) DEFAULT NULL COMMENT '经办人',
   `operator_time` datetime DEFAULT NULL COMMENT '经办时间',
   `approval_status` varchar(20) NOT NULL DEFAULT 'draft' COMMENT '审批状态(draft/pending_review/pending_approve/approved/review_rejected/approve_rejected)',
+  `finance_status` varchar(32) DEFAULT NULL COMMENT '财务状态(pending_finance/finance_pending_review/finance_pending_approve/finance_approved)',
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志(0正常 2删除)',
   `create_by` varchar(64) DEFAULT NULL,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -79,7 +80,8 @@ CREATE TABLE IF NOT EXISTS `shebao_payment_plan_detail` (
 CREATE TABLE IF NOT EXISTS `shebao_payment_plan_audit` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `plan_id` bigint NOT NULL COMMENT '计划ID',
-  `operation_status` varchar(30) NOT NULL COMMENT '操作状态',
+  `operation_status` varchar(30) NOT NULL COMMENT '操作状态(补贴侧为审批状态码，财务侧为财务状态码)',
+  `approval_stage` varchar(20) DEFAULT NULL COMMENT 'subsidy=补贴审核, finance=财务审核',
   `operator_name` varchar(64) DEFAULT NULL COMMENT '操作人',
   `operation_time` datetime NOT NULL COMMENT '操作时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',

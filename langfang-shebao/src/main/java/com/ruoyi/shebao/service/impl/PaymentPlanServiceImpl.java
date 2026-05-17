@@ -3,6 +3,7 @@ package com.ruoyi.shebao.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.shebao.domain.PaymentPlan;
 import com.ruoyi.shebao.domain.PaymentPlanAudit;
 import com.ruoyi.shebao.domain.PaymentPlanDetail;
@@ -36,6 +37,11 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private static final String STATUS_REVIEW_REJECTED = "review_rejected";
     private static final String STATUS_APPROVE_REJECTED = "approve_rejected";
     private static final Set<String> SUBMIT_ALLOWED = Set.of(STATUS_DRAFT, STATUS_REVIEW_REJECTED, STATUS_APPROVE_REJECTED);
+
+    private static final String AUDIT_STAGE_SUBSIDY = "subsidy";
+    private static final String AUDIT_STAGE_FINANCE = "finance";
+    /** 上传财务后进入待财务 */
+    private static final String FINANCE_PENDING = "pending_finance";
 
     @Autowired
     private PaymentPlanMapper paymentPlanMapper;
@@ -192,9 +198,9 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             paymentPlanDetailMapper.batchInsert(detailRows);
         }
 
-        if (!Objects.equals(previousStatus, targetStatus) && STATUS_PENDING_REVIEW.equals(targetStatus))
+        if (!Objects.equals(previousStatus, targetStatus))
         {
-            insertAudit(plan.getId(), targetStatus, req.getRemark());
+            insertAudit(plan.getId(), targetStatus, req.getRemark(), AUDIT_STAGE_SUBSIDY);
         }
         return plan.getId();
     }
@@ -218,7 +224,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         int updated = paymentPlanMapper.updateById(plan);
         if (updated > 0)
         {
-            insertAudit(planId, target, req.getRemark());
+            insertAudit(planId, target, req.getRemark(), AUDIT_STAGE_SUBSIDY);
         }
         return updated;
     }
@@ -240,6 +246,36 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     {
         Page<PaymentPlanDetailResp> page = new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 10 : pageSize);
         return paymentPlanDetailMapper.selectByPlanId(page, planId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int submitFinanceUpload(Long planId)
+    {
+        PaymentPlan plan = paymentPlanMapper.selectById(planId);
+        if (plan == null || !"0".equals(plan.getDelFlag()))
+        {
+            throw new ServiceException("支付计划不存在");
+        }
+        if (!STATUS_APPROVED.equals(plan.getApprovalStatus()))
+        {
+            throw new ServiceException("仅审批通过的支付计划可上传财务");
+        }
+        if (StringUtils.isNotEmpty(plan.getFinanceStatus()))
+        {
+            throw new ServiceException("已存在财务状态，无需重复上传");
+        }
+        PaymentPlan upd = new PaymentPlan();
+        upd.setId(planId);
+        upd.setFinanceStatus(FINANCE_PENDING);
+        upd.setUpdateBy(SecurityUtils.getUsername());
+        upd.setUpdateTime(new Date());
+        int rows = paymentPlanMapper.updateById(upd);
+        if (rows > 0)
+        {
+            insertAudit(planId, FINANCE_PENDING, null, AUDIT_STAGE_FINANCE);
+        }
+        return rows;
     }
 
     private void validateReq(String determinationType, String businessPeriod)
@@ -395,11 +431,12 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         }
     }
 
-    private void insertAudit(Long planId, String status, String remark)
+    private void insertAudit(Long planId, String operationStatus, String remark, String approvalStage)
     {
         PaymentPlanAudit audit = new PaymentPlanAudit();
         audit.setPlanId(planId);
-        audit.setOperationStatus(status);
+        audit.setOperationStatus(operationStatus);
+        audit.setApprovalStage(approvalStage);
         audit.setOperatorName(resolveOperatorName());
         audit.setOperationTime(new Date());
         audit.setRemark(remark);

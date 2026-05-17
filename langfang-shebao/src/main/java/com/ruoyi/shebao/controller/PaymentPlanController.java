@@ -30,7 +30,7 @@ public class PaymentPlanController extends BaseController
     /**
      * 查询支付计划列表
      */
-    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:list')")
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:list') or @ss.hasPermi('shebao:payment:batch:upload')")
     @GetMapping("/list")
     public TableDataInfo list(PaymentPlanListReq req)
     {
@@ -117,6 +117,14 @@ public class PaymentPlanController extends BaseController
     public AjaxResult changeStatus(@PathVariable("id") Long id, @RequestBody PaymentPlanStatusChangeReq req)
     {
         return toAjax(paymentPlanService.changeStatus(id, req));
+    }
+
+    @PreAuthorize("@ss.hasPermi('shebao:payment:batch:upload')")
+    @Log(title = "支付计划上传财务", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/finance-submit")
+    public AjaxResult submitFinance(@PathVariable("id") Long id)
+    {
+        return toAjax(paymentPlanService.submitFinanceUpload(id));
     }
 
     /**

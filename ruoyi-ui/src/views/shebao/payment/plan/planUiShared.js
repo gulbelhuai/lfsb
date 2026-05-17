@@ -11,6 +11,52 @@ export function paymentPlanStatusLabel(status) {
   return PAYMENT_PLAN_STATUS_LABELS[status] || status
 }
 
+export const PAYMENT_PLAN_FINANCE_STATUS_LABELS = {
+  pending_finance: '待财务',
+  finance_pending_review: '待复核',
+  finance_pending_approve: '待审批',
+  finance_approved: '已通过'
+}
+
+export function paymentPlanFinanceStatusLabel(status) {
+  if (!status) return ''
+  return PAYMENT_PLAN_FINANCE_STATUS_LABELS[status] || status
+}
+
+export function paymentPlanAuditStageLabel(stage) {
+  if (stage === 'finance') return '财务审核'
+  if (stage === 'subsidy') return '补贴审核'
+  return stage || '—'
+}
+
+const FINANCE_OPERATION_STATUSES = new Set([
+  'pending_finance',
+  'finance_pending_review',
+  'finance_pending_approve',
+  'finance_approved'
+])
+
+export function isPaymentPlanFinanceOperationStatus(status) {
+  return status != null && FINANCE_OPERATION_STATUSES.has(status)
+}
+
+/** 审核记录行：操作状态展示（补贴侧为审批状态文案，财务侧为财务状态文案） */
+export function paymentPlanAuditOperationLabel(row) {
+  if (!row) return ''
+  if (row.approvalStage === 'finance' || (!row.approvalStage && isPaymentPlanFinanceOperationStatus(row.operationStatus))) {
+    return paymentPlanFinanceStatusLabel(row.operationStatus)
+  }
+  return paymentPlanStatusLabel(row.operationStatus)
+}
+
+/** 审核记录行：审批阶段展示（兼容无 approval_stage 的旧数据） */
+export function paymentPlanAuditStageLabelFromRow(row) {
+  if (!row) return '—'
+  if (row.approvalStage) return paymentPlanAuditStageLabel(row.approvalStage)
+  if (isPaymentPlanFinanceOperationStatus(row.operationStatus)) return '财务审核'
+  return '补贴审核'
+}
+
 export const PAYMENT_PLAN_ACTION_META = {
   pending_review: { title: '提交', reject: false },
   draft: { title: '撤回', reject: false },

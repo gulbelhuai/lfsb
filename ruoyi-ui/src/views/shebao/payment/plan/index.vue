@@ -47,6 +47,9 @@
         <el-table-column label="审批状态" prop="approvalStatus" width="120">
           <template slot-scope="scope">{{ approvalStatusText(scope.row.approvalStatus) }}</template>
         </el-table-column>
+        <el-table-column label="财务状态" prop="financeStatus" width="110">
+          <template slot-scope="scope">{{ financeStatusText(scope.row) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template slot-scope="scope">
             <el-button type="text" size="mini" @click="openDetailDialog(scope.row)">详情</el-button>
@@ -173,8 +176,11 @@
         <el-tab-pane label="审核记录" name="audit">
           <el-table :data="detailAuditList" border>
             <el-table-column type="index" label="序号" width="60" />
-            <el-table-column label="操作状态" prop="operationStatus">
-              <template slot-scope="scope">{{ approvalStatusText(scope.row.operationStatus) }}</template>
+            <el-table-column label="审批阶段" prop="approvalStage" width="100">
+              <template slot-scope="scope">{{ paymentPlanAuditStageLabelFromRow(scope.row) }}</template>
+            </el-table-column>
+            <el-table-column label="操作状态" prop="operationStatus" width="120">
+              <template slot-scope="scope">{{ paymentPlanAuditOperationLabel(scope.row) }}</template>
             </el-table-column>
             <el-table-column label="操作人" prop="operatorName" width="120" />
             <el-table-column label="操作时间" prop="operationTime" width="180" />
@@ -202,7 +208,13 @@ import {
   changePaymentPlanStatus
 } from '@/api/shebao/payment'
 import { selectDictLabel } from '@/utils/ruoyi'
-import { paymentPlanStatusLabel, promptPlanAction } from './planUiShared'
+import {
+  paymentPlanStatusLabel,
+  paymentPlanFinanceStatusLabel,
+  promptPlanAction,
+  paymentPlanAuditOperationLabel,
+  paymentPlanAuditStageLabelFromRow
+} from './planUiShared'
 
 export default {
   name: 'PaymentPlan',
@@ -447,6 +459,13 @@ export default {
     approvalStatusText(val) {
       return paymentPlanStatusLabel(val)
     },
+    financeStatusText(row) {
+      const s = row.financeStatus || row.finance_status
+      if (!s) return '—'
+      return paymentPlanFinanceStatusLabel(s)
+    },
+    paymentPlanAuditOperationLabel,
+    paymentPlanAuditStageLabelFromRow,
     subsidyTypeText(val) {
       const map = {
         land_loss: '失地',

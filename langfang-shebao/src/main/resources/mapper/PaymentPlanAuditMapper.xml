@@ -3,10 +3,11 @@
 <mapper namespace="com.ruoyi.shebao.mapper.PaymentPlanAuditMapper">
     <select id="selectByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanAuditResp">
         select a.id,
-               a.plan_id,
-               a.operation_status,
-               a.operator_name,
-               a.operation_time,
+               a.plan_id as planId,
+               a.operation_status as operationStatus,
+               a.approval_stage as approvalStage,
+               a.operator_name as operatorName,
+               a.operation_time as operationTime,
                a.remark
         from shebao_payment_plan_audit a
         where a.plan_id = #{planId}

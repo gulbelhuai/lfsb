@@ -52,6 +52,12 @@ public class PaymentPlan extends BaseEntity
     /** 审批状态 */
     private String approvalStatus;
 
+    /**
+     * 财务状态：空=未进入财务；pending_finance=待财务；finance_pending_review=待复核；
+     * finance_pending_approve=待审批；finance_approved=已通过
+     */
+    private String financeStatus;
+
     /** 删除标志 */
     private String delFlag;
 }

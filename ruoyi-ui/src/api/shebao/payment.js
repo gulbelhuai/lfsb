@@ -70,6 +70,14 @@ export function changePaymentPlanStatus(id, data) {
   })
 }
 
+/** 支付计划上传财务（进入待财务） */
+export function uploadPlanToFinance(id) {
+  return request({
+    url: `/shebao/payment/plan/${id}/finance-submit`,
+    method: 'post'
+  })
+}
+
 // 兼容旧方法名
 export const getPaymentStatistics = previewPaymentPlan
 

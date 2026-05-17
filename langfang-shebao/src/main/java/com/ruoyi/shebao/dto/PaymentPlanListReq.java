@@ -21,6 +21,9 @@ public class PaymentPlanListReq extends PageReq
 
     private String operatorName;
 
+    /** 按批次号精确查询 */
+    private String batchNo;
+
     public LocalDate getBusinessPeriodDate()
     {
         if (businessPeriod == null || businessPeriod.isBlank())
