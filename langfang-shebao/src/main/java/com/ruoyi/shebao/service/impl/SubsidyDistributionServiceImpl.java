@@ -11,6 +11,7 @@ import com.ruoyi.shebao.dto.AvailableSubsidyDto;
 import com.ruoyi.shebao.dto.SubsidyDistributionListReq;
 import com.ruoyi.shebao.dto.SubsidyDistributionListResp;
 import com.ruoyi.shebao.dto.SubsidyDistributionFormDto;
+import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.enums.DistributionStatusEnum;
 import com.ruoyi.shebao.enums.SubsidyTypeEnum;
 import com.ruoyi.shebao.mapper.*;
@@ -200,6 +201,8 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         List<LandLossResident> landLossList = landLossResidentMapper.selectList(
             new LambdaQueryWrapper<LandLossResident>()
                 .eq(LandLossResident::getSubsidyPersonId, person.getId())
+                .eq(LandLossResident::getDelFlag, "0")
+                .eq(LandLossResident::getApprovalStatus, SubsidyApprovalStatus.APPROVED)
         );
         if (!landLossList.isEmpty()) {
             AvailableSubsidyDto.SubsidyTypeInfo typeInfo = new AvailableSubsidyDto.SubsidyTypeInfo();
@@ -224,6 +227,8 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         List<ExpropriateeSubsidy> expropriateeList = expropriateeSubsidyMapper.selectList(
             new LambdaQueryWrapper<ExpropriateeSubsidy>()
                 .eq(ExpropriateeSubsidy::getSubsidyPersonId, person.getId())
+                .eq(ExpropriateeSubsidy::getDelFlag, "0")
+                .eq(ExpropriateeSubsidy::getApprovalStatus, SubsidyApprovalStatus.APPROVED)
         );
         if (!expropriateeList.isEmpty()) {
             AvailableSubsidyDto.SubsidyTypeInfo typeInfo = new AvailableSubsidyDto.SubsidyTypeInfo();
@@ -249,6 +254,8 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         List<DemolitionResident> demolitionList = demolitionResidentMapper.selectList(
             new LambdaQueryWrapper<DemolitionResident>()
                 .eq(DemolitionResident::getSubsidyPersonId, person.getId())
+                .eq(DemolitionResident::getDelFlag, "0")
+                .eq(DemolitionResident::getApprovalStatus, SubsidyApprovalStatus.APPROVED)
         );
         if (!demolitionList.isEmpty()) {
             AvailableSubsidyDto.SubsidyTypeInfo typeInfo = new AvailableSubsidyDto.SubsidyTypeInfo();
@@ -274,6 +281,8 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         List<VillageOfficial> villageOfficialList = villageOfficialMapper.selectList(
             new LambdaQueryWrapper<VillageOfficial>()
                 .eq(VillageOfficial::getSubsidyPersonId, person.getId())
+                .eq(VillageOfficial::getDelFlag, "0")
+                .eq(VillageOfficial::getApprovalStatus, SubsidyApprovalStatus.APPROVED)
         );
         if (!villageOfficialList.isEmpty()) {
             AvailableSubsidyDto.SubsidyTypeInfo typeInfo = new AvailableSubsidyDto.SubsidyTypeInfo();
@@ -299,6 +308,8 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         List<TeacherSubsidy> teacherList = teacherSubsidyMapper.selectList(
             new LambdaQueryWrapper<TeacherSubsidy>()
                 .eq(TeacherSubsidy::getSubsidyPersonId, person.getId())
+                .eq(TeacherSubsidy::getDelFlag, "0")
+                .eq(TeacherSubsidy::getApprovalStatus, SubsidyApprovalStatus.APPROVED)
         );
         if (!teacherList.isEmpty()) {
             AvailableSubsidyDto.SubsidyTypeInfo typeInfo = new AvailableSubsidyDto.SubsidyTypeInfo();
@@ -518,46 +529,56 @@ public class SubsidyDistributionServiceImpl extends ServiceImpl<SubsidyDistribut
         switch (typeEnum) {
             case LAND_LOSS:
                 LandLossResident landLoss = landLossResidentMapper.selectById(subsidyRecordId);
-                if (landLoss == null) {
+                if (landLoss == null || !"0".equals(landLoss.getDelFlag())) {
                     throw new ServiceException("补贴记录不存在");
                 }
+                assertSubsidyRegistrationApproved(landLoss.getApprovalStatus());
                 status = "0"; // 失地居民不再有发放状态字段，默认为0
                 break;
             case EXPROPRIATEE:
                 ExpropriateeSubsidy expropriatee = expropriateeSubsidyMapper.selectById(subsidyRecordId);
-                if (expropriatee == null) {
+                if (expropriatee == null || !"0".equals(expropriatee.getDelFlag())) {
                     throw new ServiceException("补贴记录不存在");
                 }
-                // 补贴发放状态已移到补贴发放管理表，这里不再检查
+                assertSubsidyRegistrationApproved(expropriatee.getApprovalStatus());
                 status = "0";
                 break;
             case DEMOLITION:
                 DemolitionResident demolition = demolitionResidentMapper.selectById(subsidyRecordId);
-                if (demolition == null) {
+                if (demolition == null || !"0".equals(demolition.getDelFlag())) {
                     throw new ServiceException("补贴记录不存在");
                 }
-                // 补贴发放状态已移到补贴发放管理表，这里不再检查
+                assertSubsidyRegistrationApproved(demolition.getApprovalStatus());
                 status = "0";
                 break;
             case VILLAGE_OFFICIAL:
                 VillageOfficial villageOfficial = villageOfficialMapper.selectById(subsidyRecordId);
-                if (villageOfficial == null) {
+                if (villageOfficial == null || !"0".equals(villageOfficial.getDelFlag())) {
                     throw new ServiceException("补贴记录不存在");
                 }
-                // 补贴发放状态已移到补贴发放管理表，这里不再检查
+                assertSubsidyRegistrationApproved(villageOfficial.getApprovalStatus());
                 status = "0";
                 break;
             case TEACHER:
                 TeacherSubsidy teacherSubsidy = teacherSubsidyMapper.selectById(subsidyRecordId);
-                if (teacherSubsidy == null) {
+                if (teacherSubsidy == null || !"0".equals(teacherSubsidy.getDelFlag())) {
                     throw new ServiceException("补贴记录不存在");
                 }
+                assertSubsidyRegistrationApproved(teacherSubsidy.getApprovalStatus());
                 status = "0";
                 break;
         }
 
         if (!"0".equals(status) && status != null) {
             throw new ServiceException("该补贴记录已在发放流程中，不能重复发放");
+        }
+    }
+
+    private void assertSubsidyRegistrationApproved(String approvalStatus)
+    {
+        if (!SubsidyApprovalStatus.APPROVED.equals(approvalStatus))
+        {
+            throw new ServiceException("该补贴登记尚未复核通过，不能办理发放");
         }
     }
 

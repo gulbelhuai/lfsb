@@ -100,7 +100,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                es.age_at_base_date, es.subsidy_years, es.subsidy_amount, 
                es.join_urban_rural_insurance, es.join_employee_pension, 
                es.status, es.create_time, es.update_time, es.remark,
-               sp.name, sp.id_card_no, sp.gender, sp.phone, sp.approval_status,
+               sp.name, sp.id_card_no, sp.gender, sp.phone, es.approval_status,
                svc.village_name
         from shebao_expropriatee_subsidy es
         left join shebao_subsidy_person sp on es.subsidy_person_id = sp.id
@@ -123,7 +123,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 AND sp.village_committee_id = #{req.villageCommitteeId}
             </if>
             <if test="req.approvalStatus != null and req.approvalStatus != ''">
-                AND sp.approval_status = #{req.approvalStatus}
+                AND es.approval_status = #{req.approvalStatus}
             </if>
             <if test="req.landRequisitionBatch != null and req.landRequisitionBatch != ''">
                 AND es.land_requisition_batch like concat('%', #{req.landRequisitionBatch}, '%')

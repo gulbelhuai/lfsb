@@ -41,4 +41,7 @@ public class DemolitionResident extends BaseDomain
     /** 认定时所在村街 */
     @Excel(name = "认定时所在村街")
     private String villageStreet;
+
+    /** 审批状态（draft/pending_review/approved/rejected） */
+    private String approvalStatus;
 }

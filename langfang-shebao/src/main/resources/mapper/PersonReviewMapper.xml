@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.PersonReviewMapper">
+
+    <resultMap type="com.ruoyi.shebao.dto.PersonReviewListResp" id="PersonReviewListRespResult">
+        <result property="id" column="id"/>
+        <result property="subsidyPersonId" column="subsidy_person_id"/>
+        <result property="subsidyType" column="subsidy_type"/>
+        <result property="userCode" column="user_code"/>
+        <result property="name" column="name"/>
+        <result property="idCardNo" column="id_card_no"/>
+        <result property="gender" column="gender"/>
+        <result property="birthday" column="birthday"/>
+        <result property="streetOfficeName" column="street_office_name"/>
+        <result property="villageCommitteeName" column="village_committee_name"/>
+        <result property="phone" column="phone"/>
+        <result property="approvalStatus" column="approval_status"/>
+        <result property="submitTime" column="submit_time"/>
+    </resultMap>
+
+    <select id="selectPersonReviewList" resultMap="PersonReviewListRespResult">
+        SELECT * FROM (
+            SELECT ll.id, ll.subsidy_person_id, 'land_loss_resident' AS subsidy_type,
+                   sp.user_code, sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+                   ll.approval_status, ll.update_time AS submit_time,
+                   sso.street_name AS street_office_name, svc.village_name AS village_committee_name
+            FROM shebao_land_loss_resident ll
+            INNER JOIN shebao_subsidy_person sp ON ll.subsidy_person_id = sp.id AND sp.del_flag = '0'
+            LEFT JOIN shebao_street_office sso ON sp.street_office_id = sso.id
+            LEFT JOIN shebao_village_committee svc ON sp.village_committee_id = svc.id
+            WHERE ll.del_flag = '0'
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND ll.approval_status = #{req.approvalStatus}
+            </if>
+
+            UNION ALL
+
+            SELECT es.id, es.subsidy_person_id, 'expropriatee' AS subsidy_type,
+                   sp.user_code, sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+                   es.approval_status, es.update_time AS submit_time,
+                   sso.street_name AS street_office_name, svc.village_name AS village_committee_name
+            FROM shebao_expropriatee_subsidy es
+            INNER JOIN shebao_subsidy_person sp ON es.subsidy_person_id = sp.id AND sp.del_flag = '0'
+            LEFT JOIN shebao_street_office sso ON sp.street_office_id = sso.id
+            LEFT JOIN shebao_village_committee svc ON sp.village_committee_id = svc.id
+            WHERE es.del_flag = '0'
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND es.approval_status = #{req.approvalStatus}
+            </if>
+
+            UNION ALL
+
+            SELECT dr.id, dr.subsidy_person_id, 'demolition_resident' AS subsidy_type,
+                   sp.user_code, sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+                   dr.approval_status, dr.update_time AS submit_time,
+                   sso.street_name AS street_office_name, svc.village_name AS village_committee_name
+            FROM shebao_demolition_resident dr
+            INNER JOIN shebao_subsidy_person sp ON dr.subsidy_person_id = sp.id AND sp.del_flag = '0'
+            LEFT JOIN shebao_street_office sso ON sp.street_office_id = sso.id
+            LEFT JOIN shebao_village_committee svc ON sp.village_committee_id = svc.id
+            WHERE dr.del_flag = '0'
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND dr.approval_status = #{req.approvalStatus}
+            </if>
+
+            UNION ALL
+
+            SELECT vo.id, vo.subsidy_person_id, 'village_official' AS subsidy_type,
+                   sp.user_code, sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+                   vo.approval_status, vo.update_time AS submit_time,
+                   sso.street_name AS street_office_name, svc.village_name AS village_committee_name
+            FROM shebao_village_official vo
+            INNER JOIN shebao_subsidy_person sp ON vo.subsidy_person_id = sp.id AND sp.del_flag = '0'
+            LEFT JOIN shebao_street_office sso ON sp.street_office_id = sso.id
+            LEFT JOIN shebao_village_committee svc ON sp.village_committee_id = svc.id
+            WHERE vo.del_flag = '0'
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND vo.approval_status = #{req.approvalStatus}
+            </if>
+
+            UNION ALL
+
+            SELECT ts.id, ts.subsidy_person_id, 'teacher' AS subsidy_type,
+                   sp.user_code, sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
+                   ts.approval_status, ts.update_time AS submit_time,
+                   sso.street_name AS street_office_name, svc.village_name AS village_committee_name
+            FROM shebao_teacher_subsidy ts
+            INNER JOIN shebao_subsidy_person sp ON ts.subsidy_person_id = sp.id AND sp.del_flag = '0'
+            LEFT JOIN shebao_street_office sso ON sp.street_office_id = sso.id
+            LEFT JOIN shebao_village_committee svc ON sp.village_committee_id = svc.id
+            WHERE ts.del_flag = '0'
+            <if test="req.approvalStatus != null and req.approvalStatus != ''">
+                AND ts.approval_status = #{req.approvalStatus}
+            </if>
+        ) t
+        <where>
+            <if test="req.name != null and req.name != ''">
+                AND t.name LIKE concat('%', #{req.name}, '%')
+            </if>
+            <if test="req.idCardNo != null and req.idCardNo != ''">
+                AND t.id_card_no LIKE concat('%', #{req.idCardNo}, '%')
+            </if>
+            <if test="req.subsidyType != null and req.subsidyType != ''">
+                AND t.subsidy_type = #{req.subsidyType}
+            </if>
+        </where>
+        ORDER BY t.submit_time DESC
+    </select>
+
+</mapper>

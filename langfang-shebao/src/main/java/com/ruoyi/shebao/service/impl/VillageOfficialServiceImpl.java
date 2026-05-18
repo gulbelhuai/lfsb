@@ -11,10 +11,12 @@ import com.ruoyi.shebao.domain.VillageCommittee;
 import com.ruoyi.shebao.dto.VillageOfficialListReq;
 import com.ruoyi.shebao.dto.VillageOfficialListResp;
 import com.ruoyi.shebao.dto.VillageOfficialFormDto;
+import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialPositionMapper;
 import com.ruoyi.shebao.service.SubsidyCalculationService;
+import com.ruoyi.shebao.service.support.SubsidyPersonRegistrationHelper;
 import com.ruoyi.shebao.service.VillageOfficialService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.VillageCommitteeService;
@@ -57,6 +59,9 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
 
     @Autowired
     private SubsidyCalculationService subsidyCalculationService;
+
+    @Autowired
+    private SubsidyPersonRegistrationHelper subsidyPersonRegistrationHelper;
 
 
     /**
@@ -114,28 +119,42 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     public int insertVillageOfficial(VillageOfficialFormDto formDto)
     {
         calculateVillageOfficialBenefit(formDto);
-        // 处理基础信息
-        Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
+        normalizeDivisionFields(formDto);
+        SubsidyPerson existingByCard = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
+        if (existingByCard != null)
+        {
+            VillageOfficial existOfficial = this.lambdaQuery()
+                    .eq(VillageOfficial::getSubsidyPersonId, existingByCard.getId())
+                    .eq(VillageOfficial::getDelFlag, "0")
+                    .ne(Objects.nonNull(formDto.getId()), VillageOfficial::getId, formDto.getId())
+                    .one();
+            if (existOfficial != null)
+            {
+                throw new ServiceException("该人员已被认定为村干部，请核实后录入");
+            }
+        }
+        Long subsidyPersonId = subsidyPersonRegistrationHelper.resolveSubsidyPersonForCreate(formDto, personId -> false, person -> {
+            person.setIsAlive(StringUtils.isNotEmpty(formDto.getIsAlive()) ? formDto.getIsAlive() : "1");
+            person.setDeathDate(formDto.getDeathDate());
+            person.setIsVillageCoopMember(StringUtils.isNotEmpty(formDto.getIsVillageCoopMember()) ? formDto.getIsVillageCoopMember() : "1");
+        });
 
-        // 创建村干部信息
         VillageOfficial villageOfficial = new VillageOfficial();
         villageOfficial.setSubsidyPersonId(subsidyPersonId);
         villageOfficial.setSubsidyAmount(formDto.getSubsidyAmount());
         villageOfficial.setHasViolation(formDto.getHasViolation());
         villageOfficial.setVillageStreet(formDto.getVillageStreet());
         villageOfficial.setRemark(formDto.getRemark());
+        villageOfficial.setApprovalStatus(SubsidyApprovalStatus.PENDING_REVIEW);
         villageOfficial.setCreateTime(LocalDateTime.now());
         villageOfficial.setCreateBy(SecurityUtils.getUsername());
 
         int result = villageOfficialMapper.insert(villageOfficial);
 
-        // 处理任职信息
         if (formDto.getPositionList() != null && !formDto.getPositionList().isEmpty())
         {
             handlePositionList(villageOfficial.getId(), formDto.getPositionList());
         }
-
-        markPersonPendingReview(subsidyPersonId);
         return result;
     }
 
@@ -150,33 +169,35 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     public int updateVillageOfficial(VillageOfficialFormDto formDto)
     {
         calculateVillageOfficialBenefit(formDto);
-        // 处理基础信息
-        Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
+        normalizeDivisionFields(formDto);
+        VillageOfficial existing = villageOfficialMapper.selectById(formDto.getId());
+        if (existing == null || !"0".equals(existing.getDelFlag()))
+        {
+            throw new ServiceException("村干部记录不存在");
+        }
+        if (SubsidyApprovalStatus.isApproved(existing.getApprovalStatus()))
+        {
+            throw new ServiceException("已通过复核，不能修改");
+        }
+        subsidyPersonRegistrationHelper.resolveSubsidyPersonForUpdate(existing.getSubsidyPersonId());
 
-        // 更新村干部信息
         VillageOfficial villageOfficial = new VillageOfficial();
         villageOfficial.setId(formDto.getId());
-        villageOfficial.setSubsidyPersonId(subsidyPersonId);
         villageOfficial.setSubsidyAmount(formDto.getSubsidyAmount());
         villageOfficial.setHasViolation(formDto.getHasViolation());
         villageOfficial.setVillageStreet(formDto.getVillageStreet());
         villageOfficial.setRemark(formDto.getRemark());
+        villageOfficial.setApprovalStatus(SubsidyApprovalStatus.PENDING_REVIEW);
         villageOfficial.setUpdateTime(LocalDateTime.now());
         villageOfficial.setUpdateBy(SecurityUtils.getUsername());
 
         int result = villageOfficialMapper.updateById(villageOfficial);
 
-        // 处理任职信息（覆盖方式）
-        // 先删除原有任职信息
         villageOfficialPositionMapper.deleteByVillageOfficialId(formDto.getId());
-
-        // 再插入新的任职信息
         if (formDto.getPositionList() != null && !formDto.getPositionList().isEmpty())
         {
             handlePositionList(formDto.getId(), formDto.getPositionList());
         }
-
-        markPersonPendingReview(subsidyPersonId);
         return result;
     }
 
@@ -359,162 +380,6 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
         return successMsg.toString();
     }
 
-    /**
-     * 智能处理基础信息（新增或更新）
-     *
-     * @param formDto 表单数据
-     * @return 被补贴人ID
-     */
-    private Long handleSubsidyPersonInfo(VillageOfficialFormDto formDto)
-    {
-        normalizeDivisionFields(formDto);
-        if (StringUtils.isEmpty(formDto.getIdCardNo()))
-        {
-            throw new RuntimeException("身份证号不能为空");
-        }
-
-        // 查询基础信息是否存在
-        SubsidyPerson existingPerson = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
-
-        if (existingPerson != null)
-        {
-            if (StringUtils.equals(existingPerson.getIsAlive(), "0"))
-            {
-                throw new ServiceException("该人员已注销（死亡），不能办理村干部登记");
-            }
-            VillageOfficial existOfficial = this.lambdaQuery()
-                .eq(VillageOfficial::getSubsidyPersonId, existingPerson.getId())
-                .ne(Objects.nonNull(formDto.getId()), VillageOfficial::getId, formDto.getId())
-                .one();
-            if (existOfficial != null)
-            {
-                throw new ServiceException("该人员已被认定为村干部，请核实后录入");
-            }
-            // 基础信息已存在，检查是否需要更新
-            if (formDto.getPersonExists() != null && formDto.getPersonExists())
-            {
-                // 用户知道基础信息存在，且可能修改了基础信息，需要更新
-                updateExistingSubsidyPerson(existingPerson, formDto);
-            }
-            return existingPerson.getId();
-        }
-        else
-        {
-            // 基础信息不存在，自动创建
-            return createNewSubsidyPerson(formDto);
-        }
-    }
-
-    /**
-     * 更新已存在的基础信息
-     *
-     * @param existingPerson 已存在的基础信息
-     * @param formDto 表单数据
-     */
-    private void updateExistingSubsidyPerson(SubsidyPerson existingPerson, VillageOfficialFormDto formDto)
-    {
-        boolean needUpdate = false;
-
-        // 检查各字段是否需要更新
-        if (!StringUtils.equals(existingPerson.getName(), formDto.getName()))
-        {
-            existingPerson.setName(formDto.getName());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getGender(), formDto.getGender()))
-        {
-            existingPerson.setGender(formDto.getGender());
-            needUpdate = true;
-        }
-        if (!Objects.equals(existingPerson.getBirthday(), formDto.getBirthday()))
-        {
-            existingPerson.setBirthday(formDto.getBirthday());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getHouseholdRegistration(), formDto.getHouseholdRegistration()))
-        {
-            existingPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getHomeAddress(), formDto.getHomeAddress()))
-        {
-            existingPerson.setHomeAddress(formDto.getHomeAddress());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getPhone(), formDto.getPhone()))
-        {
-            existingPerson.setPhone(formDto.getPhone());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getIsAlive(), formDto.getIsAlive()))
-        {
-            existingPerson.setIsAlive(formDto.getIsAlive());
-            needUpdate = true;
-        }
-        if (!Objects.equals(existingPerson.getDeathDate(), formDto.getDeathDate()))
-        {
-            existingPerson.setDeathDate(formDto.getDeathDate());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getIsVillageCoopMember(), formDto.getIsVillageCoopMember()))
-        {
-            existingPerson.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
-            needUpdate = true;
-        }
-        if (!Objects.equals(existingPerson.getStreetOfficeId(), formDto.getStreetOfficeId()))
-        {
-            existingPerson.setStreetOfficeId(formDto.getStreetOfficeId());
-            needUpdate = true;
-        }
-        if (!Objects.equals(existingPerson.getVillageCommitteeId(), formDto.getVillageCommitteeId()))
-        {
-            existingPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getUserCode(), formDto.getUserCode()))
-        {
-            existingPerson.setUserCode(formDto.getUserCode());
-            needUpdate = true;
-        }
-
-        // 如果有变化，执行更新
-        if (needUpdate)
-        {
-            subsidyPersonService.updateSubsidyPerson(existingPerson);
-        }
-    }
-
-    /**
-     * 创建新的基础信息
-     *
-     * @param formDto 表单数据
-     * @return 新创建的被补贴人ID
-     */
-    private Long createNewSubsidyPerson(VillageOfficialFormDto formDto)
-    {
-        SubsidyPerson newPerson = new SubsidyPerson();
-        newPerson.setName(formDto.getName());
-        newPerson.setGender(formDto.getGender());
-        newPerson.setIdCardNo(formDto.getIdCardNo());
-        newPerson.setBirthday(formDto.getBirthday());
-        newPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
-        newPerson.setHomeAddress(formDto.getHomeAddress());
-        newPerson.setPhone(formDto.getPhone());
-        newPerson.setIsAlive(StringUtils.isNotEmpty(formDto.getIsAlive()) ? formDto.getIsAlive() : "1");
-        newPerson.setDeathDate(formDto.getDeathDate());
-        newPerson.setIsVillageCoopMember(StringUtils.isNotEmpty(formDto.getIsVillageCoopMember()) ? formDto.getIsVillageCoopMember() : "1");
-        newPerson.setStreetOfficeId(formDto.getStreetOfficeId());
-        newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
-        newPerson.setUserCode(formDto.getUserCode());
-        newPerson.setStatus("0");
-        newPerson.setApprovalStatus("draft");
-        newPerson.setPersonStatus("0");
-        newPerson.setSubsidyStatus("0");
-
-        subsidyPersonService.insertSubsidyPerson(newPerson);
-        return newPerson.getId();
-    }
-
     private void normalizeDivisionFields(VillageOfficialFormDto formDto)
     {
         if (StringUtils.isBlank(formDto.getHouseholdRegistration()) && StringUtils.isNotBlank(formDto.getNativePlace()))
@@ -537,19 +402,6 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
                 }
             }
         }
-    }
-
-    private void markPersonPendingReview(Long subsidyPersonId)
-    {
-        SubsidyPerson person = subsidyPersonService.getById(subsidyPersonId);
-        if (person == null)
-        {
-            throw new ServiceException("被补贴人信息不存在");
-        }
-        person.setApprovalStatus("pending_review");
-        person.setUpdateBy(SecurityUtils.getUsername());
-        person.setUpdateTime(LocalDateTime.now());
-        subsidyPersonService.updateById(person);
     }
 
     /**

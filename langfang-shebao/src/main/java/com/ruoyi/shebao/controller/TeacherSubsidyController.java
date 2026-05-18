@@ -120,20 +120,18 @@ public class TeacherSubsidyController extends BaseController
         {
             return AjaxResult.error("记录不存在");
         }
-        SubsidyPerson person = subsidyPersonService.getById(teacherSubsidy.getSubsidyPersonId());
-        if (person == null)
-        {
-            return AjaxResult.error("被补贴人信息不存在");
-        }
-        String currentStatus = person.getApprovalStatus();
-        if (!"draft".equals(currentStatus) && !"rejected".equals(currentStatus) && !"approved".equals(currentStatus))
+        String currentStatus = teacherSubsidy.getApprovalStatus();
+        if (!com.ruoyi.shebao.constant.SubsidyApprovalStatus.DRAFT.equals(currentStatus)
+                && !com.ruoyi.shebao.constant.SubsidyApprovalStatus.REJECTED.equals(currentStatus)
+                && !com.ruoyi.shebao.constant.SubsidyApprovalStatus.APPROVED.equals(currentStatus))
         {
             return AjaxResult.error("当前状态不允许提交审核");
         }
-        person.setApprovalStatus("pending_review");
-        person.setUpdateTime(LocalDateTime.now());
-        subsidyPersonService.updateById(person);
-        approvalLogService.log("person_register", person.getId(), "pending_review", "submit", remark);
+        TeacherSubsidy update = new TeacherSubsidy();
+        update.setId(id);
+        update.setApprovalStatus(com.ruoyi.shebao.constant.SubsidyApprovalStatus.PENDING_REVIEW);
+        teacherSubsidyService.updateById(update);
+        approvalLogService.log("person_register", id, com.ruoyi.shebao.constant.SubsidyApprovalStatus.PENDING_REVIEW, "submit", remark);
         return AjaxResult.success("提交审核成功");
     }
 }

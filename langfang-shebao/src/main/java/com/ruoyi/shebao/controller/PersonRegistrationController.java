@@ -5,6 +5,7 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.domain.LandLossResident;
 import com.ruoyi.shebao.dto.LandLossResidentListReq;
 import com.ruoyi.shebao.dto.LandLossResidentListResp;
@@ -148,19 +149,18 @@ public class PersonRegistrationController extends BaseController
         {
             return AjaxResult.error("记录不存在");
         }
-        com.ruoyi.shebao.domain.SubsidyPerson person = subsidyPersonService.getById(resident.getSubsidyPersonId());
-        if (person == null)
-        {
-            return AjaxResult.error("被补贴人信息不存在");
-        }
-        String currentStatus = person.getApprovalStatus();
-        if (!"draft".equals(currentStatus) && !"rejected".equals(currentStatus) && !"approved".equals(currentStatus))
+        String currentStatus = resident.getApprovalStatus();
+        if (!SubsidyApprovalStatus.DRAFT.equals(currentStatus)
+                && !SubsidyApprovalStatus.REJECTED.equals(currentStatus)
+                && !SubsidyApprovalStatus.APPROVED.equals(currentStatus))
         {
             return AjaxResult.error("当前状态不允许提交审核");
         }
-        person.setApprovalStatus("pending_review");
-        subsidyPersonService.updateById(person);
-        approvalLogService.log("person_register", person.getId(), "pending_review", "submit", remark);
+        LandLossResident update = new LandLossResident();
+        update.setId(id);
+        update.setApprovalStatus(SubsidyApprovalStatus.PENDING_REVIEW);
+        landLossResidentService.updateById(update);
+        approvalLogService.log("person_register", id, SubsidyApprovalStatus.PENDING_REVIEW, "submit", remark);
         return AjaxResult.success("提交审核成功");
     }
 }

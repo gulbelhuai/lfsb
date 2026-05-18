@@ -49,4 +49,7 @@ public class LandLossResident extends BaseDomain
     /** 是否村合作经济组织成员（0否 1是） */
     @Excel(name = "是否村合作经济组织成员", readConverterExp = "0=否,1=是")
     private String isVillageCoopMember;
+
+    /** 审批状态（draft/pending_review/approved/rejected） */
+    private String approvalStatus;
 }

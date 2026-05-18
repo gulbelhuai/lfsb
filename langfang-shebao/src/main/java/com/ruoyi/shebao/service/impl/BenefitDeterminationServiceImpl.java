@@ -12,6 +12,7 @@ import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileUploadUtils;
+import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.domain.BenefitAttachment;
 import com.ruoyi.shebao.domain.BenefitDetermination;
 import com.ruoyi.shebao.domain.DemolitionResident;
@@ -57,6 +58,7 @@ import java.util.List;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * 待遇核定Service业务层处理
@@ -491,20 +493,16 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         {
             return;
         }
-        if ("approved".equalsIgnoreCase(StringUtils.trimToEmpty(person.getApprovalStatus())))
-        {
-            return;
-        }
         List<String> pendingTypes = new ArrayList<>();
-        if (!CollectionUtils.isEmpty(landList))
+        if (hasUnapprovedSubsidy(landList, LandLossResident::getApprovalStatus))
         {
             pendingTypes.add("失地");
         }
-        if (!CollectionUtils.isEmpty(demoList))
+        if (hasUnapprovedSubsidy(demoList, DemolitionResident::getApprovalStatus))
         {
             pendingTypes.add("拆迁");
         }
-        if (!CollectionUtils.isEmpty(voList))
+        if (hasUnapprovedSubsidy(voList, VillageOfficial::getApprovalStatus))
         {
             pendingTypes.add("村干部");
         }
@@ -514,6 +512,16 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             throw new ServiceException("人员" + personName + "的"
                     + String.join("、", pendingTypes) + "补贴尚未复核，请复核通过后再进行核定");
         }
+    }
+
+    private <T> boolean hasUnapprovedSubsidy(List<T> records, Function<T, String> statusGetter)
+    {
+        if (CollectionUtils.isEmpty(records))
+        {
+            return false;
+        }
+        return records.stream().anyMatch(item ->
+                !SubsidyApprovalStatus.APPROVED.equalsIgnoreCase(StringUtils.trimToEmpty(statusGetter.apply(item))));
     }
 
     @Override

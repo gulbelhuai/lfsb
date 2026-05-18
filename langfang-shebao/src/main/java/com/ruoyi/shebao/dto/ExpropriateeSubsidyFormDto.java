@@ -13,7 +13,7 @@ import java.time.LocalDate;
  * @date 2025-09-27
  */
 @Data
-public class ExpropriateeSubsidyFormDto
+public class ExpropriateeSubsidyFormDto implements SubsidyPersonBasicForm
 {
     /** 被征地参保补贴ID */
     private Long id;

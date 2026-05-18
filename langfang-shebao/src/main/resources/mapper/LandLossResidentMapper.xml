@@ -16,6 +16,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"                    column="update_by"                   />
         <result property="updateTime"                  column="update_time"                 />
         <result property="remark"                      column="remark"                      />
+        <result property="approvalStatus"              column="approval_status"             />
     </resultMap>
 
     <resultMap type="com.ruoyi.shebao.dto.LandLossResidentListResp" id="LandLossResidentListRespResult">
@@ -76,7 +77,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                ll.compensation_complete_time, ll.recognition_time, 
                ll.del_flag, ll.create_by, ll.create_time, 
                ll.update_by, ll.update_time, ll.remark ,
-               ll.land_requisition_batch, ll.village_street, ll.is_village_coop_member
+               ll.land_requisition_batch, ll.village_street, ll.is_village_coop_member,
+               ll.approval_status
         from shebao_land_loss_resident ll
     </sql>
 
@@ -88,7 +90,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
                sp.is_alive, sp.death_date, sp.subsidy_status, sp.person_status,
                sp.street_office_id, sp.village_committee_id, sp.user_code,
-               sp.approval_status,
+               ll.approval_status,
                sso.street_name as street_office_name, svc.village_name as village_committee_name
         from shebao_land_loss_resident ll
         left join shebao_subsidy_person sp on ll.subsidy_person_id = sp.id
@@ -124,7 +126,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 AND ll.recognition_time &lt;= #{req.recognitionTimeEnd}
             </if>
             <if test="req.approvalStatus != null and req.approvalStatus != ''">
-                AND sp.approval_status = #{req.approvalStatus}
+                AND ll.approval_status = #{req.approvalStatus}
             </if>
         </where>
         order by ll.create_time desc

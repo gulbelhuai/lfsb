@@ -14,7 +14,7 @@ import java.time.LocalDate;
  * @date 2026-01-24
  */
 @Data
-public class TeacherSubsidyFormDto
+public class TeacherSubsidyFormDto implements SubsidyPersonBasicForm
 {
     /** 教龄补助ID */
     private Long id;

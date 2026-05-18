@@ -14,7 +14,7 @@ import java.util.List;
  * @date 2025-09-27
  */
 @Data
-public class VillageOfficialFormDto
+public class VillageOfficialFormDto implements SubsidyPersonBasicForm
 {
     /** 村干部信息ID */
     private Long id;

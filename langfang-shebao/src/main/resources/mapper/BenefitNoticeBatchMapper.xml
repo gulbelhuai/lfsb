@@ -44,17 +44,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join (
             select distinct subsidy_person_id
             from shebao_land_loss_resident
-            where del_flag = '0'
+            where del_flag = '0' and approval_status = 'approved'
         ) ll on ll.subsidy_person_id = sp.id
         left join (
             select distinct subsidy_person_id
             from shebao_demolition_resident
-            where del_flag = '0'
+            where del_flag = '0' and approval_status = 'approved'
         ) dr on dr.subsidy_person_id = sp.id
         left join (
             select distinct subsidy_person_id
             from shebao_village_official
-            where del_flag = '0'
+            where del_flag = '0' and approval_status = 'approved'
         ) vo on vo.subsidy_person_id = sp.id
         <where>
             sp.del_flag = '0'

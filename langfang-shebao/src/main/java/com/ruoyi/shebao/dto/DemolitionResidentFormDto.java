@@ -12,7 +12,7 @@ import java.time.LocalDate;
  * @date 2025-09-27
  */
 @Data
-public class DemolitionResidentFormDto
+public class DemolitionResidentFormDto implements SubsidyPersonBasicForm
 {
     /** 拆迁居民信息ID */
     private Long id;

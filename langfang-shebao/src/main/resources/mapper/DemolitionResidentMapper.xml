@@ -17,6 +17,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"                    column="update_by"                   />
         <result property="updateTime"                  column="update_time"                 />
         <result property="remark"                      column="remark"                      />
+        <result property="approvalStatus"              column="approval_status"             />
     </resultMap>
 
     <resultMap type="com.ruoyi.shebao.dto.DemolitionResidentListResp" id="DemolitionResidentListRespResult">
@@ -76,7 +77,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select dr.id, dr.subsidy_person_id, dr.demolition_reason,
                dr.demolition_time, dr.recognition_time, dr.village_street,
                dr.status, dr.del_flag, dr.create_by, dr.create_time, 
-               dr.update_by, dr.update_time, dr.remark 
+               dr.update_by, dr.update_time, dr.remark, dr.approval_status
         from shebao_demolition_resident dr
     </sql>
 
@@ -86,7 +87,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                dr.create_time, dr.update_time, dr.remark,
                 sp.name, sp.id_card_no, sp.gender, sp.birthday, sp.phone,
                 sp.is_alive, sp.death_date, sp.is_village_coop_member,
-                sp.street_office_id, sp.village_committee_id, sp.user_code, sp.approval_status,
+                sp.street_office_id, sp.village_committee_id, sp.user_code, dr.approval_status,
                 sso.street_name as street_office_name, svc.village_name as village_committee_name
         from shebao_demolition_resident dr
         left join shebao_subsidy_person sp on dr.subsidy_person_id = sp.id
@@ -122,7 +123,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 AND dr.recognition_time &lt;= #{req.recognitionTimeEnd}
             </if>
             <if test="req.approvalStatus != null and req.approvalStatus != ''">
-                AND sp.approval_status = #{req.approvalStatus}
+                AND dr.approval_status = #{req.approvalStatus}
             </if>
         </where>
         order by dr.create_time desc

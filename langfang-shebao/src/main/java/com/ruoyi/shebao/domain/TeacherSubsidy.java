@@ -31,5 +31,8 @@ public class TeacherSubsidy extends BaseDomain
     /** 任教年限 */
     @Excel(name = "任教年限")
     private Integer teachingYears;
+
+    /** 审批状态（draft/pending_review/approved/rejected） */
+    private String approvalStatus;
 }
 

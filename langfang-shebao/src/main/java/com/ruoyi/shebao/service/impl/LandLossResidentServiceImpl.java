@@ -9,10 +9,11 @@ import com.ruoyi.shebao.domain.SubsidyPerson;
 import com.ruoyi.shebao.dto.LandLossResidentListReq;
 import com.ruoyi.shebao.dto.LandLossResidentListResp;
 import com.ruoyi.shebao.dto.LandLossResidentFormDto;
+import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.mapper.LandLossResidentMapper;
 import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
-import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
 import com.ruoyi.shebao.service.LandLossResidentService;
+import com.ruoyi.shebao.service.support.SubsidyPersonRegistrationHelper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
 
     @Autowired
     private SubsidyDistributionMapper subsidyDistributionMapper;
+
+    @Autowired
+    private SubsidyPersonRegistrationHelper subsidyPersonRegistrationHelper;
 
     /**
      * 通过代理调用本类事务方法，避免 this 调用导致 @Transactional 失效。
@@ -78,7 +82,7 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         LandLossResidentFormDto formDto = landLossResidentMapper.selectLandLossResidentFormById(id);
         if (formDto != null)
         {
-            formDto.setPersonExists(true);
+            formDto.setPersonExists(formDto.getSubsidyPersonId() != null);
         }
         return formDto;
     }
@@ -93,10 +97,21 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
     @Transactional(rollbackFor = Exception.class)
     public int insertLandLossResident(LandLossResidentFormDto formDto)
     {        
-        // 处理基础信息
-        Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
+        SubsidyPerson existingByCard = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
+        if (existingByCard != null)
+        {
+            long duplicateCount = this.lambdaQuery()
+                    .eq(LandLossResident::getSubsidyPersonId, existingByCard.getId())
+                    .eq(LandLossResident::getDelFlag, "0")
+                    .ne(Objects.nonNull(formDto.getId()), LandLossResident::getId, formDto.getId())
+                    .count();
+            if (duplicateCount > 0)
+            {
+                throw new ServiceException("该人员已被认定为失地居民，请核实后录入");
+            }
+        }
+        Long subsidyPersonId = subsidyPersonRegistrationHelper.resolveSubsidyPersonForCreate(formDto, personId -> false);
 
-        // 创建失地居民信息
         LandLossResident landLossResident = new LandLossResident();
         landLossResident.setSubsidyPersonId(subsidyPersonId);
         landLossResident.setLandRequisitionTime(formDto.getLandRequisitionTime());
@@ -106,14 +121,10 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         landLossResident.setVillageStreet(formDto.getVillageStreet());
         landLossResident.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
         landLossResident.setRemark(formDto.getRemark());
+        landLossResident.setApprovalStatus(SubsidyApprovalStatus.PENDING_REVIEW);
         landLossResident.setCreateTime(LocalDateTime.now());
         landLossResident.setCreateBy(SecurityUtils.getUsername());
-        int rows = landLossResidentMapper.insert(landLossResident);
-        if (rows > 0)
-        {
-            markPersonPendingReview(subsidyPersonId);
-        }
-        return rows;
+        return landLossResidentMapper.insert(landLossResident);
     }
 
     /**
@@ -126,13 +137,19 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
     @Transactional(rollbackFor = Exception.class)
     public int updateLandLossResident(LandLossResidentFormDto formDto)
     {
-        // 处理基础信息
-        Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
+        LandLossResident existing = landLossResidentMapper.selectById(formDto.getId());
+        if (existing == null || !"0".equals(existing.getDelFlag()))
+        {
+            throw new ServiceException("失地居民记录不存在");
+        }
+        if (SubsidyApprovalStatus.isApproved(existing.getApprovalStatus()))
+        {
+            throw new ServiceException("已通过复核，不能修改");
+        }
+        subsidyPersonRegistrationHelper.resolveSubsidyPersonForUpdate(existing.getSubsidyPersonId());
 
-        // 更新失地居民信息
         LandLossResident landLossResident = new LandLossResident();
         landLossResident.setId(formDto.getId());
-        landLossResident.setSubsidyPersonId(subsidyPersonId);
         landLossResident.setLandRequisitionTime(formDto.getLandRequisitionTime());
         landLossResident.setCompensationCompleteTime(formDto.getCompensationCompleteTime());
         landLossResident.setRecognitionTime(formDto.getRecognitionTime());
@@ -140,14 +157,10 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         landLossResident.setVillageStreet(formDto.getVillageStreet());
         landLossResident.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
         landLossResident.setRemark(formDto.getRemark());
+        landLossResident.setApprovalStatus(SubsidyApprovalStatus.PENDING_REVIEW);
         landLossResident.setUpdateTime(LocalDateTime.now());
         landLossResident.setUpdateBy(SecurityUtils.getUsername());
-        int rows = landLossResidentMapper.updateById(landLossResident);
-        if (rows > 0)
-        {
-            markPersonPendingReview(subsidyPersonId);
-        }
-        return rows;
+        return landLossResidentMapper.updateById(landLossResident);
     }
 
     /**
@@ -293,162 +306,6 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         }
 
         return successMsg.toString();
-    }
-
-    /**
-     * 智能处理基础信息（新增或更新）
-     *
-     * @param formDto 表单数据
-     * @return 被补贴人ID
-     */
-    private Long handleSubsidyPersonInfo(LandLossResidentFormDto formDto)
-    {
-        if (StringUtils.isEmpty(formDto.getIdCardNo()))
-        {
-            throw new RuntimeException("身份证号不能为空");
-        }
-
-        // 查询基础信息是否存在
-        SubsidyPerson existingPerson = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
-
-        if (existingPerson != null)
-        {
-            if (StringUtils.equals(existingPerson.getSubsidyStatus(), "1"))
-            {
-                throw new ServiceException("该人员已注销，不能办理失地居民登记");
-            }
-            // 如果新增人员为已存在人员且已经被认定为失地居民，不允许对该人进行重复补贴，应提示“该人员已被认定为失地居民，请核实后录入”
-            LandLossResident existLandLossResident = this.lambdaQuery()
-                .eq(LandLossResident::getSubsidyPersonId, existingPerson.getId())
-                .ne(Objects.nonNull(formDto.getId()), LandLossResident::getId, formDto.getId()) // 排除当前编辑的记录
-                .one();
-            if (existLandLossResident != null)
-            {
-                throw new ServiceException("该人员已被认定为失地居民，请核实后录入");
-            }
-            // 基础信息已存在，检查是否需要更新
-            if (formDto.getPersonExists() != null && formDto.getPersonExists())
-            {
-                // 用户知道基础信息存在，且可能修改了基础信息，需要更新
-                updateExistingSubsidyPerson(existingPerson, formDto);
-            }
-            return existingPerson.getId();
-        }
-        else
-        {
-            // 基础信息不存在，自动创建
-            return createNewSubsidyPerson(formDto);
-        }
-    }
-
-    /**
-     * 更新已存在的基础信息
-     *
-     * @param existingPerson 已存在的基础信息
-     * @param formDto 表单数据
-     */
-    private void updateExistingSubsidyPerson(SubsidyPerson existingPerson, LandLossResidentFormDto formDto)
-    {
-        boolean needUpdate = false;
-
-        // 检查各字段是否需要更新
-        //  姓名
-        if (!StringUtils.equals(existingPerson.getName(), formDto.getName()))
-        {
-            existingPerson.setName(formDto.getName());
-            needUpdate = true;
-        }
-        //  性别
-        if (!StringUtils.equals(existingPerson.getGender(), formDto.getGender()))
-        {
-            existingPerson.setGender(formDto.getGender());
-            needUpdate = true;
-        }
-        // 生日
-        if (!Objects.equals(existingPerson.getBirthday(), formDto.getBirthday()))
-        {
-            existingPerson.setBirthday(formDto.getBirthday());
-            needUpdate = true;
-        }
-        // 所属街道办ID
-        if (!Objects.equals(existingPerson.getStreetOfficeId(), formDto.getStreetOfficeId()))
-        {
-            existingPerson.setStreetOfficeId(formDto.getStreetOfficeId());
-            needUpdate = true;
-        }
-        // 所属村委会ID
-        if (!Objects.equals(existingPerson.getVillageCommitteeId(), formDto.getVillageCommitteeId()))
-        {
-            existingPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
-            needUpdate = true;
-        }
-        //  户籍所在地
-        if (!StringUtils.equals(existingPerson.getHouseholdRegistration(), formDto.getHouseholdRegistration()))
-        {
-            existingPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
-            needUpdate = true;
-        }
-        //  家庭住址
-        if (!StringUtils.equals(existingPerson.getHomeAddress(), formDto.getHomeAddress()))
-        {
-            existingPerson.setHomeAddress(formDto.getHomeAddress());
-            needUpdate = true;
-        }
-        //  联系电话
-        if (!StringUtils.equals(existingPerson.getPhone(), formDto.getPhone()))
-        {
-            existingPerson.setPhone(formDto.getPhone());
-            needUpdate = true;
-        }
-
-        // 如果有变化，执行更新
-        if (needUpdate)
-        {
-            subsidyPersonService.updateSubsidyPerson(existingPerson);
-        }
-    }
-
-    /**
-     * 创建新的基础信息
-     *
-     * @param formDto 表单数据
-     * @return 新创建的被补贴人ID
-     */
-    private Long createNewSubsidyPerson(LandLossResidentFormDto formDto)
-    {
-        SubsidyPerson newPerson = new SubsidyPerson();
-        newPerson.setName(formDto.getName());
-        newPerson.setGender(formDto.getGender());
-        newPerson.setIdCardNo(formDto.getIdCardNo());
-        newPerson.setBirthday(formDto.getBirthday());
-        newPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
-        newPerson.setPhone(formDto.getPhone());
-        newPerson.setStreetOfficeId(formDto.getStreetOfficeId());
-        newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
-        newPerson.setUserCode(formDto.getUserCode());
-        newPerson.setStatus("0");
-        newPerson.setApprovalStatus("draft");
-        newPerson.setPersonStatus("0");
-        newPerson.setSubsidyStatus("0");
-
-        subsidyPersonService.insertSubsidyPerson(newPerson);
-        return newPerson.getId();
-    }
-
-    /**
-     * 登记保存后直接进入待复核，保证复核页面可见。
-     */
-    private void markPersonPendingReview(Long subsidyPersonId)
-    {
-        SubsidyPerson person = subsidyPersonService.getById(subsidyPersonId);
-        if (person == null)
-        {
-            throw new ServiceException("被补贴人信息不存在");
-        }
-        person.setApprovalStatus("pending_review");
-        person.setUpdateBy(SecurityUtils.getUsername());
-        person.setUpdateTime(LocalDateTime.now());
-        subsidyPersonService.updateById(person);
     }
 
     /**

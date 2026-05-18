@@ -69,19 +69,19 @@ export function getPersonReviewDetail(id) {
   })
 }
 
-// 复核通过
-export function reviewPersonPass(id, remark) {
+// 复核通过（recordId 为补贴子表主键）
+export function reviewPersonPass(subsidyType, recordId, remark) {
   return request({
-    url: `/shebao/person/review/approve/${id}`,
+    url: `/shebao/person/review/approve/${subsidyType}/${recordId}`,
     method: 'post',
     params: { remark }
   })
 }
 
 // 复核驳回
-export function reviewPersonReject(id, remark) {
+export function reviewPersonReject(subsidyType, recordId, remark) {
   return request({
-    url: `/shebao/person/review/reject/${id}`,
+    url: `/shebao/person/review/reject/${subsidyType}/${recordId}`,
     method: 'post',
     params: { reason: remark }
   })

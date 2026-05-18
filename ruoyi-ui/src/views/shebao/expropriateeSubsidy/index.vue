@@ -117,7 +117,7 @@
           plain
           icon="el-icon-edit"
           size="mini"
-          :disabled="single"
+          :disabled="single || selectedRowApproved"
           @click="handleUpdate"
           v-hasPermi="['shebao:expropriateeSubsidy:edit']"
         >修改</el-button>
@@ -201,6 +201,13 @@
           <el-button
             size="mini"
             type="text"
+            icon="el-icon-view"
+            @click="handleView(scope.row)"
+          >查看</el-button>
+          <el-button
+            v-if="!isSubsidyRecordApproved(scope.row)"
+            size="mini"
+            type="text"
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['shebao:expropriateeSubsidy:edit']"
@@ -227,7 +234,7 @@
 
     <!-- 添加或修改被征地参保补贴对话框 -->
     <el-dialog :title="title" :visible.sync="open" width="1200px" append-to-body>
-      <el-form ref="form" :model="form" :rules="rules" label-width="140px">
+      <el-form ref="form" :model="form" :rules="rules" label-width="140px" :disabled="isView">
 
         <!-- 基础信息区域 -->
         <div class="form-section">
@@ -245,6 +252,7 @@
                   v-model="form.idCardNo"
                   placeholder="请输入18位身份证号"
                   maxlength="18"
+                  :disabled="idCardReadonly"
                   @input="handleIdCardInputChange"
                   @blur="handleIdCardBlurChange"
                 >
@@ -257,7 +265,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="姓名" prop="name">
-                <el-input v-model="form.name" placeholder="请输入姓名" maxlength="20" />
+                <el-input v-model="form.name" placeholder="请输入姓名" maxlength="20" :disabled="basicInfoReadonly" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -265,7 +273,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="性别" prop="gender">
-                <el-radio-group v-model="form.gender">
+                <el-radio-group v-model="form.gender" :disabled="basicInfoReadonly">
                   <el-radio
                     v-for="dict in dict.type.sys_user_sex"
                     :key="dict.value"
@@ -282,6 +290,7 @@
                   placeholder="选择生日"
                   value-format="yyyy-MM-dd"
                   style="width: 100%"
+                  :disabled="basicInfoReadonly"
                 />
               </el-form-item>
             </el-col>
@@ -290,7 +299,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="所属街道办" prop="streetOfficeId">
-                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" @change="handleStreetOfficeChange">
+                <el-select v-model="form.streetOfficeId" placeholder="请选择街道办" :disabled="basicInfoReadonly" @change="handleStreetOfficeChange">
                   <el-option
                     v-for="item in streetOfficeOptions"
                     :key="item.id"
@@ -302,7 +311,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="所属村委会" prop="villageCommitteeId">
-                <el-select v-model="form.villageCommitteeId" placeholder="请选择村委会">
+                <el-select v-model="form.villageCommitteeId" placeholder="请选择村委会" :disabled="basicInfoReadonly">
                   <el-option
                     v-for="item in villageCommitteeOptions"
                     :key="item.id"
@@ -317,12 +326,12 @@
           <el-row>
             <el-col :span="24">
               <el-form-item label="户籍所在地" prop="householdRegistration">
-                <el-input v-model="form.householdRegistration" placeholder="请输入户籍所在地" />
+                <el-input v-model="form.householdRegistration" placeholder="请输入户籍所在地" :disabled="basicInfoReadonly" />
               </el-form-item>
             </el-col>
             <el-col :span="24">
               <el-form-item label="家庭住址" prop="homeAddress">
-                <el-input v-model="form.homeAddress" placeholder="请输入家庭住址" />
+                <el-input v-model="form.homeAddress" placeholder="请输入家庭住址" :disabled="basicInfoReadonly" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -330,7 +339,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="联系电话" prop="phone">
-                <el-input v-model="form.phone" placeholder="请输入联系电话" />
+                <el-input v-model="form.phone" placeholder="请输入联系电话" :disabled="basicInfoReadonly" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -346,7 +355,7 @@
           <el-row>
             <el-col :span="8">
               <el-form-item label="征地批次" prop="landRequisitionBatch">
-                <el-input v-model="form.landRequisitionBatch" placeholder="请输入征地批次" />
+                <el-input v-model="form.landRequisitionBatch" placeholder="请输入征地批次" :disabled="subsidyFieldReadonly" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
@@ -358,13 +367,14 @@
                   value-format="yyyy-MM-dd"
                   :picker-options="baseDatePickerOptions"
                   style="width: 100%"
+                  :disabled="subsidyFieldReadonly"
                   @change="calculateAge"
                 />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="征地时所在村街" prop="villageStreet">
-                <el-input v-model="form.villageStreet" placeholder="请输入征地时所在村街" />
+                <el-input v-model="form.villageStreet" placeholder="请输入征地时所在村街" :disabled="subsidyFieldReadonly" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -372,12 +382,12 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="职工养老月数" prop="employeePensionMonths">
-                <el-input-number v-model="form.employeePensionMonths" :min="0" :max="999" controls-position="right" style="width: 100%" @change="calculateAge" />
+                <el-input-number v-model="form.employeePensionMonths" :min="0" :max="999" controls-position="right" style="width: 100%" :disabled="subsidyFieldReadonly" @change="calculateAge" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="灵活就业月数" prop="flexibleEmploymentMonths">
-                <el-input-number v-model="form.flexibleEmploymentMonths" :min="0" :max="999" controls-position="right" style="width: 100%" />
+                <el-input-number v-model="form.flexibleEmploymentMonths" :min="0" :max="999" controls-position="right" style="width: 100%" :disabled="subsidyFieldReadonly" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -385,7 +395,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="困难补贴月数" prop="difficultySubsidyMonths">
-                <el-input-number v-model="form.difficultySubsidyMonths" :min="0" :max="999" controls-position="right" style="width: 100%" @change="calculateAge" />
+                <el-input-number v-model="form.difficultySubsidyMonths" :min="0" :max="999" controls-position="right" style="width: 100%" :disabled="subsidyFieldReadonly" @change="calculateAge" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -413,7 +423,7 @@
           <el-row>
             <el-col :span="24">
               <el-form-item label="补贴方式" prop="subsidyMode">
-                <el-radio-group v-model="form.subsidyMode">
+                <el-radio-group v-model="form.subsidyMode" :disabled="subsidyFieldReadonly">
                   <el-radio label="urban_rural">参加城乡居民养老保险</el-radio>
                   <el-radio label="employee">参加职工养老保险</el-radio>
                 </el-radio-group>
@@ -424,7 +434,7 @@
           <el-row>
             <el-col :span="24">
               <el-form-item label="备注" prop="remark">
-                <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
+                <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" :disabled="subsidyFieldReadonly" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -432,8 +442,8 @@
 
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="submitForm">确 定</el-button>
-        <el-button @click="cancel">取 消</el-button>
+        <el-button type="primary" @click="submitForm" v-if="!isView">确 定</el-button>
+        <el-button @click="cancel">{{ isView ? '关 闭' : '取 消' }}</el-button>
       </div>
     </el-dialog>
 
@@ -477,6 +487,12 @@ import { getVillageCommitteeByStreetOffice } from "@/api/shebao/villageCommittee
 import DivisionSelector from "@/components/DivisionSelector"
 import ApprovalStatus from "@/components/Shebao/ApprovalStatus"
 import { handleIdCardInput, handleIdCardBlur } from "@/utils/idCard"
+import {
+  isSubsidyBasicFieldDisabled,
+  isSubsidyIdCardFieldDisabled,
+  isSubsidyFieldDisabled,
+  isSubsidyRecordApproved
+} from "@/utils/subsidyBasicInfo"
 
 export default {
   name: "ExpropriateeSubsidy",
@@ -485,6 +501,25 @@ export default {
     ApprovalStatus
   },
   dicts: ['sys_normal_disable', 'sys_user_sex'],
+  computed: {
+    basicInfoReadonly() {
+      return isSubsidyBasicFieldDisabled(this.form, this.isView)
+    },
+    idCardReadonly() {
+      return isSubsidyIdCardFieldDisabled(this.form, this.isView)
+    },
+    subsidyFieldReadonly() {
+      return isSubsidyFieldDisabled(this.isView)
+    },
+    selectedRowApproved() {
+      const id = Array.isArray(this.ids) ? this.ids[0] : this.ids
+      if (!id) {
+        return false
+      }
+      const row = this.expropriateeSubsidyList.find(item => item.id === id)
+      return isSubsidyRecordApproved(row)
+    }
+  },
   data() {
     return {
       // 遮罩层
@@ -511,6 +546,8 @@ export default {
       title: "",
       // 是否显示弹出层
       open: false,
+      // 详情只读（已通过复核）
+      isView: false,
       // 基准日范围
       baseDateRange: [],
       // 基准日可选范围（不可晚于今天）
@@ -592,6 +629,7 @@ export default {
     this.getList()
   },
   methods: {
+    isSubsidyRecordApproved,
     /** 查询被征地参保补贴列表 */
     getList() {
       this.loading = true
@@ -641,6 +679,7 @@ export default {
         remark: null
       }
       this.resetForm("form")
+      this.isView = false
     },
     /** 搜索按钮操作 */
     handleQuery() {
@@ -670,18 +709,43 @@ export default {
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
-      this.reset()
       const id = row && row.id != null ? row.id : (Array.isArray(this.ids) ? this.ids[0] : this.ids)
+      const target = row && row.id != null ? row : this.expropriateeSubsidyList.find(item => item.id === id)
+      if (isSubsidyRecordApproved(target)) {
+        this.$modal.msgWarning('已通过复核，不能修改')
+        return
+      }
+      this.isView = false
+      this.reset()
       getExpropriateeSubsidy(id).then(response => {
         this.handleStreetOfficeChange(response.data.streetOfficeId)
         this.form = { ...this.form, ...response.data }
+        this.form.personExists = true
         this.syncSubsidyModeFromFlags()
         this.open = true
         this.title = "修改被征地参保补贴"
       })
     },
+    /** 查看按钮操作（已通过复核） */
+    handleView(row) {
+      this.reset()
+      this.isView = true
+      const id = row && row.id != null ? row.id : (Array.isArray(this.ids) ? this.ids[0] : this.ids)
+      getExpropriateeSubsidy(id).then(response => {
+        this.handleStreetOfficeChange(response.data.streetOfficeId)
+        this.form = { ...this.form, ...response.data }
+        this.form.personExists = true
+        this.syncSubsidyModeFromFlags()
+        this.isView = true
+        this.open = true
+        this.title = "查看被征地参保补贴"
+      })
+    },
     /** 提交按钮 */
     submitForm() {
+      if (this.isView) {
+        return
+      }
       this.$refs["form"].validate(valid => {
         if (valid) {
           this.syncSubsidyFlagsFromMode()

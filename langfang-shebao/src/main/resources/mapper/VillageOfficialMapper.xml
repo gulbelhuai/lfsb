@@ -18,6 +18,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"                    column="update_by"                   />
         <result property="updateTime"                  column="update_time"                 />
         <result property="remark"                      column="remark"                      />
+        <result property="approvalStatus"              column="approval_status"             />
     </resultMap>
 
     <resultMap type="com.ruoyi.shebao.dto.VillageOfficialListResp" id="VillageOfficialListRespResult">
@@ -69,14 +70,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <sql id="selectVillageOfficialVo">
         select vo.id, vo.subsidy_person_id, vo.total_service_years, vo.subsidy_amount,
                vo.has_violation, vo.village_street, vo.status, vo.del_flag, vo.create_by, vo.create_time,
-               vo.update_by, vo.update_time, vo.remark
+               vo.update_by, vo.update_time, vo.remark, vo.approval_status
         from shebao_village_official vo
     </sql>
 
     <select id="selectVillageOfficialList" parameterType="com.ruoyi.shebao.dto.VillageOfficialListReq" resultMap="VillageOfficialListRespResult">
         select vo.id, vo.subsidy_person_id, vo.subsidy_amount,
                vo.has_violation, vo.village_street, vo.status, vo.create_time, vo.update_time, vo.remark,
-               sp.name, sp.user_code, sp.id_card_no, sp.gender, sp.phone, sp.approval_status,
+               sp.name, sp.user_code, sp.id_card_no, sp.gender, sp.phone, vo.approval_status,
                sso.street_name as street_office_name, svc.village_name
         from shebao_village_official vo
         left join shebao_subsidy_person sp on vo.subsidy_person_id = sp.id
@@ -103,7 +104,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 AND vo.has_violation = #{req.hasViolation}
             </if>
             <if test="req.approvalStatus != null and req.approvalStatus != ''">
-                AND sp.approval_status = #{req.approvalStatus}
+                AND vo.approval_status = #{req.approvalStatus}
             </if>
         </where>
         order by vo.create_time desc

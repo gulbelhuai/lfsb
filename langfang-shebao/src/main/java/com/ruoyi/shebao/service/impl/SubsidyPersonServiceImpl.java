@@ -74,7 +74,6 @@ public class SubsidyPersonServiceImpl extends ServiceImpl<SubsidyPersonMapper, S
                 .eq(req.getVillageCommitteeId() != null, SubsidyPerson::getVillageCommitteeId, req.getVillageCommitteeId())
                 .like(StringUtils.isNotBlank(req.getUserCode()), SubsidyPerson::getUserCode, req.getUserCode())
                 .eq(StringUtils.isNotBlank(req.getStatus()), SubsidyPerson::getStatus, req.getStatus())
-                .eq(StringUtils.isNotBlank(req.getApprovalStatus()), SubsidyPerson::getApprovalStatus, req.getApprovalStatus())
                 .orderByDesc(SubsidyPerson::getCreateTime)
                 .getWrapper());
 
@@ -98,7 +97,6 @@ public class SubsidyPersonServiceImpl extends ServiceImpl<SubsidyPersonMapper, S
                         SubsidyPersonListResp resp = BeanUtil.copyProperties(entity, SubsidyPersonListResp.class);
                         resp.setStreetOfficeName(Optional.ofNullable(streetOfficeMap.get(entity.getStreetOfficeId())).map(StreetOffice::getStreetName).orElse(null));
                         resp.setVillageCommitteeName(Optional.ofNullable(villageCommitteeMap.get(entity.getVillageCommitteeId())).map(VillageCommittee::getVillageName).orElse(null));
-                        resp.setApprovalStatus(entity.getApprovalStatus());
                         return resp;
                     }).toList());
         }

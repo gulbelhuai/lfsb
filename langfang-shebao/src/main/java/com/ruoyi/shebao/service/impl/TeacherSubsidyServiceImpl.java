@@ -9,10 +9,12 @@ import com.ruoyi.shebao.domain.TeacherSubsidy;
 import com.ruoyi.shebao.dto.TeacherSubsidyFormDto;
 import com.ruoyi.shebao.dto.TeacherSubsidyListReq;
 import com.ruoyi.shebao.dto.TeacherSubsidyListResp;
+import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
 import com.ruoyi.shebao.mapper.TeacherSubsidyMapper;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.TeacherSubsidyService;
+import com.ruoyi.shebao.service.support.SubsidyPersonRegistrationHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,6 +43,9 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
     @Autowired
     private SubsidyDistributionMapper subsidyDistributionMapper;
 
+    @Autowired
+    private SubsidyPersonRegistrationHelper subsidyPersonRegistrationHelper;
+
     @Override
     public Page<TeacherSubsidyListResp> selectTeacherSubsidyList(TeacherSubsidyListReq req)
     {
@@ -56,7 +61,7 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
         TeacherSubsidyFormDto formDto = teacherSubsidyMapper.selectTeacherSubsidyFormById(id);
         if (formDto != null)
         {
-            formDto.setPersonExists(true);
+            formDto.setPersonExists(formDto.getSubsidyPersonId() != null);
         }
         return formDto;
     }
@@ -109,16 +114,21 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
     @Transactional(rollbackFor = Exception.class)
     public int insertTeacherSubsidy(TeacherSubsidyFormDto formDto)
     {
-        Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
+        Long subsidyPersonId = subsidyPersonRegistrationHelper.resolveSubsidyPersonForCreate(formDto, personId -> false, person -> {
+            person.setIsAlive(StringUtils.isNotEmpty(formDto.getIsAlive()) ? formDto.getIsAlive() : "1");
+            person.setDeathDate(formDto.getDeathDate());
+            person.setIsVillageCoopMember(StringUtils.isNotEmpty(formDto.getIsVillageCoopMember()) ? formDto.getIsVillageCoopMember() : "1");
+            person.setStatus(StringUtils.defaultIfBlank(formDto.getStatus(), "0"));
+        });
 
         TeacherSubsidy teacherSubsidy = new TeacherSubsidy();
         teacherSubsidy.setSubsidyPersonId(subsidyPersonId);
         teacherSubsidy.setSchoolName(formDto.getSchoolName());
         teacherSubsidy.setTeachingYears(formDto.getTeachingYears());
         teacherSubsidy.setRemark(formDto.getRemark());
+        teacherSubsidy.setApprovalStatus(SubsidyApprovalStatus.PENDING_REVIEW);
         teacherSubsidy.setCreateTime(LocalDateTime.now());
         teacherSubsidy.setCreateBy(SecurityUtils.getUsername());
-
         return teacherSubsidyMapper.insert(teacherSubsidy);
     }
 
@@ -130,17 +140,21 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
         {
             throw new ServiceException("缺少ID，无法修改");
         }
-        Long subsidyPersonId = handleSubsidyPersonInfo(formDto);
+        TeacherSubsidy existing = teacherSubsidyMapper.selectById(formDto.getId());
+        if (existing == null || !"0".equals(existing.getDelFlag()))
+        {
+            throw new ServiceException("教龄补助记录不存在");
+        }
+        subsidyPersonRegistrationHelper.resolveSubsidyPersonForUpdate(existing.getSubsidyPersonId());
 
         TeacherSubsidy teacherSubsidy = new TeacherSubsidy();
         teacherSubsidy.setId(formDto.getId());
-        teacherSubsidy.setSubsidyPersonId(subsidyPersonId);
         teacherSubsidy.setSchoolName(formDto.getSchoolName());
         teacherSubsidy.setTeachingYears(formDto.getTeachingYears());
         teacherSubsidy.setRemark(formDto.getRemark());
+        teacherSubsidy.setApprovalStatus(SubsidyApprovalStatus.PENDING_REVIEW);
         teacherSubsidy.setUpdateTime(LocalDateTime.now());
         teacherSubsidy.setUpdateBy(SecurityUtils.getUsername());
-
         return teacherSubsidyMapper.updateById(teacherSubsidy);
     }
 
@@ -165,132 +179,6 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
             teacherSubsidyMapper.updateById(ts);
         }
         return ids.length;
-    }
-
-    /**
-     * 智能处理基础信息（新增或更新）
-     */
-    private Long handleSubsidyPersonInfo(TeacherSubsidyFormDto formDto)
-    {
-        if (StringUtils.isEmpty(formDto.getIdCardNo()))
-        {
-            throw new ServiceException("身份证号不能为空");
-        }
-
-        SubsidyPerson existingPerson = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
-        if (existingPerson != null)
-        {
-            if ("0".equals(existingPerson.getIsAlive()))
-            {
-                throw new ServiceException("该人员已注销（死亡），不能办理教龄补助登记");
-            }
-            if (formDto.getPersonExists() != null && formDto.getPersonExists())
-            {
-                updateExistingSubsidyPerson(existingPerson, formDto);
-            }
-            return existingPerson.getId();
-        }
-
-        return createNewSubsidyPerson(formDto);
-    }
-
-    private void updateExistingSubsidyPerson(SubsidyPerson existingPerson, TeacherSubsidyFormDto formDto)
-    {
-        boolean needUpdate = false;
-
-        if (!StringUtils.equals(existingPerson.getName(), formDto.getName()))
-        {
-            existingPerson.setName(formDto.getName());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getGender(), formDto.getGender()))
-        {
-            existingPerson.setGender(formDto.getGender());
-            needUpdate = true;
-        }
-        if (!Objects.equals(existingPerson.getBirthday(), formDto.getBirthday()))
-        {
-            existingPerson.setBirthday(formDto.getBirthday());
-            needUpdate = true;
-        }
-        if (!Objects.equals(existingPerson.getStreetOfficeId(), formDto.getStreetOfficeId()))
-        {
-            existingPerson.setStreetOfficeId(formDto.getStreetOfficeId());
-            needUpdate = true;
-        }
-        if (!Objects.equals(existingPerson.getVillageCommitteeId(), formDto.getVillageCommitteeId()))
-        {
-            existingPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getHouseholdRegistration(), formDto.getHouseholdRegistration()))
-        {
-            existingPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getHomeAddress(), formDto.getHomeAddress()))
-        {
-            existingPerson.setHomeAddress(formDto.getHomeAddress());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getPhone(), formDto.getPhone()))
-        {
-            existingPerson.setPhone(formDto.getPhone());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getIsAlive(), formDto.getIsAlive()))
-        {
-            existingPerson.setIsAlive(formDto.getIsAlive());
-            needUpdate = true;
-        }
-        if (StringUtils.equals(formDto.getIsAlive(), "0") && !Objects.equals(existingPerson.getDeathDate(), formDto.getDeathDate()))
-        {
-            existingPerson.setDeathDate(formDto.getDeathDate());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getIsVillageCoopMember(), formDto.getIsVillageCoopMember()))
-        {
-            existingPerson.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getUserCode(), formDto.getUserCode()) && StringUtils.isNotBlank(formDto.getUserCode()))
-        {
-            existingPerson.setUserCode(formDto.getUserCode());
-            needUpdate = true;
-        }
-        if (!StringUtils.equals(existingPerson.getStatus(), formDto.getStatus()) && StringUtils.isNotBlank(formDto.getStatus()))
-        {
-            existingPerson.setStatus(formDto.getStatus());
-            needUpdate = true;
-        }
-
-        if (needUpdate)
-        {
-            subsidyPersonService.updateSubsidyPerson(existingPerson);
-        }
-    }
-
-    private Long createNewSubsidyPerson(TeacherSubsidyFormDto formDto)
-    {
-        SubsidyPerson newPerson = new SubsidyPerson();
-        newPerson.setName(formDto.getName());
-        newPerson.setGender(formDto.getGender());
-        newPerson.setIdCardNo(formDto.getIdCardNo());
-        newPerson.setBirthday(formDto.getBirthday());
-        newPerson.setHouseholdRegistration(formDto.getHouseholdRegistration());
-        newPerson.setHomeAddress(formDto.getHomeAddress());
-        newPerson.setPhone(formDto.getPhone());
-        newPerson.setIsAlive(formDto.getIsAlive());
-        newPerson.setDeathDate(formDto.getDeathDate());
-        newPerson.setIsVillageCoopMember(formDto.getIsVillageCoopMember());
-        newPerson.setStreetOfficeId(formDto.getStreetOfficeId());
-        newPerson.setVillageCommitteeId(formDto.getVillageCommitteeId());
-        newPerson.setUserCode(formDto.getUserCode());
-        newPerson.setStatus(StringUtils.defaultIfBlank(formDto.getStatus(), "0"));
-        newPerson.setApprovalStatus("draft");
-
-        subsidyPersonService.insertSubsidyPerson(newPerson);
-        return newPerson.getId();
     }
 
     private LocalDate parseBirthdayFromIdCard(String idCardNo)

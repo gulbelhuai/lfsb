@@ -21,7 +21,7 @@
       <el-form-item label="补贴类型" prop="subsidyType">
         <el-select v-model="queryParams.subsidyType" placeholder="请选择补贴类型" clearable>
           <el-option label="失地居民" value="land_loss_resident" />
-          <el-option label="被征地居民" value="expropriatee" />
+          <el-option label="被征地农民" value="expropriatee" />
           <el-option label="拆迁居民" value="demolition_resident" />
           <el-option label="村干部" value="village_official" />
           <el-option label="教师" value="teacher" />
@@ -180,8 +180,8 @@
 
       <!-- 复核操作 -->
       <div slot="footer" class="dialog-footer">
-        <el-button type="success" @click="handlePass(detailData)" v-hasPermi="['shebao:person:review:approve']">通过</el-button>
-        <el-button type="danger" @click="handleReject(detailData)" v-hasPermi="['shebao:person:review:reject']">不通过</el-button>
+        <el-button type="success" @click="handlePass(reviewContext)" v-hasPermi="['shebao:person:review:approve']">通过</el-button>
+        <el-button type="danger" @click="handleReject(reviewContext)" v-hasPermi="['shebao:person:review:reject']">不通过</el-button>
         <el-button @click="detailOpen = false">关 闭</el-button>
       </div>
     </el-dialog>
@@ -226,6 +226,8 @@ export default {
       detailOpen: false,
       // 详情数据
       detailData: {},
+      // 当前复核上下文（补贴子记录）
+      reviewContext: null,
       // 补贴明细
       subsidyInfo: {
         landLossResidents: [],
@@ -241,8 +243,8 @@ export default {
       reviewTitle: '',
       // 复核类型
       reviewType: '',
-      // 当前复核ID
-      currentId: null,
+      // 当前复核行（补贴子记录）
+      currentRow: null,
       // 查询参数
       queryParams: {
         pageNum: 1,
@@ -297,7 +299,8 @@ export default {
     },
     /** 查看详情 */
     handleView(row) {
-      getPersonReviewDetail(row.id).then(response => {
+      this.reviewContext = row
+      getPersonReviewDetail(row.subsidyPersonId).then(response => {
         const data = response.data || {}
         this.detailData = data.residentInfo || {}
         this.subsidyInfo = data.subsidyInfo || {
@@ -310,6 +313,7 @@ export default {
       })
       // 获取审批历史
       getApprovalHistory('person_register', row.id).then(response => {
+        // business_id 为补贴子表主键
         this.approvalHistory = response.data
       })
     },
@@ -320,7 +324,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        return reviewPersonPass(row.id, '')
+        return reviewPersonPass(row.subsidyType, row.id, '')
       }).then(() => {
         this.$modal.msgSuccess('复核通过')
         this.detailOpen = false
@@ -329,7 +333,7 @@ export default {
     },
     /** 复核不通过 */
     handleReject(row) {
-      this.currentId = row.id
+      this.currentRow = row
       this.reviewType = 'reject'
       this.reviewTitle = '复核不通过'
       this.reviewForm.remark = ''
@@ -339,7 +343,7 @@ export default {
     submitReview() {
       this.$refs['reviewForm'].validate(valid => {
         if (valid) {
-          reviewPersonReject(this.currentId, this.reviewForm.remark).then(() => {
+          reviewPersonReject(this.currentRow.subsidyType, this.currentRow.id, this.reviewForm.remark).then(() => {
             this.$modal.msgSuccess('复核不通过')
             this.reviewOpen = false
             this.detailOpen = false
@@ -351,7 +355,7 @@ export default {
     getSubsidyTypeLabel(subsidyType) {
       const typeMap = {
         land_loss_resident: '失地居民',
-        expropriatee: '被征地居民',
+        expropriatee: '被征地农民',
         demolition_resident: '拆迁居民',
         village_official: '村干部',
         teacher: '教师',
