@@ -76,8 +76,7 @@
         <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="参保状态">{{ detailData.subsidyStatus || '-' }}</el-descriptions-item>
           <el-descriptions-item label="人员状态">{{ detailData.personStatus || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="参加城乡居保">{{ ynLabel(detailData.joinUrbanRuralInsurance) }}</el-descriptions-item>
-          <el-descriptions-item label="参加职工养老">{{ ynLabel(detailData.joinEmployeePension) }}</el-descriptions-item>
+          <el-descriptions-item label="补贴方式" :span="2">{{ formatSubsidyModeLabel(detailData) }}</el-descriptions-item>
           <el-descriptions-item label="已领职工养老待遇">{{ ynLabel(detailData.hasEmployeePension) }}</el-descriptions-item>
           <el-descriptions-item label="职工养老月数">{{ detailData.employeePensionMonths !== null && detailData.employeePensionMonths !== undefined ? detailData.employeePensionMonths : '-' }}</el-descriptions-item>
           <el-descriptions-item label="灵活就业养老月数">{{ detailData.flexibleEmploymentMonths !== null && detailData.flexibleEmploymentMonths !== undefined ? detailData.flexibleEmploymentMonths : '-' }}</el-descriptions-item>
@@ -144,6 +143,7 @@ import { batchApproveBenefitReview, getBenefitDetermination, listBenefitReview, 
 import { selectDictLabel } from '@/utils/ruoyi'
 import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
 import ImagePreview from '@/components/ImagePreview'
+import { formatSubsidyModeLabel } from '@/utils/subsidyBasicInfo'
 
 export default {
   name: 'BenefitReview',
@@ -203,6 +203,7 @@ export default {
       if (v === '0' || v === 0) return '否'
       return v || '-'
     },
+    formatSubsidyModeLabel,
     approvalStatusLabel(status) {
       return {
         draft: '待录入',

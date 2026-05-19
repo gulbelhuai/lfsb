@@ -129,75 +129,70 @@
 
       <el-divider content-position="left">{{ getSubsidyTypeLabel(detailSubsidyType) }}登记信息</el-divider>
 
-      <div v-if="detailSubsidyType === 'land_loss_resident' && landLossRows.length > 0">
-        <el-table class="rx-table--compact" :data="landLossRows" border size="small">
+      <div v-if="detailSubsidyType === 'land_loss_resident' && landLossRows.length > 0" class="subsidy-detail-table-wrap">
+        <el-table class="rx-table--compact rx-table--no-ellipsis subsidy-detail-table" :data="landLossRows" border size="small" :fit="false">
           <el-table-column type="index" label="序号" width="60" align="center" />
-          <el-table-column label="认定时间" prop="recognitionTime" align="center" />
-          <el-table-column label="征地时间" prop="landRequisitionTime" align="center" />
-          <el-table-column label="完成补偿时间" prop="compensationCompleteTime" align="center" />
-          <el-table-column label="征地批次" prop="landRequisitionBatch" align="center" />
-          <el-table-column label="认定时所在村街" prop="villageStreet" align="center" />
-          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
+          <el-table-column label="认定时间" prop="recognitionTime" align="center" min-width="110" />
+          <el-table-column label="征地时间" prop="landRequisitionTime" align="center" min-width="110" />
+          <el-table-column label="完成补偿时间" prop="compensationCompleteTime" align="center" min-width="130" />
+          <el-table-column label="征地批次" prop="landRequisitionBatch" align="center" min-width="100" />
+          <el-table-column label="认定时所在村街" prop="villageStreet" align="center" min-width="140" />
+          <el-table-column label="备注" prop="remark" align="center" min-width="120" />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
 
-      <div v-else-if="detailSubsidyType === 'expropriatee' && expropriateeRows.length > 0">
-        <el-table class="rx-table--compact" :data="expropriateeRows" border size="small">
+      <div v-else-if="detailSubsidyType === 'expropriatee' && expropriateeRows.length > 0" class="subsidy-detail-table-wrap">
+        <el-table class="rx-table--compact rx-table--no-ellipsis subsidy-detail-table" :data="expropriateeRows" border size="small" :fit="false">
           <el-table-column type="index" label="序号" width="60" align="center" />
-          <el-table-column label="征地批次" prop="landRequisitionBatch" align="center" />
-          <el-table-column label="征地时所在村街" prop="villageStreet" align="center" />
-          <el-table-column label="基准日" prop="baseDate" align="center" />
-          <el-table-column label="职工养老月数" prop="employeePensionMonths" align="center" />
-          <el-table-column label="灵活就业月数" prop="flexibleEmploymentMonths" align="center" />
-          <el-table-column label="困难补贴月数" prop="difficultySubsidyMonths" align="center" />
-          <el-table-column label="基准日年龄" prop="ageAtBaseDate" align="center" />
-          <el-table-column label="补贴年限" prop="subsidyYears" align="center" />
-          <el-table-column label="补贴金额" prop="subsidyAmount" align="center" />
-          <el-table-column label="参加城乡居保" prop="joinUrbanRuralInsurance" align="center">
+          <el-table-column label="征地批次" prop="landRequisitionBatch" align="center" min-width="100" />
+          <el-table-column label="征地时所在村街" prop="villageStreet" align="center" min-width="140" />
+          <el-table-column label="基准日" prop="baseDate" align="center" min-width="100" />
+          <el-table-column label="职工养老月数" prop="employeePensionMonths" align="center" min-width="120" />
+          <el-table-column label="灵活就业月数" prop="flexibleEmploymentMonths" align="center" min-width="120" />
+          <el-table-column label="困难补贴月数" prop="difficultySubsidyMonths" align="center" min-width="120" />
+          <el-table-column label="基准日年龄" prop="ageAtBaseDate" align="center" min-width="110" />
+          <el-table-column label="补贴年限" prop="subsidyYears" align="center" min-width="90" />
+          <el-table-column label="补贴金额" prop="subsidyAmount" align="center" min-width="100" />
+          <el-table-column label="补贴方式" align="center" min-width="180">
             <template slot-scope="scope">
-              {{ scope.row.joinUrbanRuralInsurance === '1' ? '是' : scope.row.joinUrbanRuralInsurance === '0' ? '否' : '-' }}
+              {{ formatSubsidyModeLabel(scope.row) }}
             </template>
           </el-table-column>
-          <el-table-column label="参加职工养老" prop="joinEmployeePension" align="center">
-            <template slot-scope="scope">
-              {{ scope.row.joinEmployeePension === '1' ? '是' : scope.row.joinEmployeePension === '0' ? '否' : '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column label="已领职工养老待遇" prop="hasEmployeePension" align="center">
+          <el-table-column label="已领职工养老待遇" prop="hasEmployeePension" align="center" min-width="140">
             <template slot-scope="scope">
               {{ scope.row.hasEmployeePension === '1' ? '是' : scope.row.hasEmployeePension === '0' ? '否' : '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
+          <el-table-column label="备注" prop="remark" align="center" min-width="120" />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
 
-      <div v-else-if="detailSubsidyType === 'demolition_resident' && demolitionRows.length > 0">
-        <el-table class="rx-table--compact" :data="demolitionRows" border size="small">
+      <div v-else-if="detailSubsidyType === 'demolition_resident' && demolitionRows.length > 0" class="subsidy-detail-table-wrap">
+        <el-table class="rx-table--compact rx-table--no-ellipsis subsidy-detail-table" :data="demolitionRows" border size="small" :fit="false">
           <el-table-column type="index" label="序号" width="60" align="center" />
-          <el-table-column label="拆迁事由" prop="demolitionReason" align="center" />
-          <el-table-column label="拆迁时间" prop="demolitionTime" align="center" />
-          <el-table-column label="认定时间" prop="recognitionTime" align="center" />
-          <el-table-column label="认定时所在村街" prop="villageStreet" align="center" />
-          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
+          <el-table-column label="拆迁事由" prop="demolitionReason" align="center" min-width="100" />
+          <el-table-column label="拆迁时间" prop="demolitionTime" align="center" min-width="110" />
+          <el-table-column label="认定时间" prop="recognitionTime" align="center" min-width="110" />
+          <el-table-column label="认定时所在村街" prop="villageStreet" align="center" min-width="140" />
+          <el-table-column label="备注" prop="remark" align="center" min-width="120" />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
 
-      <div v-else-if="detailSubsidyType === 'village_official' && villageOfficialRows.length > 0">
-        <el-table class="rx-table--compact" :data="villageOfficialRows" border size="small">
+      <div v-else-if="detailSubsidyType === 'village_official' && villageOfficialRows.length > 0" class="subsidy-detail-table-wrap">
+        <el-table class="rx-table--compact rx-table--no-ellipsis subsidy-detail-table" :data="villageOfficialRows" border size="small" :fit="false">
           <el-table-column type="index" label="序号" width="60" align="center" />
-          <el-table-column label="累计任职年限" prop="totalServiceYears" align="center" />
-          <el-table-column label="补贴标准(元)" prop="subsidyAmount" align="center" />
-          <el-table-column label="是否违法乱纪或判刑" prop="hasViolation" align="center">
+          <el-table-column label="累计任职年限" prop="totalServiceYears" align="center" min-width="120" />
+          <el-table-column label="补贴标准(元)" prop="subsidyAmount" align="center" min-width="110" />
+          <el-table-column label="是否违法乱纪或判刑" prop="hasViolation" align="center" min-width="150">
             <template slot-scope="scope">
               {{ scope.row.hasViolation === '1' ? '是' : scope.row.hasViolation === '0' ? '否' : '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="认定时所在村街" prop="villageStreet" align="center" />
-          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
+          <el-table-column label="认定时所在村街" prop="villageStreet" align="center" min-width="140" />
+          <el-table-column label="备注" prop="remark" align="center" min-width="120" />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
@@ -244,6 +239,7 @@ import {
 } from '@/api/shebao/person'
 import { getApprovalHistory } from '@/api/shebao/approval'
 import ApprovalHistory from '@/components/Shebao/ApprovalHistory'
+import { formatSubsidyModeLabel } from '@/utils/subsidyBasicInfo'
 
 const EMPTY_SUBSIDY_INFO = {
   landLossResidents: [],
@@ -316,6 +312,7 @@ export default {
     this.getList()
   },
   methods: {
+    formatSubsidyModeLabel,
     getList() {
       this.loading = true
       listPersonReview(this.queryParams).then(response => {
@@ -457,3 +454,10 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.subsidy-detail-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+</style>

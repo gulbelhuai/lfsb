@@ -37,3 +37,15 @@ export function isSubsidyIdCardFieldDisabled(form, isView) {
 export function isSubsidyFieldDisabled(isView) {
   return !!isView
 }
+
+/** 被征地录入补贴方式展示（城乡居保 / 职工养老 / 未选择） */
+export function formatSubsidyModeLabel(row) {
+  const data = row || {}
+  if (data.joinUrbanRuralInsurance === '1') {
+    return '参加城乡居民养老保险'
+  }
+  if (data.joinEmployeePension === '1') {
+    return '参加职工养老保险'
+  }
+  return '未选择'
+}

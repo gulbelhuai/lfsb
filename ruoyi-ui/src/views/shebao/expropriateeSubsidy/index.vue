@@ -191,11 +191,6 @@
         </template>
       </el-table-column>
       <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
-      <el-table-column label="状态" align="center" prop="status">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.sys_normal_disable" :value="scope.row.status"/>
-        </template>
-      </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button
@@ -345,7 +340,7 @@
           </el-row>
         </div>
 
-        <!-- 被征地参保补贴特有信息区域 -->
+        <!-- 被征地居民参保补贴特有信息区域 -->
         <div class="form-section">
           <div class="section-title">
             <i class="el-icon-money"></i>

@@ -13,3 +13,11 @@
     text-overflow: ellipsis !important;
   }
 }
+
+/** 详情等需完整展示：不省略，配合外层 overflow-x 横向滚动 */
+.rx-table--compact.rx-table--no-ellipsis {
+  .el-table__cell .cell {
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+}
