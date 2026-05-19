@@ -61,10 +61,10 @@ export function listPersonReview(query) {
   })
 }
 
-// 查询待复核人员详情
-export function getPersonReviewDetail(id) {
+// 查询待复核详情（按补贴子记录）
+export function getPersonReviewDetail(subsidyType, recordId) {
   return request({
-    url: '/shebao/person/review/' + id,
+    url: `/shebao/person/review/detail/${subsidyType}/${recordId}`,
     method: 'get'
   })
 }

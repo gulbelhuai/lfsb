@@ -228,6 +228,13 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
         return detailInfo;
     }
 
+    @Override
+    public ResidentBasicInfo getResidentBasicInfo(Long subsidyPersonId)
+    {
+        ResidentDetailInfoDto detail = getResidentDetailInfo(null, subsidyPersonId);
+        return detail.getResidentInfo();
+    }
+
     /**
      * 获取居民发放记录
      */

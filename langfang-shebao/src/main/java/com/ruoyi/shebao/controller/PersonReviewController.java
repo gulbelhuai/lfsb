@@ -11,7 +11,6 @@ import com.ruoyi.shebao.dto.PersonReviewListReq;
 import com.ruoyi.shebao.dto.PersonReviewListResp;
 import com.ruoyi.shebao.dto.ResidentDetailInfoDto;
 import com.ruoyi.shebao.service.PersonReviewService;
-import com.ruoyi.shebao.service.ResidentQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +24,6 @@ public class PersonReviewController extends BaseController
 {
     @Autowired
     private PersonReviewService personReviewService;
-
-    @Autowired
-    private ResidentQueryService residentQueryService;
 
     /**
      * 查询待复核列表（每条为一条补贴登记记录）
@@ -78,17 +74,13 @@ public class PersonReviewController extends BaseController
     }
 
     /**
-     * 获取人员详细信息（subsidyPersonId）
+     * 复核详情：人员基础信息 + 当前待复核的一条补贴登记
      */
     @PreAuthorize("@ss.hasPermi('shebao:person:review:query')")
-    @GetMapping("/{subsidyPersonId}")
-    public AjaxResult getInfo(@PathVariable Long subsidyPersonId)
+    @GetMapping("/detail/{subsidyType}/{recordId}")
+    public AjaxResult getDetail(@PathVariable String subsidyType, @PathVariable Long recordId)
     {
-        ResidentDetailInfoDto detailInfo = residentQueryService.getResidentDetailInfo(null, subsidyPersonId);
-        if (detailInfo == null)
-        {
-            return AjaxResult.error("记录不存在");
-        }
+        ResidentDetailInfoDto detailInfo = personReviewService.getReviewDetail(subsidyType, recordId);
         return AjaxResult.success(detailInfo);
     }
 }

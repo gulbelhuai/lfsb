@@ -24,7 +24,6 @@
           <el-option label="被征地农民" value="expropriatee" />
           <el-option label="拆迁居民" value="demolition_resident" />
           <el-option label="村干部" value="village_official" />
-          <el-option label="教师" value="teacher" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -81,7 +80,7 @@
     />
 
     <!-- 详情对话框 -->
-    <el-dialog title="人员登记详情" :visible.sync="detailOpen" width="1100px" append-to-body>
+    <el-dialog :title="detailTitle" :visible.sync="detailOpen" width="1100px" append-to-body>
       <el-divider content-position="left">人员基础信息</el-divider>
       <el-descriptions :column="2" border size="small">
         <el-descriptions-item label="用户编号" :span="2">{{ detailData.userCode || '-' }}</el-descriptions-item>
@@ -96,23 +95,23 @@
         <el-descriptions-item label="联系电话">{{ detailData.phone || '-' }}</el-descriptions-item>
       </el-descriptions>
 
-      <el-divider content-position="left">补贴信息</el-divider>
-      <div v-if="subsidyInfo.landLossResidents && subsidyInfo.landLossResidents.length > 0" style="margin-bottom: 16px;">
-        <div class="subsidy-title">失地补贴</div>
-        <el-table class="rx-table--compact" :data="subsidyInfo.landLossResidents" border size="small">
+      <el-divider content-position="left">{{ getSubsidyTypeLabel(detailSubsidyType) }}登记信息</el-divider>
+
+      <div v-if="detailSubsidyType === 'land_loss_resident' && landLossRows.length > 0">
+        <el-table class="rx-table--compact" :data="landLossRows" border size="small">
           <el-table-column type="index" label="序号" width="60" align="center" />
           <el-table-column label="认定时间" prop="recognitionTime" align="center" />
           <el-table-column label="征地时间" prop="landRequisitionTime" align="center" />
           <el-table-column label="完成补偿时间" prop="compensationCompleteTime" align="center" />
           <el-table-column label="征地批次" prop="landRequisitionBatch" align="center" />
           <el-table-column label="认定时所在村街" prop="villageStreet" align="center" />
+          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
 
-      <div v-if="subsidyInfo.expropriateeSubsidies && subsidyInfo.expropriateeSubsidies.length > 0" style="margin-bottom: 16px;">
-        <div class="subsidy-title">被征地补贴</div>
-        <el-table class="rx-table--compact" :data="subsidyInfo.expropriateeSubsidies" border size="small">
+      <div v-else-if="detailSubsidyType === 'expropriatee' && expropriateeRows.length > 0">
+        <el-table class="rx-table--compact" :data="expropriateeRows" border size="small">
           <el-table-column type="index" label="序号" width="60" align="center" />
           <el-table-column label="征地批次" prop="landRequisitionBatch" align="center" />
           <el-table-column label="征地时所在村街" prop="villageStreet" align="center" />
@@ -138,25 +137,25 @@
               {{ scope.row.hasEmployeePension === '1' ? '是' : scope.row.hasEmployeePension === '0' ? '否' : '-' }}
             </template>
           </el-table-column>
+          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
 
-      <div v-if="subsidyInfo.demolitionResidents && subsidyInfo.demolitionResidents.length > 0" style="margin-bottom: 16px;">
-        <div class="subsidy-title">拆迁居民补贴</div>
-        <el-table class="rx-table--compact" :data="subsidyInfo.demolitionResidents" border size="small">
+      <div v-else-if="detailSubsidyType === 'demolition_resident' && demolitionRows.length > 0">
+        <el-table class="rx-table--compact" :data="demolitionRows" border size="small">
           <el-table-column type="index" label="序号" width="60" align="center" />
           <el-table-column label="拆迁事由" prop="demolitionReason" align="center" />
           <el-table-column label="拆迁时间" prop="demolitionTime" align="center" />
           <el-table-column label="认定时间" prop="recognitionTime" align="center" />
           <el-table-column label="认定时所在村街" prop="villageStreet" align="center" />
+          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
 
-      <div v-if="subsidyInfo.villageOfficials && subsidyInfo.villageOfficials.length > 0" style="margin-bottom: 16px;">
-        <div class="subsidy-title">村干部补贴</div>
-        <el-table class="rx-table--compact" :data="subsidyInfo.villageOfficials" border size="small">
+      <div v-else-if="detailSubsidyType === 'village_official' && villageOfficialRows.length > 0">
+        <el-table class="rx-table--compact" :data="villageOfficialRows" border size="small">
           <el-table-column type="index" label="序号" width="60" align="center" />
           <el-table-column label="累计任职年限" prop="totalServiceYears" align="center" />
           <el-table-column label="补贴标准(元)" prop="subsidyAmount" align="center" />
@@ -166,12 +165,13 @@
             </template>
           </el-table-column>
           <el-table-column label="认定时所在村街" prop="villageStreet" align="center" />
+          <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
           <el-table-column label="提交时间" prop="createTime" align="center" width="170" />
         </el-table>
       </div>
 
-      <div v-if="!hasAnySubsidy" style="text-align: center; color: #909399; padding: 12px 0 20px;">
-        该人员暂无补贴信息
+      <div v-else style="text-align: center; color: #909399; padding: 12px 0 20px;">
+        暂无该补贴登记信息
       </div>
 
       <!-- 审批历史 -->
@@ -206,6 +206,13 @@ import { listPersonReview, getPersonReviewDetail, reviewPersonPass, reviewPerson
 import { getApprovalHistory } from '@/api/shebao/approval'
 import ApprovalHistory from '@/components/Shebao/ApprovalHistory'
 
+const EMPTY_SUBSIDY_INFO = {
+  landLossResidents: [],
+  expropriateeSubsidies: [],
+  demolitionResidents: [],
+  villageOfficials: []
+}
+
 export default {
   name: 'PersonReview',
   dicts: ['subsidy_type'],
@@ -214,38 +221,21 @@ export default {
   },
   data() {
     return {
-      // 遮罩层
       loading: true,
-      // 显示搜索条件
       showSearch: true,
-      // 总条数
       total: 0,
-      // 数据列表
       dataList: [],
-      // 是否显示详情弹出层
       detailOpen: false,
-      // 详情数据
+      detailTitle: '人员登记复核详情',
+      detailSubsidyType: null,
       detailData: {},
-      // 当前复核上下文（补贴子记录）
       reviewContext: null,
-      // 补贴明细
-      subsidyInfo: {
-        landLossResidents: [],
-        expropriateeSubsidies: [],
-        demolitionResidents: [],
-        villageOfficials: []
-      },
-      // 审批历史
+      subsidyInfo: { ...EMPTY_SUBSIDY_INFO },
       approvalHistory: [],
-      // 是否显示复核弹出层
       reviewOpen: false,
-      // 复核标题
       reviewTitle: '',
-      // 复核类型
       reviewType: '',
-      // 当前复核行（补贴子记录）
       currentRow: null,
-      // 查询参数
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -254,11 +244,9 @@ export default {
         subsidyType: null,
         approvalStatus: 'pending_review'
       },
-      // 复核表单
       reviewForm: {
         remark: null
       },
-      // 表单校验
       reviewRules: {
         remark: [
           { required: true, message: '请输入不通过原因', trigger: 'blur' }
@@ -267,18 +255,23 @@ export default {
     }
   },
   computed: {
-    hasAnySubsidy() {
-      return (this.subsidyInfo.landLossResidents && this.subsidyInfo.landLossResidents.length > 0) ||
-        (this.subsidyInfo.expropriateeSubsidies && this.subsidyInfo.expropriateeSubsidies.length > 0) ||
-        (this.subsidyInfo.demolitionResidents && this.subsidyInfo.demolitionResidents.length > 0) ||
-        (this.subsidyInfo.villageOfficials && this.subsidyInfo.villageOfficials.length > 0)
+    landLossRows() {
+      return this.subsidyInfo.landLossResidents || []
+    },
+    expropriateeRows() {
+      return this.subsidyInfo.expropriateeSubsidies || []
+    },
+    demolitionRows() {
+      return this.subsidyInfo.demolitionResidents || []
+    },
+    villageOfficialRows() {
+      return this.subsidyInfo.villageOfficials || []
     }
   },
   created() {
     this.getList()
   },
   methods: {
-    /** 查询列表 */
     getList() {
       this.loading = true
       listPersonReview(this.queryParams).then(response => {
@@ -287,37 +280,28 @@ export default {
         this.loading = false
       })
     },
-    /** 搜索按钮操作 */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
-    /** 重置按钮操作 */
     resetQuery() {
       this.resetForm('queryForm')
       this.handleQuery()
     },
-    /** 查看详情 */
     handleView(row) {
       this.reviewContext = row
-      getPersonReviewDetail(row.subsidyPersonId).then(response => {
+      this.detailSubsidyType = row.subsidyType
+      this.detailTitle = `人员登记复核详情 - ${this.getSubsidyTypeLabel(row.subsidyType)}`
+      getPersonReviewDetail(row.subsidyType, row.id).then(response => {
         const data = response.data || {}
         this.detailData = data.residentInfo || {}
-        this.subsidyInfo = data.subsidyInfo || {
-          landLossResidents: [],
-          expropriateeSubsidies: [],
-          demolitionResidents: [],
-          villageOfficials: []
-        }
+        this.subsidyInfo = data.subsidyInfo || { ...EMPTY_SUBSIDY_INFO }
         this.detailOpen = true
       })
-      // 获取审批历史
       getApprovalHistory('person_register', row.id).then(response => {
-        // business_id 为补贴子表主键
         this.approvalHistory = response.data
       })
     },
-    /** 复核通过 */
     handlePass(row) {
       this.$confirm('是否确认通过', '系统提示', {
         confirmButtonText: '确认',
@@ -331,7 +315,6 @@ export default {
         this.getList()
       }).catch(() => {})
     },
-    /** 复核不通过 */
     handleReject(row) {
       this.currentRow = row
       this.reviewType = 'reject'
@@ -339,7 +322,6 @@ export default {
       this.reviewForm.remark = ''
       this.reviewOpen = true
     },
-    /** 提交复核 */
     submitReview() {
       this.$refs['reviewForm'].validate(valid => {
         if (valid) {
@@ -358,16 +340,15 @@ export default {
         expropriatee: '被征地农民',
         demolition_resident: '拆迁居民',
         village_official: '村干部',
-        teacher: '教师',
+        teacher: '教龄补助',
         '1': '失地居民',
         '2': '被征地居民',
         '3': '拆迁居民',
         '4': '村干部',
-        '5': '教师'
+        '5': '教龄补助'
       }
       return typeMap[subsidyType] || subsidyType || '-'
     }
   }
 }
 </script>
-

@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.service;
 
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.shebao.dto.ResidentBasicInfo;
 import com.ruoyi.shebao.dto.ResidentDetailInfoDto;
 import com.ruoyi.shebao.dto.ResidentSearchResp;
 
@@ -30,6 +31,11 @@ public interface ResidentQueryService
      * @return 居民详细信息
      */
     ResidentDetailInfoDto getResidentDetailInfo(String keyword, Long subsidyPersonId);
+
+    /**
+     * 获取被补贴人基本信息
+     */
+    ResidentBasicInfo getResidentBasicInfo(Long subsidyPersonId);
 
     /**
      * 获取居民发放记录
