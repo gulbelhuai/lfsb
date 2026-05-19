@@ -87,6 +87,24 @@ export function reviewPersonReject(subsidyType, recordId, remark) {
   })
 }
 
+// 批量复核通过
+export function batchReviewPersonPass(items, remark) {
+  return request({
+    url: '/shebao/person/review/batch/approve',
+    method: 'post',
+    data: { items, remark: remark || '' }
+  })
+}
+
+// 批量复核驳回
+export function batchReviewPersonReject(items, remark) {
+  return request({
+    url: '/shebao/person/review/batch/reject',
+    method: 'post',
+    data: { items, remark }
+  })
+}
+
 // 是否存在未办结的人员信息变更（data 为 true 表示不可再发起）
 export function checkPersonModifyUnfinished(subsidyPersonId, excludeModifyId) {
   const params = { subsidyPersonId }

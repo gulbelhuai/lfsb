@@ -9,6 +9,8 @@ import com.ruoyi.shebao.domain.DemolitionResident;
 import com.ruoyi.shebao.domain.ExpropriateeSubsidy;
 import com.ruoyi.shebao.domain.LandLossResident;
 import com.ruoyi.shebao.domain.VillageOfficial;
+import com.ruoyi.shebao.dto.PersonReviewBatchItem;
+import com.ruoyi.shebao.dto.PersonReviewBatchReq;
 import com.ruoyi.shebao.dto.DemolitionResidentDto;
 import com.ruoyi.shebao.dto.ExpropriateeSubsidyDto;
 import com.ruoyi.shebao.dto.LandLossResidentDto;
@@ -83,6 +85,85 @@ public class PersonReviewServiceImpl implements PersonReviewService
     {
         updateReviewStatus(subsidyType, recordId, SubsidyApprovalStatus.REJECTED);
         approvalLogService.log("person_register", recordId, SubsidyApprovalStatus.REJECTED, "reject", reason);
+    }
+
+    @Override
+    public void batchApprove(PersonReviewBatchReq req)
+    {
+        validateBatchReq(req, false);
+        int success = 0;
+        StringBuilder errors = new StringBuilder();
+        for (PersonReviewBatchItem item : req.getItems())
+        {
+            try
+            {
+                approve(item.getSubsidyType(), item.getRecordId(), req.getRemark());
+                success++;
+            }
+            catch (ServiceException e)
+            {
+                appendBatchError(errors, item, e.getMessage());
+            }
+        }
+        finishBatchResult(success, req.getItems().size(), errors);
+    }
+
+    @Override
+    public void batchReject(PersonReviewBatchReq req)
+    {
+        validateBatchReq(req, true);
+        int success = 0;
+        StringBuilder errors = new StringBuilder();
+        for (PersonReviewBatchItem item : req.getItems())
+        {
+            try
+            {
+                reject(item.getSubsidyType(), item.getRecordId(), req.getRemark());
+                success++;
+            }
+            catch (ServiceException e)
+            {
+                appendBatchError(errors, item, e.getMessage());
+            }
+        }
+        finishBatchResult(success, req.getItems().size(), errors);
+    }
+
+    private void validateBatchReq(PersonReviewBatchReq req, boolean requireRemark)
+    {
+        if (req == null || req.getItems() == null || req.getItems().isEmpty())
+        {
+            throw new ServiceException("请选择要复核的记录");
+        }
+        if (requireRemark && StringUtils.isBlank(req.getRemark()))
+        {
+            throw new ServiceException("请填写不通过原因");
+        }
+        for (PersonReviewBatchItem item : req.getItems())
+        {
+            if (item == null || StringUtils.isBlank(item.getSubsidyType()) || item.getRecordId() == null)
+            {
+                throw new ServiceException("复核记录参数不完整");
+            }
+        }
+    }
+
+    private void appendBatchError(StringBuilder errors, PersonReviewBatchItem item, String message)
+    {
+        if (errors.length() > 0)
+        {
+            errors.append("；");
+        }
+        errors.append("记录").append(item.getRecordId()).append("：").append(message);
+    }
+
+    private void finishBatchResult(int success, int total, StringBuilder errors)
+    {
+        if (errors.length() > 0)
+        {
+            throw new ServiceException(String.format("批量复核完成，成功 %d 条，失败 %d 条。%s",
+                    success, total - success, errors));
+        }
     }
 
     private void updateReviewStatus(String subsidyType, Long recordId, String targetStatus)

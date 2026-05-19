@@ -7,6 +7,7 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.shebao.dto.PersonReviewBatchReq;
 import com.ruoyi.shebao.dto.PersonReviewListReq;
 import com.ruoyi.shebao.dto.PersonReviewListResp;
 import com.ruoyi.shebao.dto.ResidentDetailInfoDto;
@@ -71,6 +72,36 @@ public class PersonReviewController extends BaseController
         }
         personReviewService.reject(subsidyType, recordId, reason);
         return AjaxResult.success("复核驳回成功");
+    }
+
+    /**
+     * 批量复核通过
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:person:review:approve')")
+    @Log(title = "人员登记复核", businessType = BusinessType.UPDATE)
+    @PostMapping("/batch/approve")
+    public AjaxResult batchApprove(@RequestBody PersonReviewBatchReq req)
+    {
+        personReviewService.batchApprove(req);
+        int count = req.getItems() == null ? 0 : req.getItems().size();
+        return AjaxResult.success("批量复核通过成功，共 " + count + " 条");
+    }
+
+    /**
+     * 批量复核驳回
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:person:review:reject')")
+    @Log(title = "人员登记复核", businessType = BusinessType.UPDATE)
+    @PostMapping("/batch/reject")
+    public AjaxResult batchReject(@RequestBody PersonReviewBatchReq req)
+    {
+        if (req == null || StringUtils.isBlank(req.getRemark()))
+        {
+            return AjaxResult.error("请填写不通过原因");
+        }
+        personReviewService.batchReject(req);
+        int count = req.getItems() == null ? 0 : req.getItems().size();
+        return AjaxResult.success("批量复核驳回成功，共 " + count + " 条");
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ruoyi.shebao.dto.PersonReviewBatchReq;
 import com.ruoyi.shebao.dto.PersonReviewListReq;
 import com.ruoyi.shebao.dto.PersonReviewListResp;
 import com.ruoyi.shebao.dto.ResidentDetailInfoDto;
@@ -20,4 +21,8 @@ public interface PersonReviewService
      * 复核详情：人员基础信息 + 当前待复核的一条补贴登记
      */
     ResidentDetailInfoDto getReviewDetail(String subsidyType, Long recordId);
+
+    void batchApprove(PersonReviewBatchReq req);
+
+    void batchReject(PersonReviewBatchReq req);
 }

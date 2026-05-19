@@ -32,8 +32,40 @@
       </el-form-item>
     </el-form>
 
+    <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5">
+        <el-button
+          type="success"
+          plain
+          icon="el-icon-check"
+          size="mini"
+          :disabled="!hasSelection"
+          @click="handleBatchPass"
+          v-hasPermi="['shebao:person:review:approve']"
+        >批量通过</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button
+          type="danger"
+          plain
+          icon="el-icon-close"
+          size="mini"
+          :disabled="!hasSelection"
+          @click="handleBatchReject"
+          v-hasPermi="['shebao:person:review:reject']"
+        >批量不通过</el-button>
+      </el-col>
+    </el-row>
+
     <!-- 数据表格 -->
-    <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
+    <el-table
+      ref="reviewTable"
+      class="rx-table--compact"
+      v-loading="loading"
+      :data="dataList"
+      @selection-change="handleSelectionChange"
+    >
+      <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="序号" type="index" width="50" align="center" />
       <el-table-column label="用户编号" align="center" prop="userCode" width="120" />
       <el-table-column label="姓名" align="center" prop="name" width="100" />
@@ -187,7 +219,7 @@
     </el-dialog>
 
     <!-- 复核对话框 -->
-    <el-dialog :title="reviewTitle" :visible.sync="reviewOpen" width="500px" append-to-body>
+    <el-dialog :title="reviewTitle" :visible.sync="reviewOpen" width="500px" append-to-body @close="onReviewDialogClose">
       <el-form ref="reviewForm" :model="reviewForm" :rules="reviewRules" label-width="100px">
         <el-form-item :label="reviewType === 'reject' ? '不通过原因' : '复核意见'" prop="remark">
           <el-input v-model="reviewForm.remark" type="textarea" :rows="4" :placeholder="reviewType === 'reject' ? '请输入不通过原因' : '请输入复核意见'" />
@@ -202,7 +234,14 @@
 </template>
 
 <script>
-import { listPersonReview, getPersonReviewDetail, reviewPersonPass, reviewPersonReject } from '@/api/shebao/person'
+import {
+  listPersonReview,
+  getPersonReviewDetail,
+  reviewPersonPass,
+  reviewPersonReject,
+  batchReviewPersonPass,
+  batchReviewPersonReject
+} from '@/api/shebao/person'
 import { getApprovalHistory } from '@/api/shebao/approval'
 import ApprovalHistory from '@/components/Shebao/ApprovalHistory'
 
@@ -225,6 +264,8 @@ export default {
       showSearch: true,
       total: 0,
       dataList: [],
+      selectedRows: [],
+      reviewBatchMode: false,
       detailOpen: false,
       detailTitle: '人员登记复核详情',
       detailSubsidyType: null,
@@ -255,6 +296,9 @@ export default {
     }
   },
   computed: {
+    hasSelection() {
+      return this.selectedRows.length > 0
+    },
     landLossRows() {
       return this.subsidyInfo.landLossResidents || []
     },
@@ -288,6 +332,50 @@ export default {
       this.resetForm('queryForm')
       this.handleQuery()
     },
+    handleSelectionChange(selection) {
+      this.selectedRows = selection
+    },
+    clearTableSelection() {
+      this.selectedRows = []
+      if (this.$refs.reviewTable) {
+        this.$refs.reviewTable.clearSelection()
+      }
+    },
+    toBatchItems(rows) {
+      return (rows || []).map(row => ({
+        subsidyType: row.subsidyType,
+        recordId: row.id
+      }))
+    },
+    handleBatchPass() {
+      const items = this.toBatchItems(this.selectedRows)
+      if (!items.length) {
+        return
+      }
+      this.$confirm(`确认批量通过选中的 ${items.length} 条记录？`, '系统提示', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        return batchReviewPersonPass(items, '')
+      }).then(() => {
+        this.$modal.msgSuccess('批量复核通过')
+        this.detailOpen = false
+        this.clearTableSelection()
+        this.getList()
+      }).catch(() => {})
+    },
+    handleBatchReject() {
+      if (!this.selectedRows.length) {
+        return
+      }
+      this.reviewBatchMode = true
+      this.currentRow = null
+      this.reviewType = 'reject'
+      this.reviewTitle = `批量复核不通过（${this.selectedRows.length} 条）`
+      this.reviewForm.remark = ''
+      this.reviewOpen = true
+    },
     handleView(row) {
       this.reviewContext = row
       this.detailSubsidyType = row.subsidyType
@@ -315,7 +403,11 @@ export default {
         this.getList()
       }).catch(() => {})
     },
+    onReviewDialogClose() {
+      this.reviewBatchMode = false
+    },
     handleReject(row) {
+      this.reviewBatchMode = false
       this.currentRow = row
       this.reviewType = 'reject'
       this.reviewTitle = '复核不通过'
@@ -324,14 +416,27 @@ export default {
     },
     submitReview() {
       this.$refs['reviewForm'].validate(valid => {
-        if (valid) {
-          reviewPersonReject(this.currentRow.subsidyType, this.currentRow.id, this.reviewForm.remark).then(() => {
-            this.$modal.msgSuccess('复核不通过')
+        if (!valid) {
+          return
+        }
+        if (this.reviewBatchMode) {
+          const items = this.toBatchItems(this.selectedRows)
+          batchReviewPersonReject(items, this.reviewForm.remark).then(() => {
+            this.$modal.msgSuccess('批量复核不通过')
             this.reviewOpen = false
+            this.reviewBatchMode = false
             this.detailOpen = false
+            this.clearTableSelection()
             this.getList()
           })
+          return
         }
+        reviewPersonReject(this.currentRow.subsidyType, this.currentRow.id, this.reviewForm.remark).then(() => {
+          this.$modal.msgSuccess('复核不通过')
+          this.reviewOpen = false
+          this.detailOpen = false
+          this.getList()
+        })
       })
     },
     getSubsidyTypeLabel(subsidyType) {
