@@ -36,6 +36,12 @@ public class VillageOfficialListResp
     /** 联系电话（来自基础信息） */
     private String phone;
 
+    /** 参保状态（来自基础信息） */
+    private String subsidyStatus;
+
+    /** 人员状态（来自基础信息） */
+    private String personStatus;
+
     /** 所属街道办名称（来自基础信息） */
     private String streetOfficeName;
 

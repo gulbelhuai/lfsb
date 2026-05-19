@@ -137,6 +137,16 @@
         </template>
       </el-table-column>
       <el-table-column label="联系电话" align="center" prop="phone" width="120" />
+      <el-table-column label="参保状态" align="center" prop="subsidyStatus" width="100">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.shebao_subsidy_status" :value="scope.row.subsidyStatus"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="人员状态" align="center" prop="personStatus" width="100">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.shebao_person_status" :value="scope.row.personStatus"/>
+        </template>
+      </el-table-column>
       <el-table-column label="所属街道办" align="center" prop="streetOfficeName" />
       <el-table-column label="所属村委会" align="center" prop="villageName" />
       <el-table-column label="认定时所在村街" align="center" prop="villageStreet" width="120" show-overflow-tooltip />
@@ -474,7 +484,7 @@ import {
 export default {
   name: "VillageOfficial",
   components: { ApprovalStatus },
-  dicts: ["sys_user_sex"],
+  dicts: ['sys_user_sex', 'shebao_subsidy_status', 'shebao_person_status'],
   computed: {
     basicInfoReadonly() {
       return isSubsidyBasicFieldDisabled(this.form, this.isView)

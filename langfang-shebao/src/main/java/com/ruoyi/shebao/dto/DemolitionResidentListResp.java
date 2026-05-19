@@ -76,6 +76,12 @@ public class DemolitionResidentListResp
     @Excel(name = "用户编号", sort = 15, cellType = Excel.ColumnType.TEXT)
     private String userCode;
 
+    /** 参保状态（来自基础信息） */
+    private String subsidyStatus;
+
+    /** 人员状态（来自基础信息） */
+    private String personStatus;
+
     /** 审批状态 */
     private String approvalStatus;
 

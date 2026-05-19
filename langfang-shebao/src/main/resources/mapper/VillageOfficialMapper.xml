@@ -29,6 +29,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="idCardNo"                    column="id_card_no"                  />
         <result property="gender"                      column="gender"                      />
         <result property="phone"                       column="phone"                       />
+        <result property="subsidyStatus"               column="subsidy_status"              />
+        <result property="personStatus"                column="person_status"               />
         <result property="streetOfficeName"            column="street_office_name"         />
         <result property="villageName"                 column="village_name"                />
         <result property="villageStreet"               column="village_street"              />
@@ -77,7 +79,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectVillageOfficialList" parameterType="com.ruoyi.shebao.dto.VillageOfficialListReq" resultMap="VillageOfficialListRespResult">
         select vo.id, vo.subsidy_person_id, vo.subsidy_amount,
                vo.has_violation, vo.village_street, vo.status, vo.create_time, vo.update_time, vo.remark,
-               sp.name, sp.user_code, sp.id_card_no, sp.gender, sp.phone, vo.approval_status,
+               sp.name, sp.user_code, sp.id_card_no, sp.gender, sp.phone,
+               sp.subsidy_status, sp.person_status, vo.approval_status,
                sso.street_name as street_office_name, svc.village_name
         from shebao_village_official vo
         left join shebao_subsidy_person sp on vo.subsidy_person_id = sp.id
