@@ -163,7 +163,7 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="姓名" align="center" prop="name" />
+      <el-table-column label="姓名" align="center" prop="name" width="80" />
       <el-table-column label="身份证号" align="center" prop="idCardNo" width="180" />
       <el-table-column label="征地批次" align="center" prop="landRequisitionBatch" width="120" />
       <el-table-column label="基准日" align="center" prop="baseDate" width="120">
@@ -175,7 +175,17 @@
       <el-table-column label="补贴年限" align="center" prop="subsidyYears" width="100" />
       <el-table-column label="补贴金额" align="center" prop="subsidyAmount" width="120">
         <template slot-scope="scope">
-          <span>{{ scope.row.subsidyAmount ? scope.row.subsidyAmount.toFixed(2) : '0.00' }}</span>
+          <span>{{ scope.row.subsidyAmount != null ? scope.row.subsidyAmount.toFixed(2) : '-' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="已申领金额" align="center" prop="claimedAmount" width="120">
+        <template slot-scope="scope">
+          <span>{{ scope.row.claimedAmount != null ? scope.row.claimedAmount.toFixed(2) : '-' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="补贴余额" align="center" prop="subsidyBalance" width="120">
+        <template slot-scope="scope">
+          <span>{{ scope.row.subsidyBalance != null ? scope.row.subsidyBalance.toFixed(2) : '-' }}</span>
         </template>
       </el-table-column>
       <el-table-column label="补贴方式" align="center" width="170">
@@ -191,7 +201,7 @@
         </template>
       </el-table-column>
       <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="140" fixed="right">
         <template slot-scope="scope">
           <el-button
             size="mini"
@@ -411,6 +421,19 @@
               <el-form-item label="补贴金额" prop="subsidyAmount">
                 <el-input-number v-model="form.subsidyAmount" :min="0" :max="999999.99" :precision="2" controls-position="right" style="width: 100%" :disabled="true" />
                 <div class="field-tip">系统自动计算，不可修改</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="已申领金额" prop="claimedAmount">
+                <el-input-number v-model="form.claimedAmount" :min="0" :max="999999.99" :precision="2" controls-position="right" style="width: 100%" :disabled="subsidyFieldReadonly" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="补贴余额" prop="subsidyBalance">
+                <el-input-number v-model="form.subsidyBalance" :min="0" :max="999999.99" :precision="2" controls-position="right" style="width: 100%" :disabled="subsidyFieldReadonly" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -668,6 +691,8 @@ export default {
         ageAtBaseDate: null,
         subsidyYears: 0,
         subsidyAmount: 0,
+        claimedAmount: null,
+        subsidyBalance: null,
         joinUrbanRuralInsurance: "0",
         joinEmployeePension: "0",
         status: "0",

@@ -105,7 +105,17 @@
             <el-table-column label="补贴年限" prop="subsidyYears" width="100" align="center" />
             <el-table-column label="补贴金额" prop="subsidyAmount" width="120" align="center">
               <template slot-scope="scope">
-                {{ scope.row.subsidyAmount ? scope.row.subsidyAmount.toFixed(2) : '0.00' }}
+                {{ scope.row.subsidyAmount != null ? scope.row.subsidyAmount.toFixed(2) : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="已申领金额" prop="claimedAmount" width="120" align="center">
+              <template slot-scope="scope">
+                {{ scope.row.claimedAmount != null ? scope.row.claimedAmount.toFixed(2) : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="补贴余额" prop="subsidyBalance" width="120" align="center">
+              <template slot-scope="scope">
+                {{ scope.row.subsidyBalance != null ? scope.row.subsidyBalance.toFixed(2) : '-' }}
               </template>
             </el-table-column>
             <el-table-column label="参加城乡保险" prop="joinUrbanRuralInsurance" width="120" align="center">

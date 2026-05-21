@@ -42,6 +42,12 @@ public class ExpropriateeSubsidyDto
     /** 补贴金额 */
     private BigDecimal subsidyAmount;
 
+    /** 已申领金额 */
+    private BigDecimal claimedAmount;
+
+    /** 补贴余额 */
+    private BigDecimal subsidyBalance;
+
     /** 参加城乡保险 */
     private String joinUrbanRuralInsurance;
 

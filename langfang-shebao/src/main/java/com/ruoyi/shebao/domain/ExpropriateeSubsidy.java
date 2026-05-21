@@ -63,6 +63,14 @@ public class ExpropriateeSubsidy extends BaseDomain
     @Excel(name = "补贴金额")
     private BigDecimal subsidyAmount;
 
+    /** 已申领金额 */
+    @Excel(name = "已申领金额")
+    private BigDecimal claimedAmount;
+
+    /** 补贴余额 */
+    @Excel(name = "补贴余额")
+    private BigDecimal subsidyBalance;
+
     /** 选择参加城乡居保（0否 1是） */
     @Excel(name = "选择参加城乡居保", readConverterExp = "0=否,1=是")
     private String joinUrbanRuralInsurance;

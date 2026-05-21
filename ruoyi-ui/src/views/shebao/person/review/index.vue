@@ -154,6 +154,8 @@
           <el-table-column label="基准日年龄" prop="ageAtBaseDate" align="center" min-width="110" />
           <el-table-column label="补贴年限" prop="subsidyYears" align="center" min-width="90" />
           <el-table-column label="补贴金额" prop="subsidyAmount" align="center" min-width="100" />
+          <el-table-column label="已申领金额" prop="claimedAmount" align="center" min-width="110" />
+          <el-table-column label="补贴余额" prop="subsidyBalance" align="center" min-width="100" />
           <el-table-column label="补贴方式" align="center" min-width="180">
             <template slot-scope="scope">
               {{ formatSubsidyModeLabel(scope.row) }}

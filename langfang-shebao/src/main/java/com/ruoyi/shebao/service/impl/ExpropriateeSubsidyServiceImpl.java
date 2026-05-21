@@ -95,6 +95,8 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
         entity.setAgeAtBaseDate(formDto.getAgeAtBaseDate());
         entity.setSubsidyYears(defaultDecimal(formDto.getSubsidyYears()));
         entity.setSubsidyAmount(defaultDecimal(formDto.getSubsidyAmount()));
+        entity.setClaimedAmount(formDto.getClaimedAmount());
+        entity.setSubsidyBalance(formDto.getSubsidyBalance());
         entity.setJoinUrbanRuralInsurance(defaultFlag(formDto.getJoinUrbanRuralInsurance()));
         entity.setJoinEmployeePension(defaultFlag(formDto.getJoinEmployeePension()));
         entity.setHasEmployeePension(defaultFlag(formDto.getHasEmployeePension()));
@@ -135,6 +137,8 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
         entity.setAgeAtBaseDate(formDto.getAgeAtBaseDate());
         entity.setSubsidyYears(defaultDecimal(formDto.getSubsidyYears()));
         entity.setSubsidyAmount(defaultDecimal(formDto.getSubsidyAmount()));
+        entity.setClaimedAmount(formDto.getClaimedAmount());
+        entity.setSubsidyBalance(formDto.getSubsidyBalance());
         entity.setJoinUrbanRuralInsurance(defaultFlag(formDto.getJoinUrbanRuralInsurance()));
         entity.setJoinEmployeePension(defaultFlag(formDto.getJoinEmployeePension()));
         entity.setHasEmployeePension(defaultFlag(formDto.getHasEmployeePension()));
