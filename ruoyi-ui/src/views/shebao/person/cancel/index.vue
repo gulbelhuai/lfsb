@@ -104,7 +104,14 @@
           </el-col>
         </el-row>
         <el-form-item label="注销时间" prop="cancelTime">
-          <el-date-picker v-model="form.cancelTime" type="date" value-format="yyyy-MM-dd" placeholder="选择注销时间" style="width: 100%" />
+          <el-date-picker
+            v-model="form.cancelTime"
+            type="date"
+            value-format="yyyy-MM-dd"
+            placeholder="选择注销时间"
+            :picker-options="cancelTimePickerOptions"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="注销原因" prop="cancelReason">
           <el-select v-model="form.cancelReason" placeholder="请选择注销原因" clearable style="width: 100%">
@@ -178,6 +185,13 @@ export default {
       },
       form: {},
       personPreview: { name: null, userCode: null, isAlive: null },
+      cancelTimePickerOptions: {
+        disabledDate(time) {
+          const todayEnd = new Date()
+          todayEnd.setHours(23, 59, 59, 999)
+          return time.getTime() > todayEnd.getTime()
+        }
+      },
       rules: {
         idCardNo: [
           { required: true, message: '身份证号不能为空', trigger: 'blur' },
