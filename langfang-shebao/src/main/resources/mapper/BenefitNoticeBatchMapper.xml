@@ -54,7 +54,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join (
             select distinct subsidy_person_id
             from shebao_village_official
-            where del_flag = '0' and approval_status = 'approved'
+            where del_flag = '0'
+              and approval_status = 'approved'
+              and coalesce(has_violation, '0') = '0'
         ) vo on vo.subsidy_person_id = sp.id
         <where>
             sp.del_flag = '0'
