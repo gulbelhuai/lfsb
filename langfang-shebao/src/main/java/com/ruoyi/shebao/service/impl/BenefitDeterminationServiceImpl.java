@@ -190,6 +190,9 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         {
             throw new ServiceException("缺少被补贴人ID");
         }
+        SubsidyPerson person = subsidyPersonMapper.selectById(benefitDetermination.getSubsidyPersonId());
+        Assert.notNull(person, "被补贴人不存在");
+        validateAgeEligibleForBenefitDetermination(person);
         fillEligibleMonth(benefitDetermination);
         benefitDetermination.setApprovalStatus("draft");
         benefitDetermination.setDelFlag("0");
@@ -539,6 +542,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         {
             throw new ServiceException("未找到该身份证号的人员信息");
         }
+        validateAgeEligibleForBenefitDetermination(person);
         List<LandLossResident> landList = landLossResidentMapper.selectBySubsidyPersonId(person.getId());
         List<DemolitionResident> demoList = demolitionResidentMapper.selectBySubsidyPersonId(person.getId());
         List<VillageOfficial> voList = villageOfficialMapper.selectBySubsidyPersonId(person.getId());
@@ -656,6 +660,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         Assert.notNull(req, "请求不能为空");
         SubsidyPerson person = subsidyPersonMapper.selectById(req.getSubsidyPersonId());
         Assert.notNull(person, "被补贴人不存在");
+        validateAgeEligibleForBenefitDetermination(person);
 
         for (BenefitDeterminationSaveDraftReq.Item it : req.getItems())
         {
@@ -894,6 +899,29 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         }
         long months = java.time.temporal.ChronoUnit.MONTHS.between(startYm, currentYm);
         return (int) Math.max(months, 0);
+    }
+
+    /**
+     * 截至当前系统月份须已满60周岁方可办理待遇核定
+     */
+    private void validateAgeEligibleForBenefitDetermination(SubsidyPerson person)
+    {
+        if (person == null)
+        {
+            return;
+        }
+        if (person.getBirthday() == null)
+        {
+            throw new ServiceException("人员生日为空，无法判断是否已满60周岁");
+        }
+        YearMonth eligibleYm = computeEligibleYm(person);
+        YearMonth nowYm = YearMonth.now();
+        if (nowYm.isBefore(eligibleYm))
+        {
+            throw new ServiceException(String.format(
+                    "该人员截至%s尚未年满60周岁（到龄年月为%s），不能进行待遇核定",
+                    formatYm(nowYm), formatYm(eligibleYm)));
+        }
     }
 
     private static YearMonth computeEligibleYm(SubsidyPerson person)

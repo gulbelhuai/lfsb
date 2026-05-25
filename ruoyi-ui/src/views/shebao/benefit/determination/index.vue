@@ -373,6 +373,8 @@ export default {
         this.personInfo = prep.person || {}
         this.searchIdCardNo = this.personInfo.idCardNo || ''
         this.open = true
+      }).catch(() => {
+        this.resetPrepareResult()
       })
     },
     handleView(row) {
@@ -390,6 +392,7 @@ export default {
         const data = res.data || {}
         if (data.alreadyDetermined) {
           this.$modal.msgWarning(data.alreadyDeterminedMsg || '人员待遇已核定')
+          this.resetPrepareResult()
           return
         }
         this.personInfo = data.person || {}
@@ -403,7 +406,18 @@ export default {
           subsidyStandard: it.subsidyStandard || 0,
           startMonth: it.defaultStartMonth
         }))
+      }).catch(() => {
+        this.resetPrepareResult()
       })
+    },
+    resetPrepareResult() {
+      this.personInfo = {}
+      this.subsidyRows = []
+      if (this.form && !this.form.id) {
+        this.form.subsidyPersonId = null
+        this.form.idCardNo = null
+        this.form.accountName = ''
+      }
     },
     submitForm() {
       if (!this.form.subsidyPersonId || !this.subsidyRows.length) {
