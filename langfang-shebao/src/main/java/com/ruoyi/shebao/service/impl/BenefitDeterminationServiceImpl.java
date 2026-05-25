@@ -667,6 +667,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             {
                 throw new ServiceException("不支持的补贴类型：" + it.getSubsidyType());
             }
+            validateBenefitStartMonth(it);
         }
 
         BenefitDetermination determination;
@@ -809,6 +810,70 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         {
             return BigDecimal.ZERO;
         }
+    }
+
+    private static final YearMonth VILLAGE_OFFICIAL_MIN_START_YM = YearMonth.of(2012, 1);
+
+    private void validateBenefitStartMonth(BenefitDeterminationSaveDraftReq.Item item)
+    {
+        YearMonth startYm = parseYearMonth(item.getStartMonth(), "享受开始年月");
+        YearMonth nowYm = YearMonth.now();
+        if (startYm.isAfter(nowYm))
+        {
+            throw new ServiceException(getSubsidyTypeLabel(item.getSubsidyType()) + "享受开始年月不能晚于当前年月");
+        }
+        if ("village_official".equals(item.getSubsidyType()))
+        {
+            if (startYm.isBefore(VILLAGE_OFFICIAL_MIN_START_YM))
+            {
+                throw new ServiceException("村干部补贴享受开始年月不应早于2012年1月");
+            }
+            return;
+        }
+        if ("land_loss".equals(item.getSubsidyType()) || "demolition".equals(item.getSubsidyType()))
+        {
+            YearMonth eventYm = parseEventYearMonth(item.getEventDate());
+            if (eventYm == null)
+            {
+                throw new ServiceException(getSubsidyTypeLabel(item.getSubsidyType()) + "缺少征地/拆迁时间，无法校验享受开始年月");
+            }
+            if (startYm.isBefore(eventYm))
+            {
+                String eventLabel = "land_loss".equals(item.getSubsidyType()) ? "征地" : "拆迁";
+                throw new ServiceException(getSubsidyTypeLabel(item.getSubsidyType()) + "享受开始年月不能早于" + eventLabel + "时间（年月）");
+            }
+        }
+    }
+
+    private static YearMonth parseEventYearMonth(String eventDate)
+    {
+        if (StringUtils.isBlank(eventDate))
+        {
+            return null;
+        }
+        String text = eventDate.trim();
+        if (text.length() >= 7 && text.charAt(4) == '-')
+        {
+            return parseYearMonth(text.substring(0, 7), "征地/拆迁时间");
+        }
+        return YearMonth.from(LocalDate.parse(text));
+    }
+
+    private static String getSubsidyTypeLabel(String subsidyType)
+    {
+        if ("land_loss".equals(subsidyType))
+        {
+            return "失地补贴";
+        }
+        if ("demolition".equals(subsidyType))
+        {
+            return "拆迁补贴";
+        }
+        if ("village_official".equals(subsidyType))
+        {
+            return "村干部补贴";
+        }
+        return subsidyType == null ? "" : subsidyType;
     }
 
     private static YearMonth parseYearMonth(String text, String fieldName)

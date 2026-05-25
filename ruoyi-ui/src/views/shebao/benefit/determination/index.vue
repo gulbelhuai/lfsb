@@ -121,7 +121,13 @@
             </el-table-column>
             <el-table-column label="享受开始年月" min-width="180">
               <template slot-scope="scope">
-                <el-date-picker v-model="scope.row.startMonth" type="month" value-format="yyyy-MM" style="width: 160px" />
+                <el-date-picker
+                  v-model="scope.row.startMonth"
+                  type="month"
+                  value-format="yyyy-MM"
+                  :picker-options="getStartMonthPickerOptions(scope.row)"
+                  style="width: 160px"
+                />
               </template>
             </el-table-column>
           </el-table>
@@ -440,6 +446,11 @@ export default {
         this.$modal.msgWarning('请完善所有享受开始年月')
         return
       }
+      const startMonthError = this.validateAllStartMonths()
+      if (startMonthError) {
+        this.$modal.msgWarning(startMonthError)
+        return
+      }
       this.$refs.form.validate(valid => {
         if (!valid) return
         this.submitLoading = true
@@ -557,6 +568,76 @@ export default {
     currentYm() {
       const d = new Date()
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    },
+    compareYm(a, b) {
+      if (!a || !b) return 0
+      const [ay, am] = a.split('-').map(n => parseInt(n, 10))
+      const [by, bm] = b.split('-').map(n => parseInt(n, 10))
+      return (ay - by) * 12 + (am - bm)
+    },
+    toYearMonth(dateVal) {
+      if (dateVal === null || dateVal === undefined || dateVal === '') return null
+      const s = String(dateVal).trim()
+      if (/^\d{4}-\d{2}$/.test(s)) return s
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 7)
+      const d = new Date(s)
+      if (Number.isNaN(d.getTime())) return null
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    },
+    getMinStartMonth(row) {
+      if (!row) return null
+      if (row.subsidyType === 'village_official') return '2012-01'
+      if (row.subsidyType === 'land_loss' || row.subsidyType === 'demolition') {
+        return this.toYearMonth(row.eventDate)
+      }
+      return null
+    },
+    getStartMonthPickerOptions(row) {
+      const minYm = this.getMinStartMonth(row)
+      const maxYm = this.currentYm()
+      return {
+        disabledDate: time => {
+          const ym = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}`
+          if (minYm && this.compareYm(ym, minYm) < 0) return true
+          if (maxYm && this.compareYm(ym, maxYm) > 0) return true
+          return false
+        }
+      }
+    },
+    validateStartMonth(row) {
+      const label = this.getSubsidyTypeLabel(row.subsidyType)
+      if (!row.startMonth) {
+        return `请填写${label}享受开始年月`
+      }
+      const current = this.currentYm()
+      if (this.compareYm(row.startMonth, current) > 0) {
+        return `${label}享受开始年月不能晚于当前年月`
+      }
+      if (row.subsidyType === 'village_official') {
+        if (this.compareYm(row.startMonth, '2012-01') < 0) {
+          return '村干部补贴享受开始年月不应早于2012年1月'
+        }
+        return null
+      }
+      if (row.subsidyType === 'land_loss' || row.subsidyType === 'demolition') {
+        const eventYm = this.toYearMonth(row.eventDate)
+        if (!eventYm) {
+          return `${label}缺少征地/拆迁时间，无法校验享受开始年月`
+        }
+        if (this.compareYm(row.startMonth, eventYm) < 0) {
+          return row.subsidyType === 'land_loss'
+            ? '失地补贴享受开始年月不能早于征地时间（年月）'
+            : '拆迁补贴享受开始年月不能早于拆迁时间（年月）'
+        }
+      }
+      return null
+    },
+    validateAllStartMonths() {
+      for (const row of this.subsidyRows) {
+        const err = this.validateStartMonth(row)
+        if (err) return err
+      }
+      return null
     },
     monthDiff(startYm, endYm) {
       if (!startYm || !endYm) return 0
