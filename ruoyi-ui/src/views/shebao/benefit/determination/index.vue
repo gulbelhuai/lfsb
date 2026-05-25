@@ -95,20 +95,6 @@
           </el-descriptions>
         </el-card>
 
-        <el-card shadow="never" class="mb8" v-if="personInfo.name">
-          <div slot="header" class="section-title">社保信息</div>
-          <el-descriptions :column="2" border size="small">
-            <el-descriptions-item label="参保状态">{{ socialInsurance.subsidyStatus }}</el-descriptions-item>
-            <el-descriptions-item label="人员状态">{{ socialInsurance.personStatus }}</el-descriptions-item>
-            <el-descriptions-item label="参加城乡居保">{{ ynLabel(socialInsurance.joinUrbanRuralInsurance) }}</el-descriptions-item>
-            <el-descriptions-item label="参加职工养老">{{ ynLabel(socialInsurance.joinEmployeePension) }}</el-descriptions-item>
-            <el-descriptions-item label="已领职工养老待遇">{{ ynLabel(socialInsurance.hasEmployeePension) }}</el-descriptions-item>
-            <el-descriptions-item label="职工养老月数">{{ socialInsurance.employeePensionMonths }}</el-descriptions-item>
-            <el-descriptions-item label="灵活就业养老月数">{{ socialInsurance.flexibleEmploymentMonths }}</el-descriptions-item>
-            <el-descriptions-item label="困难补贴月数">{{ socialInsurance.difficultySubsidyMonths }}</el-descriptions-item>
-          </el-descriptions>
-        </el-card>
-
         <el-card shadow="never" class="mb8" v-if="subsidyRows.length">
           <div slot="header" class="section-title">补贴信息</div>
           <el-table class="rx-table--compact" :data="subsidyRows" border size="mini">
@@ -215,20 +201,6 @@
       </el-card>
 
       <el-card shadow="never" class="mb8" v-if="detailData.id">
-        <div slot="header" class="section-title">社保信息</div>
-        <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="参保状态">{{ detailData.subsidyStatus || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="人员状态">{{ detailData.personStatus || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="参加城乡居保">{{ ynLabel(detailData.joinUrbanRuralInsurance) }}</el-descriptions-item>
-          <el-descriptions-item label="参加职工养老">{{ ynLabel(detailData.joinEmployeePension) }}</el-descriptions-item>
-          <el-descriptions-item label="已领职工养老待遇">{{ ynLabel(detailData.hasEmployeePension) }}</el-descriptions-item>
-          <el-descriptions-item label="职工养老月数">{{ detailData.employeePensionMonths !== null && detailData.employeePensionMonths !== undefined ? detailData.employeePensionMonths : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="灵活就业养老月数">{{ detailData.flexibleEmploymentMonths !== null && detailData.flexibleEmploymentMonths !== undefined ? detailData.flexibleEmploymentMonths : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="困难补贴月数">{{ detailData.difficultySubsidyMonths !== null && detailData.difficultySubsidyMonths !== undefined ? detailData.difficultySubsidyMonths : '-' }}</el-descriptions-item>
-        </el-descriptions>
-      </el-card>
-
-      <el-card shadow="never" class="mb8" v-if="detailData.id">
         <div slot="header" class="section-title">发放方式</div>
         <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="发放机构">{{ grantOrgLabel(detailData.grantOrg) || '-' }}</el-descriptions-item>
@@ -307,7 +279,6 @@ export default {
       form: {},
       detailData: {},
       personInfo: {},
-      socialInsurance: {},
       subsidyRows: [],
       searchIdCardNo: '',
       queryParams: {
@@ -367,7 +338,6 @@ export default {
         grantRemark: null
       }
       this.personInfo = {}
-      this.socialInsurance = {}
       this.subsidyRows = []
       this.searchIdCardNo = ''
       this.selectedAttachment = null
@@ -401,7 +371,6 @@ export default {
       }).then(r2 => {
         const prep = r2.data || {}
         this.personInfo = prep.person || {}
-        this.socialInsurance = prep.socialInsurance || {}
         this.searchIdCardNo = this.personInfo.idCardNo || ''
         this.open = true
       })
@@ -424,7 +393,6 @@ export default {
           return
         }
         this.personInfo = data.person || {}
-        this.socialInsurance = data.socialInsurance || {}
         this.form.subsidyPersonId = this.personInfo.subsidyPersonId
         this.form.idCardNo = this.personInfo.idCardNo
         this.form.accountName = this.personInfo.name || ''
@@ -504,7 +472,6 @@ export default {
       this.open = false
       this.form = {}
       this.personInfo = {}
-      this.socialInsurance = {}
       this.subsidyRows = []
       this.selectedAttachment = null
       this.attachmentFileList = []
@@ -538,11 +505,6 @@ export default {
     },
     grantOrgLabel(val) {
       return selectDictLabel(this.dict.type.shebao_grant_org || [], val)
-    },
-    ynLabel(v) {
-      if (v === '1' || v === 1) return '是'
-      if (v === '0' || v === 0) return '否'
-      return v || '-'
     },
     getSubsidyTypeLabel(subsidyType) {
       return {
