@@ -15,6 +15,7 @@
 
     <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
       <el-table-column type="index" label="序号" width="50" />
+      <el-table-column label="所属村委会" prop="villageCommitteeName" min-width="140" />
       <el-table-column label="姓名" prop="name" width="120" />
       <el-table-column label="身份证号" prop="idCardNo" min-width="180" />
       <el-table-column label="补贴类型" min-width="180">

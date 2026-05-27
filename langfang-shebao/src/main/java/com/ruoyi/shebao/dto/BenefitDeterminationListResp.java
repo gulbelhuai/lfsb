@@ -24,6 +24,9 @@ public class BenefitDeterminationListResp
     /** 姓名 */
     private String name;
 
+    /** 所属村委会名称 */
+    private String villageCommitteeName;
+
     /** 身份证号 */
     private String idCardNo;
 

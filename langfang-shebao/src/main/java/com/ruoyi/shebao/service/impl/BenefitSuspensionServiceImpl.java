@@ -99,6 +99,14 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
         Map<Long, SubsidyPerson> personMap = subsidyPersonMapper.selectBatchIds(queryPersonIds)
                 .stream()
                 .collect(Collectors.toMap(SubsidyPerson::getId, p -> p));
+        Set<Long> villageCommitteeIds = personMap.values().stream()
+                .map(SubsidyPerson::getVillageCommitteeId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<Long, VillageCommittee> villageCommitteeMap = villageCommitteeIds.isEmpty()
+                ? Map.of()
+                : villageCommitteeMapper.selectBatchIds(villageCommitteeIds).stream()
+                .collect(Collectors.toMap(VillageCommittee::getId, vc -> vc));
 
         Map<Long, List<BenefitSuspensionItem>> pauseItemMap = benefitSuspensionItemMapper.selectList(
                         new LambdaQueryWrapper<BenefitSuspensionItem>()
@@ -119,6 +127,11 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
             resp.setId(record.getId());
             SubsidyPerson person = personMap.get(record.getSubsidyPersonId());
             resp.setName(person == null ? null : person.getName());
+            if (person != null && person.getVillageCommitteeId() != null)
+            {
+                VillageCommittee vc = villageCommitteeMap.get(person.getVillageCommitteeId());
+                resp.setVillageCommitteeName(vc == null ? null : vc.getVillageName());
+            }
             resp.setIdCardNo(record.getIdCardNo());
             resp.setPauseMonth(record.getPauseMonth());
             resp.setPauseReason(record.getPauseReason());
@@ -138,6 +151,8 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
                     .map(this::subsidyTypeLabel)
                     .collect(Collectors.joining("、"));
             resp.setPausedSubsidyTypes(pausedTypes);
+            boolean needRecover = pausedItems.stream().anyMatch(item -> "1".equals(item.getNeedRecover()));
+            resp.setNeedRecover(needRecover ? "1" : "0");
             return resp;
         }).toList();
 

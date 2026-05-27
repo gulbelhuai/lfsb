@@ -8,6 +8,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="id" column="id"/>
         <result property="subsidyPersonId" column="subsidy_person_id"/>
         <result property="name" column="name"/>
+        <result property="villageCommitteeName" column="village_committee_name"/>
         <result property="idCardNo" column="id_card_no"/>
         <result property="userCode" column="user_code"/>
         <result property="subsidyType" column="subsidy_type"/>
@@ -53,9 +54,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                bd.submit_by, bd.submit_time, bd.create_time,
                coalesce(bd.id_card_no, sp.id_card_no) as id_card_no,
                group_concat(distinct bdi.subsidy_type order by bdi.subsidy_type separator '/') as subsidy_type,
-               sp.name, sp.user_code
+               sp.name, sp.user_code,
+               svc.village_name as village_committee_name
         from benefit_determination bd
         left join shebao_subsidy_person sp on bd.subsidy_person_id = sp.id
+        left join shebao_village_committee svc on sp.village_committee_id = svc.id
         left join benefit_determination_item bdi on bdi.determination_id = bd.id and bdi.del_flag = '0'
         where bd.del_flag = '0'
         <if test="req.name != null and req.name != ''">
@@ -85,7 +88,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and bd.material_status = #{req.materialStatus}
         </if>
         group by bd.id, bd.subsidy_person_id, bd.grant_org, bd.account_name, bd.relation_to_insured, bd.bank_account, bd.approval_status, bd.material_status, bd.payment_plan_generated,
-                 bd.submit_by, bd.submit_time, bd.create_time, coalesce(bd.id_card_no, sp.id_card_no), sp.name, sp.user_code
+                 bd.submit_by, bd.submit_time, bd.create_time, coalesce(bd.id_card_no, sp.id_card_no), sp.name, sp.user_code, svc.village_name
         order by bd.create_time desc, bd.id desc
     </select>
 

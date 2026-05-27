@@ -13,6 +13,7 @@ public class BenefitSuspensionListResp
 {
     private Long id;
     private String name;
+    private String villageCommitteeName;
     private String idCardNo;
     /** 人员全部补贴类型 */
     private String subsidyTypes;
@@ -21,4 +22,6 @@ public class BenefitSuspensionListResp
     @JsonFormat(pattern = "yyyy-MM")
     private Date pauseMonth;
     private String pauseReason;
+    /** 是否需要追回（0否 1是） */
+    private String needRecover;
 }

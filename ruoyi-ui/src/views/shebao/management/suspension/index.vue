@@ -28,6 +28,7 @@
 
     <el-table class="rx-table--compact" v-loading="loading" :data="dataList">
       <el-table-column type="index" label="序号" width="50" />
+      <el-table-column label="所属村委会" prop="villageCommitteeName" min-width="140" />
       <el-table-column label="姓名" prop="name" />
       <el-table-column label="身份证号" prop="idCardNo" width="180" />
       <el-table-column label="补贴类型" prop="subsidyTypes" min-width="180" />
@@ -40,6 +41,11 @@
       <el-table-column label="暂停原因" min-width="140">
         <template slot-scope="scope">
           {{ pauseReasonLabel(scope.row.pauseReason) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="是否需要追回" width="120">
+        <template slot-scope="scope">
+          {{ scope.row.needRecover === '1' ? '是' : '否' }}
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" width="100">
