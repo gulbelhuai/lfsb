@@ -57,32 +57,8 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
     {
         long pageNum = req == null ? 1L : req.pageNumOrDefault();
         long pageSize = req == null ? 10L : req.pageSizeOrDefault();
-        String pauseReason = req == null ? null : req.getPauseReason();
         Page<BenefitSuspension> page = new Page<>(pageNum, pageSize);
-
-        Set<Long> personIds = null;
-        if (req != null && (StringUtils.isNotBlank(req.getName()) || StringUtils.isNotBlank(req.getIdCardNo())))
-        {
-            List<SubsidyPerson> persons = subsidyPersonMapper.selectList(new LambdaQueryWrapper<SubsidyPerson>()
-                    .eq(SubsidyPerson::getDelFlag, "0")
-                    .like(StringUtils.isNotBlank(req.getName()), SubsidyPerson::getName, req.getName())
-                    .like(StringUtils.isNotBlank(req.getIdCardNo()), SubsidyPerson::getIdCardNo, req.getIdCardNo()));
-            personIds = persons.stream().map(SubsidyPerson::getId).collect(Collectors.toSet());
-            if (personIds.isEmpty())
-            {
-                return new Page<>(pageNum, pageSize);
-            }
-        }
-
-        LambdaQueryWrapper<BenefitSuspension> wrapper = new LambdaQueryWrapper<BenefitSuspension>()
-                .eq(BenefitSuspension::getDelFlag, "0")
-                .eq(StringUtils.isNotBlank(pauseReason), BenefitSuspension::getPauseReason, pauseReason)
-                .orderByDesc(BenefitSuspension::getCreateTime);
-        if (personIds != null)
-        {
-            wrapper.in(BenefitSuspension::getSubsidyPersonId, personIds);
-        }
-        Page<BenefitSuspension> resultPage = benefitSuspensionMapper.selectPage(page, wrapper);
+        Page<BenefitSuspension> resultPage = benefitSuspensionMapper.selectActiveSuspensionPage(page, req);
 
         if (resultPage.getRecords().isEmpty())
         {
