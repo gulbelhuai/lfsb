@@ -2,14 +2,19 @@
   <div class="app-container">
     <el-card class="mb20">
       <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
+        <el-form-item label="业务期">
+          <el-date-picker v-model="queryParams.businessPeriod" type="month" value-format="yyyy-MM" placeholder="选择业务期" />
+        </el-form-item>
+        <el-form-item label="补贴类型">
+          <el-select v-model="queryParams.subsidyType" clearable placeholder="全部">
+            <el-option v-for="o in subsidyTypeOptions" :key="o.value" :label="o.label" :value="o.value" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="核定方式">
           <el-select v-model="queryParams.determinationType" clearable placeholder="全部">
             <el-option label="正常发放" value="normal" />
             <el-option label="二次发放" value="second" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="业务期">
-          <el-date-picker v-model="queryParams.businessPeriod" type="month" value-format="yyyy-MM" placeholder="选择业务期" />
         </el-form-item>
         <el-form-item label="审批状态">
           <el-select v-model="queryParams.approvalStatus" clearable placeholder="全部">
@@ -30,25 +35,20 @@
 
       <el-table v-loading="loading" :data="dataList" border>
         <el-table-column type="index" label="序号" width="60" />
-        <el-table-column label="核定方式" prop="determinationType">
+        <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
+        <el-table-column label="业务期" prop="businessPeriod" width="100" />
+        <el-table-column label="补贴类型" prop="subsidyType" width="120">
+          <template slot-scope="scope">{{ subsidyTypeText(scope.row.subsidyType) }}</template>
+        </el-table-column>
+        <el-table-column label="核定方式" prop="determinationType" width="100">
           <template slot-scope="scope">{{ determinationTypeText(scope.row.determinationType) }}</template>
         </el-table-column>
-        <el-table-column label="业务期" prop="businessPeriod" width="100" />
-        <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
         <el-table-column label="发放人次" prop="totalCount" width="100" />
         <el-table-column label="总金额" prop="totalAmount" width="120" />
-        <el-table-column label="发放机构" prop="grantOrg" width="120">
-          <template slot-scope="scope">
-            <dict-tag :options="dict.type.shebao_grant_org" :value="scope.row.grantOrg" />
-          </template>
-        </el-table-column>
         <el-table-column label="经办人" prop="operatorName" width="100" />
         <el-table-column label="经办时间" prop="operatorTime" width="170" />
         <el-table-column label="审批状态" prop="approvalStatus" width="120">
           <template slot-scope="scope">{{ approvalStatusText(scope.row.approvalStatus) }}</template>
-        </el-table-column>
-        <el-table-column label="财务状态" prop="financeStatus" width="110">
-          <template slot-scope="scope">{{ financeStatusText(scope.row) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template slot-scope="scope">
@@ -81,6 +81,11 @@
         </el-form-item>
         <el-form-item label="经办时间">
           <el-input v-model="addForm.operatorTime" disabled />
+        </el-form-item>
+        <el-form-item label="补贴类型">
+          <el-select v-model="addForm.subsidyType" placeholder="请选择补贴类型" @change="handleRecalculate">
+            <el-option v-for="o in subsidyTypeOptions" :key="o.value" :label="o.label" :value="o.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="核定方式">
           <el-select v-model="addForm.determinationType" @change="handleRecalculate">
@@ -210,11 +215,19 @@ import {
 import { selectDictLabel } from '@/utils/ruoyi'
 import {
   paymentPlanStatusLabel,
-  paymentPlanFinanceStatusLabel,
   promptPlanAction,
   paymentPlanAuditOperationLabel,
-  paymentPlanAuditStageLabelFromRow
+  paymentPlanAuditStageLabelFromRow,
+  paymentPlanSubsidyTypeLabel,
+  PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
 } from './planUiShared'
+
+function defaultBusinessPeriod() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
 
 export default {
   name: 'PaymentPlan',
@@ -246,6 +259,7 @@ export default {
         businessPeriod: '',
         operatorName: '',
         operatorTime: '',
+        subsidyType: '',
         determinationType: 'normal'
       },
       detailQuery: {
@@ -256,7 +270,8 @@ export default {
         pageNum: 1,
         pageSize: 10,
         determinationType: null,
-        businessPeriod: null,
+        businessPeriod: defaultBusinessPeriod(),
+        subsidyType: null,
         approvalStatus: null
       }
     }
@@ -280,7 +295,10 @@ export default {
       this.getList()
     },
     resetQuery() {
-      this.resetForm('queryForm')
+      this.queryParams.determinationType = null
+      this.queryParams.businessPeriod = defaultBusinessPeriod()
+      this.queryParams.subsidyType = null
+      this.queryParams.approvalStatus = null
       this.handleQuery()
     },
     openAddDialog() {
@@ -290,17 +308,22 @@ export default {
       this.addForm.businessPeriod = `${y}-${m}`
       this.addForm.operatorName = this.$store.getters.nickName || this.$store.getters.name || ''
       this.addForm.operatorTime = this.parseTime(now, '{y}-{m}-{d} {h}:{i}:{s}')
+      this.addForm.subsidyType = ''
       this.addForm.determinationType = 'normal'
       this.addTabName = 'summary'
       this.addOpen = true
       this.preview = { summaryList: [], detailList: [] }
-      this.handleRecalculate()
     },
     handleRecalculate() {
+      if (!this.addForm.subsidyType) {
+        this.$modal.msgWarning('请先选择补贴类型')
+        return
+      }
       this.previewLoading = true
       previewPaymentPlan({
         determinationType: this.addForm.determinationType,
-        businessPeriod: this.addForm.businessPeriod
+        businessPeriod: this.addForm.businessPeriod,
+        subsidyType: this.addForm.subsidyType
       }).then(response => {
         this.preview = response.data || { summaryList: [], detailList: [] }
         if (this.preview.operatorName) {
@@ -314,10 +337,15 @@ export default {
       })
     },
     handleSave() {
+      if (!this.addForm.subsidyType) {
+        this.$modal.msgWarning('请先选择补贴类型')
+        return
+      }
       this.saveLoading = true
       savePaymentPlan({
         determinationType: this.addForm.determinationType,
         businessPeriod: this.addForm.businessPeriod,
+        subsidyType: this.addForm.subsidyType,
         targetStatus: 'draft'
       }).then(response => {
         this.$modal.msgSuccess('保存成功，计划ID：' + response.data)
@@ -328,11 +356,16 @@ export default {
       })
     },
     handleSubmitFromAdd() {
+      if (!this.addForm.subsidyType) {
+        this.$modal.msgWarning('请先选择补贴类型')
+        return
+      }
       promptPlanAction(this, 'pending_review').then((value) => {
         this.submitLoading = true
         return savePaymentPlan({
           determinationType: this.addForm.determinationType,
           businessPeriod: this.addForm.businessPeriod,
+          subsidyType: this.addForm.subsidyType,
           targetStatus: 'pending_review',
           remark: value
         })
@@ -403,6 +436,7 @@ export default {
         planId: this.currentPlanId,
         determinationType: this.currentPlan.determinationType,
         businessPeriod: this.currentPlan.businessPeriod,
+        subsidyType: this.currentPlan.subsidyType,
         targetStatus: 'draft'
       }).then(() => {
         this.$modal.msgSuccess('保存成功')
@@ -420,6 +454,7 @@ export default {
           planId: this.currentPlanId,
           determinationType: this.currentPlan.determinationType,
           businessPeriod: this.currentPlan.businessPeriod,
+          subsidyType: this.currentPlan.subsidyType,
           targetStatus: 'pending_review',
           remark: value
         })
@@ -437,7 +472,8 @@ export default {
       this.detailLoading = true
       previewPaymentPlan({
         determinationType: this.currentPlan.determinationType,
-        businessPeriod: this.currentPlan.businessPeriod
+        businessPeriod: this.currentPlan.businessPeriod,
+        subsidyType: this.currentPlan.subsidyType
       }).then(response => {
         const previewData = response.data || { summaryList: [], detailList: [] }
         this.detailSummaryList = previewData.summaryList || []
@@ -459,28 +495,19 @@ export default {
     approvalStatusText(val) {
       return paymentPlanStatusLabel(val)
     },
-    financeStatusText(row) {
-      const s = row.financeStatus || row.finance_status
-      if (!s) return '—'
-      return paymentPlanFinanceStatusLabel(s)
-    },
     paymentPlanAuditOperationLabel,
     paymentPlanAuditStageLabelFromRow,
     subsidyTypeText(val) {
-      const map = {
-        land_loss: '失地',
-        land_loss_resident: '失地',
-        demolition: '拆迁',
-        demolition_resident: '拆迁',
-        village_official: '村干部'
-      }
-      return map[val] || val
+      return paymentPlanSubsidyTypeLabel(val)
     },
     grantOrgLabel(val) {
       return selectDictLabel(this.dict.type.shebao_grant_org || [], val) || val || '-'
     }
   },
   computed: {
+    subsidyTypeOptions() {
+      return PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
+    },
     canEditInDetail() {
       return this.currentPlan && this.canEditStatus(this.currentPlan.approvalStatus)
     },

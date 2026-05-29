@@ -66,14 +66,15 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     @Override
     public PaymentPlanPreviewResp preview(PaymentPlanPreviewReq req)
     {
-        validateReq(req.getDeterminationType(), req.getBusinessPeriod());
+        validateReq(req.getDeterminationType(), req.getBusinessPeriod(), req.getSubsidyType());
         PaymentPlanPreviewResp resp = buildBasePreview(req.getDeterminationType(), req.getBusinessPeriod());
+        resp.setSubsidyType(req.getSubsidyType());
         if (!TYPE_NORMAL.equals(req.getDeterminationType()))
         {
             return resp;
         }
         LocalDate businessPeriod = parseBusinessPeriod(req.getBusinessPeriod());
-        List<PaymentPlanDetailResp> details = paymentPlanDetailMapper.selectPreviewDetails(businessPeriod);
+        List<PaymentPlanDetailResp> details = paymentPlanDetailMapper.selectPreviewDetails(businessPeriod, req.getSubsidyType());
         resp.setDetailList(details);
         fillSummaryAndTotal(resp, details);
         return resp;
@@ -115,6 +116,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             plan = new PaymentPlan();
             plan.setDeterminationType(req.getDeterminationType());
             plan.setBusinessPeriod(period);
+            plan.setSubsidyType(req.getSubsidyType());
             plan.setDelFlag("0");
             plan.setCreateBy(username);
             plan.setCreateTime(now);
@@ -127,9 +129,11 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             {
                 throw new ServiceException("当前状态不允许保存或提交");
             }
-            if (!Objects.equals(plan.getBusinessPeriod(), period) || !Objects.equals(plan.getDeterminationType(), req.getDeterminationType()))
+            if (!Objects.equals(plan.getBusinessPeriod(), period)
+                    || !Objects.equals(plan.getDeterminationType(), req.getDeterminationType())
+                    || !Objects.equals(plan.getSubsidyType(), req.getSubsidyType()))
             {
-                throw new ServiceException("仅支持在原业务期和核定方式下重算保存");
+                throw new ServiceException("仅支持在原业务期、补贴类型和核定方式下重算保存");
             }
         }
 
@@ -354,7 +358,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         return rows;
     }
 
-    private void validateReq(String determinationType, String businessPeriod)
+    private void validateReq(String determinationType, String businessPeriod, String subsidyType)
     {
         if (determinationType == null || determinationType.isBlank())
         {
@@ -363,6 +367,10 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         if (businessPeriod == null || businessPeriod.isBlank())
         {
             throw new ServiceException("请选择业务期");
+        }
+        if (subsidyType == null || subsidyType.isBlank())
+        {
+            throw new ServiceException("请选择补贴类型");
         }
     }
 

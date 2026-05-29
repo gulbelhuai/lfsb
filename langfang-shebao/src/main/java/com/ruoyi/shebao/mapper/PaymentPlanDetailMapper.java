@@ -18,5 +18,6 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
 
     Page<PaymentPlanDetailResp> selectByPlanId(Page<PaymentPlanDetailResp> page, @Param("planId") Long planId);
 
-    List<PaymentPlanDetailResp> selectPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod);
+    List<PaymentPlanDetailResp> selectPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod,
+                                                     @Param("subsidyType") String subsidyType);
 }

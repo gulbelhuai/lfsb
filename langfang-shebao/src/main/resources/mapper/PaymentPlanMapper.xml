@@ -5,6 +5,7 @@
         select p.id as id,
                p.determination_type as determinationType,
                date_format(p.business_period, '%Y-%m') as businessPeriod,
+               p.subsidy_type as subsidyType,
                p.batch_no as batchNo,
                p.total_count as totalCount,
                p.total_amount as totalAmount,
@@ -23,6 +24,9 @@
         </if>
         <if test="req.determinationType != null and req.determinationType != ''">
             and p.determination_type = #{req.determinationType}
+        </if>
+        <if test="req.subsidyType != null and req.subsidyType != ''">
+            and p.subsidy_type = #{req.subsidyType}
         </if>
         <if test="req.approvalStatus != null and req.approvalStatus != ''">
             and p.approval_status = #{req.approvalStatus}

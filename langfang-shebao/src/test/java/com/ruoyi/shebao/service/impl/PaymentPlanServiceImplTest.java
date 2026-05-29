@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,7 +58,7 @@ class PaymentPlanServiceImplTest {
     @BeforeEach
     void setUp() {
         TestSecurityContext.setUser("admin");
-        doAnswer(invocation -> {
+        lenient().doAnswer(invocation -> {
             PaymentPlan p = invocation.getArgument(0);
             p.setId(100L);
             return 1;
@@ -75,12 +76,13 @@ class PaymentPlanServiceImplTest {
         PaymentPlanPreviewReq req = new PaymentPlanPreviewReq();
         req.setDeterminationType("second");
         req.setBusinessPeriod("2026-04");
+        req.setSubsidyType("land_loss");
 
         PaymentPlanPreviewResp resp = paymentPlanService.preview(req);
 
         assertTrue(resp.getDetailList().isEmpty());
         assertEquals(0, resp.getTotalCount());
-        verify(paymentPlanDetailMapper, never()).selectPreviewDetails(any(LocalDate.class));
+        verify(paymentPlanDetailMapper, never()).selectPreviewDetails(any(LocalDate.class), any(String.class));
     }
 
     @Test
@@ -89,6 +91,7 @@ class PaymentPlanServiceImplTest {
         PaymentPlanPreviewReq req = new PaymentPlanPreviewReq();
         req.setDeterminationType("normal");
         req.setBusinessPeriod("2026-04");
+        req.setSubsidyType("land_loss");
 
         PaymentPlanDetailResp d1 = new PaymentPlanDetailResp();
         d1.setSubsidyType("land_loss");
@@ -100,7 +103,7 @@ class PaymentPlanServiceImplTest {
         d2.setGrantOrg("A");
         d2.setDistributionAmount(new BigDecimal("50"));
 
-        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1)))
+        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss"))
                 .thenReturn(List.of(d1, d2));
 
         PaymentPlanPreviewResp resp = paymentPlanService.preview(req);
@@ -118,6 +121,7 @@ class PaymentPlanServiceImplTest {
         PaymentPlanGenerateReq req = new PaymentPlanGenerateReq();
         req.setDeterminationType("second");
         req.setBusinessPeriod("2026-04");
+        req.setSubsidyType("land_loss");
 
         assertThrows(ServiceException.class, () -> paymentPlanService.generate(req));
     }
@@ -132,7 +136,7 @@ class PaymentPlanServiceImplTest {
         d.setDeterminationId(1L);
         d.setDeterminationItemId(2L);
 
-        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1)))
+        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "demolition"))
                 .thenReturn(List.of(d));
 
         when(paymentPlanMapper.selectMaxBatchSeqSuffix("20260401")).thenReturn(0);
@@ -140,6 +144,7 @@ class PaymentPlanServiceImplTest {
         PaymentPlanGenerateReq req = new PaymentPlanGenerateReq();
         req.setDeterminationType("normal");
         req.setBusinessPeriod("2026-04");
+        req.setSubsidyType("demolition");
 
         Long id = paymentPlanService.generate(req);
 
@@ -195,12 +200,13 @@ class PaymentPlanServiceImplTest {
     @Test
     @DisplayName("无可生成数据时应拒绝保存")
     void generate_empty_throws() {
-        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1)))
+        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss"))
                 .thenReturn(Collections.emptyList());
 
         PaymentPlanGenerateReq req = new PaymentPlanGenerateReq();
         req.setDeterminationType("normal");
         req.setBusinessPeriod("2026-04");
+        req.setSubsidyType("land_loss");
 
         assertThrows(ServiceException.class, () -> paymentPlanService.generate(req));
     }

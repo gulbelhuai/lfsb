@@ -32,6 +32,9 @@ public class PaymentPlan extends BaseEntity
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate businessPeriod;
 
+    /** 补贴类型(land_loss/expropriatee/demolition/village_official/teacher) */
+    private String subsidyType;
+
     /** 批次号(yyyyMM+01/02+序号)，首次保存生成后不再更新 */
     @TableField(updateStrategy = FieldStrategy.NEVER)
     private String batchNo;

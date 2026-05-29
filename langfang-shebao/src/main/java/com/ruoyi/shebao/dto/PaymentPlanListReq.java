@@ -17,6 +17,9 @@ public class PaymentPlanListReq extends PageReq
 
     private String businessPeriod;
 
+    /** 补贴类型 */
+    private String subsidyType;
+
     private String approvalStatus;
 
     private String operatorName;

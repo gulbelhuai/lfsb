@@ -70,6 +70,7 @@
           and bdi.del_flag = '0'
           and bd.approval_status = 'approved'
           and ifnull(bdi.benefit_status, '0') = '0'
+          and bdi.subsidy_type = #{subsidyType}
           and not exists (
                 select 1
                 from shebao_payment_plan_detail pd

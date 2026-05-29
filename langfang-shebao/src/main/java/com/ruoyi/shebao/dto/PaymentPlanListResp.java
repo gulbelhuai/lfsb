@@ -12,6 +12,8 @@ public class PaymentPlanListResp
     private Long id;
     private String determinationType;
     private String businessPeriod;
+    /** 补贴类型 */
+    private String subsidyType;
     /** 批次号 */
     private String batchNo;
     private Integer totalCount;

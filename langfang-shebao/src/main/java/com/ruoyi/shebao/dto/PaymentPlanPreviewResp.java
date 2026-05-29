@@ -11,6 +11,7 @@ public class PaymentPlanPreviewResp
 {
     private String determinationType;
     private String businessPeriod;
+    private String subsidyType;
     private String operatorName;
     private String operatorTime;
     private Integer totalCount = 0;

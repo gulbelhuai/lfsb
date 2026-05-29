@@ -11,6 +11,32 @@ export function paymentPlanStatusLabel(status) {
   return PAYMENT_PLAN_STATUS_LABELS[status] || status
 }
 
+/** 补贴类型（与 benefit_determination_item.subsidy_type 实际编码保持一致） */
+export const PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS = [
+  { value: 'land_loss', label: '失地补贴' },
+  { value: 'expropriatee', label: '被征地补贴' },
+  { value: 'demolition', label: '拆迁补贴' },
+  { value: 'village_official', label: '村干部补贴' },
+  { value: 'teacher', label: '教师补贴' }
+]
+
+const PAYMENT_PLAN_SUBSIDY_TYPE_LABELS = {
+  land_loss: '失地补贴',
+  land_loss_resident: '失地补贴',
+  expropriatee: '被征地补贴',
+  expropriatee_subsidy: '被征地补贴',
+  demolition: '拆迁补贴',
+  demolition_resident: '拆迁补贴',
+  village_official: '村干部补贴',
+  teacher: '教师补贴',
+  teacher_subsidy: '教师补贴'
+}
+
+export function paymentPlanSubsidyTypeLabel(type) {
+  if (!type) return '—'
+  return PAYMENT_PLAN_SUBSIDY_TYPE_LABELS[type] || type
+}
+
 export const PAYMENT_PLAN_FINANCE_STATUS_LABELS = {
   pending_finance: '待财务',
   finance_pending_review: '待复核',

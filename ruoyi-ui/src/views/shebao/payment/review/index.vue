@@ -4,17 +4,25 @@
       <el-form-item label="业务期">
         <el-date-picker v-model="queryParams.businessPeriod" type="month" value-format="yyyy-MM" />
       </el-form-item>
+      <el-form-item label="补贴类型">
+        <el-select v-model="queryParams.subsidyType" clearable placeholder="全部">
+          <el-option v-for="o in subsidyTypeOptions" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" size="mini" @click="handleQuery">搜索</el-button>
       </el-form-item>
     </el-form>
     <el-table v-loading="loading" :data="dataList" border>
       <el-table-column type="index" label="序号" width="60" />
-      <el-table-column label="核定方式" prop="determinationType">
+      <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
+      <el-table-column label="业务期" prop="businessPeriod" width="100" />
+      <el-table-column label="补贴类型" prop="subsidyType" width="120">
+        <template slot-scope="scope">{{ subsidyTypeLabel(scope.row.subsidyType) }}</template>
+      </el-table-column>
+      <el-table-column label="核定方式" prop="determinationType" width="100">
         <template slot-scope="scope">{{ scope.row.determinationType === 'second' ? '二次发放' : '正常发放' }}</template>
       </el-table-column>
-      <el-table-column label="业务期" prop="businessPeriod" width="100" />
-      <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
       <el-table-column label="发放人次" prop="totalCount" width="100" />
       <el-table-column label="总金额" prop="totalAmount" width="120" />
       <el-table-column label="发放机构" prop="grantOrg" width="120">
@@ -54,7 +62,7 @@
 
 <script>
 import { listPaymentPlan, getPaymentPlanSummary, getPaymentPlanDetail, getPaymentPlanAudit, changePaymentPlanStatus } from '@/api/shebao/payment'
-import { paymentPlanStatusLabel, promptPlanAction } from '../plan/planUiShared'
+import { paymentPlanStatusLabel, promptPlanAction, paymentPlanSubsidyTypeLabel, PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS } from '../plan/planUiShared'
 import PlanDetailDialog from '../plan/PlanDetailDialog'
 
 export default {
@@ -66,13 +74,16 @@ export default {
       loading: false,
       total: 0,
       dataList: [],
-      queryParams: { pageNum: 1, pageSize: 10, businessPeriod: null, approvalStatus: 'pending_review' },
+      queryParams: { pageNum: 1, pageSize: 10, businessPeriod: null, subsidyType: null, approvalStatus: 'pending_review' },
       detailOpen: false,
       currentPlan: null,
       loadingActionKey: ''
     }
   },
   computed: {
+    subsidyTypeOptions() {
+      return PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
+    },
     detailActions() {
       return [
         { key: 'reviewPass', label: '复核通过', type: 'success', statuses: ['pending_review'] },
@@ -132,14 +143,7 @@ export default {
       })
     },
     subsidyTypeLabel(val) {
-      const map = {
-        land_loss: '失地',
-        land_loss_resident: '失地',
-        demolition: '拆迁',
-        demolition_resident: '拆迁',
-        village_official: '村干部'
-      }
-      return map[val] || val
+      return paymentPlanSubsidyTypeLabel(val)
     },
     statusLabel(v) {
       return paymentPlanStatusLabel(v)

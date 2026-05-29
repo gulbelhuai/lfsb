@@ -9,4 +9,6 @@ public class PaymentPlanPreviewReq
     private String determinationType;
     /** yyyy-MM */
     private String businessPeriod;
+    /** 补贴类型 */
+    private String subsidyType;
 }
