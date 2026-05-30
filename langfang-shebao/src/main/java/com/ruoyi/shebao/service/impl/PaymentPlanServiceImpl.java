@@ -77,6 +77,13 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     }
 
     @Override
+    public Page<PaymentPlanFailureListResp> selectFailureList(PaymentPlanFailureListReq req)
+    {
+        Page<PaymentPlanFailureListResp> page = new Page<>(req.pageNumOrDefault(), req.pageSizeOrDefault());
+        return paymentPlanDetailMapper.selectFailureList(page, req);
+    }
+
+    @Override
     public PaymentPlanPreviewResp preview(PaymentPlanPreviewReq req)
     {
         validateReq(req.getDeterminationType(), req.getBusinessPeriod(), req.getSubsidyType());

@@ -54,4 +54,7 @@ public interface PaymentPlanService
 
     /** 银行发放：标记已完成（未失败明细记为成功，批次置已完成） */
     int completeDistribution(Long planId);
+
+    /** 失败处理：查询银行发放失败的支付计划明细 */
+    Page<PaymentPlanFailureListResp> selectFailureList(PaymentPlanFailureListReq req);
 }

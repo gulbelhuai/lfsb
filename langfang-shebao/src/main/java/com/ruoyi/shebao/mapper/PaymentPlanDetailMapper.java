@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.shebao.domain.PaymentPlanDetail;
 import com.ruoyi.shebao.dto.PaymentPlanDetailResp;
+import com.ruoyi.shebao.dto.PaymentPlanFailureListReq;
+import com.ruoyi.shebao.dto.PaymentPlanFailureListResp;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -28,4 +30,8 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
 
     /** 将未失败的明细标记为发放成功 */
     int markRemainingSuccess(@Param("planId") Long planId);
+
+    /** 银行发放失败明细列表 */
+    Page<PaymentPlanFailureListResp> selectFailureList(Page<PaymentPlanFailureListResp> page,
+                                                     @Param("req") PaymentPlanFailureListReq req);
 }

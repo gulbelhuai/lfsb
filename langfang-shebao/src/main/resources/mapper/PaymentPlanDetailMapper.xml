@@ -100,4 +100,43 @@
           )
         order by bdi.id asc
     </select>
+
+    <select id="selectFailureList" resultType="com.ruoyi.shebao.dto.PaymentPlanFailureListResp">
+        select d.id as id,
+               d.plan_id as planId,
+               p.batch_no as batchNo,
+               date_format(d.business_period, '%Y-%m') as businessPeriod,
+               d.subsidy_type as subsidyType,
+               d.person_name as personName,
+               d.id_card_no as idCardNo,
+               d.distribution_amount as distributionAmount,
+               d.bank_account as bankAccount,
+               d.account_name as accountName,
+               d.grant_org as grantOrg,
+               d.fail_reason as failReason,
+               d.village_name as villageName,
+               d.street_name as streetName,
+               d.payment_month as paymentMonth
+        from shebao_payment_plan_detail d
+                 inner join shebao_payment_plan p on p.id = d.plan_id and p.del_flag = '0'
+        where d.del_flag = '0'
+          and d.distribution_result = 'failed'
+          and p.finance_status = 'finance_approved'
+        <if test="req.batchNo != null and req.batchNo != ''">
+            and p.batch_no = #{req.batchNo}
+        </if>
+        <if test="req.personName != null and req.personName != ''">
+            and d.person_name like concat('%', #{req.personName}, '%')
+        </if>
+        <if test="req.subsidyType != null and req.subsidyType != ''">
+            and d.subsidy_type = #{req.subsidyType}
+        </if>
+        <if test="req.businessPeriodDate != null">
+            and d.business_period = #{req.businessPeriodDate}
+        </if>
+        <if test="req.failReason != null and req.failReason != ''">
+            and d.fail_reason like concat('%', #{req.failReason}, '%')
+        </if>
+        order by p.batch_no desc, d.id asc
+    </select>
 </mapper>
