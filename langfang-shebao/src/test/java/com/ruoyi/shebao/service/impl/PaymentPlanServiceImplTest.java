@@ -32,7 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -209,5 +208,56 @@ class PaymentPlanServiceImplTest {
         req.setSubsidyType("land_loss");
 
         assertThrows(ServiceException.class, () -> paymentPlanService.generate(req));
+    }
+
+    @Test
+    @DisplayName("财务已通过的批次可提交银行")
+    void submitToBank_fromApproved() {
+        PaymentPlan plan = new PaymentPlan();
+        plan.setId(9L);
+        plan.setDelFlag("0");
+        plan.setFinanceStatus("finance_approved");
+        plan.setDistributionStatus(null);
+        when(paymentPlanMapper.selectById(9L)).thenReturn(plan);
+        when(paymentPlanMapper.updateById(any(PaymentPlan.class))).thenReturn(1);
+
+        int rows = paymentPlanService.submitToBank(9L);
+
+        assertEquals(1, rows);
+        ArgumentCaptor<PaymentPlan> cap = ArgumentCaptor.forClass(PaymentPlan.class);
+        verify(paymentPlanMapper).updateById(cap.capture());
+        assertEquals("submitted", cap.getValue().getDistributionStatus());
+    }
+
+    @Test
+    @DisplayName("未提交银行的批次不可标记完成")
+    void complete_requiresSubmitted() {
+        PaymentPlan plan = new PaymentPlan();
+        plan.setId(10L);
+        plan.setDelFlag("0");
+        plan.setFinanceStatus("finance_approved");
+        plan.setDistributionStatus("pending");
+        when(paymentPlanMapper.selectById(10L)).thenReturn(plan);
+
+        assertThrows(ServiceException.class, () -> paymentPlanService.completeDistribution(10L));
+    }
+
+    @Test
+    @DisplayName("已提交银行的批次标记完成时未失败明细记为成功")
+    void complete_marksRemainingSuccess() {
+        PaymentPlan plan = new PaymentPlan();
+        plan.setId(11L);
+        plan.setDelFlag("0");
+        plan.setDistributionStatus("submitted");
+        when(paymentPlanMapper.selectById(11L)).thenReturn(plan);
+        when(paymentPlanMapper.updateById(any(PaymentPlan.class))).thenReturn(1);
+
+        int rows = paymentPlanService.completeDistribution(11L);
+
+        assertEquals(1, rows);
+        verify(paymentPlanDetailMapper).markRemainingSuccess(11L);
+        ArgumentCaptor<PaymentPlan> cap = ArgumentCaptor.forClass(PaymentPlan.class);
+        verify(paymentPlanMapper).updateById(cap.capture());
+        assertEquals("completed", cap.getValue().getDistributionStatus());
     }
 }

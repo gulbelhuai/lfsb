@@ -23,4 +23,8 @@ public class PaymentPlanDetailResp
     private String accountName;
     private String bankAccount;
     private String relationToInsured;
+    /** 发放结果(success成功/failed失败) */
+    private String distributionResult;
+    /** 发放失败原因 */
+    private String failReason;
 }

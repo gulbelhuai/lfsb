@@ -1,65 +1,128 @@
 <template>
   <div class="app-container">
-    <el-alert title="银行发放流程" type="info" :closable="false" class="mb20">
-      <div>1. 选择批次 → 2. 生成银行文件 → 3. 提交银行发放 → 4. 导入发放结果</div>
+    <el-alert title="银行发放说明" type="info" :closable="false" class="mb20">
+      <div>导出对应银行代发文件->已提交银行->导入失败数据->确认无误后标记「已完成」。</div>
     </el-alert>
 
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
-      <el-form-item label="批次号"><el-input v-model="queryParams.batchNo" clearable /></el-form-item>
-      <el-form-item label="审批状态">
-        <el-select v-model="queryParams.approvalStatus" clearable>
-          <el-option label="待财务" value="pending_finance" />
-          <el-option label="已提交银行" value="submitted_bank" />
-          <el-option label="部分失败" value="partial_failed" />
+      <el-form-item label="业务期">
+        <el-date-picker v-model="queryParams.businessPeriod" type="month" value-format="yyyy-MM" placeholder="选择业务期" />
+      </el-form-item>
+      <el-form-item label="补贴类型">
+        <el-select v-model="queryParams.subsidyType" clearable placeholder="全部">
+          <el-option v-for="o in subsidyTypeOptions" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="发放状态">
+        <el-select v-model="queryParams.distributionStatus" clearable placeholder="全部">
+          <el-option label="待发放" value="pending" />
+          <el-option label="已提交银行" value="submitted" />
           <el-option label="已完成" value="completed" />
         </el-select>
       </el-form-item>
+      <el-form-item label="批次号">
+        <el-input v-model="queryParams.batchNo" clearable placeholder="精确查询" />
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
 
-    <el-table v-loading="loading" :data="dataList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" />
-      <el-table-column label="批次号" prop="batchNo" width="160" />
+    <el-table v-loading="loading" :data="dataList" border>
+      <el-table-column type="index" label="序号" width="60" />
+      <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip />
+      <el-table-column label="业务期" prop="businessPeriod" width="100" />
       <el-table-column label="补贴类型" prop="subsidyType" width="120">
+        <template slot-scope="scope">{{ subsidyTypeLabel(scope.row.subsidyType) }}</template>
+      </el-table-column>
+      <el-table-column label="核定方式" prop="determinationType" width="100">
+        <template slot-scope="scope">{{ determinationTypeText(scope.row.determinationType) }}</template>
+      </el-table-column>
+      <el-table-column label="发放人次" prop="totalCount" width="90" />
+      <el-table-column label="总金额" prop="totalAmount" width="110" />
+      <el-table-column label="经办人" prop="operatorName" width="100" />
+      <el-table-column label="发放状态" prop="distributionStatus" width="110">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.subsidy_type" :value="scope.row.subsidyType"/>
+          <el-tag :type="distTagType(scope.row.distributionStatus)">{{ distributionStatusLabel(scope.row.distributionStatus) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="发放月份" prop="paymentMonth" />
-      <el-table-column label="总人数" prop="totalCount" />
-      <el-table-column label="总金额(元)" prop="totalAmount" />
-      <el-table-column label="发放状态" align="center">
+      <el-table-column label="操作" align="center" width="340" fixed="right">
         <template slot-scope="scope">
-          <el-tag v-if="scope.row.bankSubmitTime" type="success">已提交</el-tag>
-          <el-tag v-else type="warning">待发放</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" width="300">
-        <template slot-scope="scope">
-          <el-button size="mini" type="text" :data-testid="`finance-bank-generate-${scope.row.batchNo}`" @click="handleGenerateFile(scope.row)">生成文件</el-button>
-          <el-button size="mini" type="text" :data-testid="`finance-bank-submit-${scope.row.batchNo}`" @click="handleSubmitBank(scope.row)" v-if="!scope.row.bankSubmitTime">提交银行</el-button>
-          <el-button size="mini" type="text" :data-testid="`finance-bank-import-${scope.row.batchNo}`" @click="handleImportResult(scope.row)" v-if="scope.row.bankSubmitTime">导入结果</el-button>
+          <el-button type="text" size="mini" @click="openDetail(scope.row)">详情</el-button>
+          <el-button
+            v-if="hasBank(scope.row, 'langfang')"
+            type="text"
+            size="mini"
+            v-hasPermi="['shebao:finance:bank:export']"
+            @click="handleExport(scope.row, 'langfang')"
+          >廊坊银行导出</el-button>
+          <el-button
+            v-if="hasBank(scope.row, 'boc')"
+            type="text"
+            size="mini"
+            v-hasPermi="['shebao:finance:bank:export']"
+            @click="handleExport(scope.row, 'boc')"
+          >中国银行导出</el-button>
+          <el-button
+            v-if="distOf(scope.row) === 'pending'"
+            type="text"
+            size="mini"
+            v-hasPermi="['shebao:finance:bank:submit']"
+            @click="handleSubmitBank(scope.row)"
+          >已提交银行</el-button>
+          <el-button
+            v-if="distOf(scope.row) === 'submitted'"
+            type="text"
+            size="mini"
+            v-hasPermi="['shebao:finance:bank:importFail']"
+            @click="handleImportFail(scope.row)"
+          >导入失败数据</el-button>
+          <el-button
+            v-if="distOf(scope.row) === 'submitted'"
+            type="text"
+            size="mini"
+            v-hasPermi="['shebao:finance:bank:complete']"
+            @click="handleComplete(scope.row)"
+          >已完成</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <pagination v-show="total>0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
 
-    <!-- 导入结果对话框 -->
-    <el-dialog title="导入发放结果" :visible.sync="importOpen" width="500px">
+    <plan-detail-dialog
+      :visible.sync="detailOpen"
+      :current-plan="currentPlan"
+      :grant-org-options="dict.type.shebao_grant_org || []"
+      :subsidy-type-formatter="subsidyTypeLabel"
+      :status-formatter="distributionStatusLabel"
+      status-field="distributionStatus"
+      :show-distribution-result="true"
+      :fetch-summary="fetchSummary"
+      :fetch-detail="fetchDetail"
+      :fetch-audit="fetchAudit"
+    />
+
+    <!-- 导入失败数据 -->
+    <el-dialog title="导入发放失败数据" :visible.sync="importOpen" width="500px">
+      <el-alert type="warning" :closable="false" class="mb10">
+        <div>请上传包含「身份证号」「失败原因」列的 Excel 文件，匹配到的明细将记为发放失败。</div>
+      </el-alert>
+      <div class="mb10">
+        <el-button type="text" icon="el-icon-download" @click="handleDownloadTemplate">下载导入模板</el-button>
+      </div>
       <el-upload
         drag
         :action="uploadUrl"
         :headers="uploadHeaders"
-        :data="{ batchNo: currentBatchNo }"
+        name="file"
         :on-success="handleImportSuccess"
         :on-error="handleImportError"
         accept=".xlsx,.xls">
         <i class="el-icon-upload"></i>
-        <div class="el-upload__text">将Excel文件拖到此处，或<em>点击上传</em></div>
-        <div class="el-upload__tip" slot="tip">请上传银行发放结果Excel文件</div>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <div class="el-upload__tip" slot="tip">支持 .xls / .xlsx</div>
       </el-upload>
       <div slot="footer">
         <el-button @click="importOpen = false">关 闭</el-button>
@@ -69,28 +132,60 @@
 </template>
 
 <script>
-import { listBatch, generateBankFile, submitToBank } from '@/api/shebao/finance'
+import {
+  listBankBatch,
+  getBankExports,
+  exportBankFile,
+  submitBankDistribution,
+  completeBankDistribution,
+  downloadFailTemplate
+} from '@/api/shebao/finance'
+import { getPaymentPlanSummary, getPaymentPlanDetail, getPaymentPlanAudit } from '@/api/shebao/payment'
+import {
+  paymentPlanSubsidyTypeLabel,
+  paymentPlanDistributionStatusLabel,
+  PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
+} from '../../payment/plan/planUiShared'
+import PlanDetailDialog from '../../payment/plan/PlanDetailDialog'
 import { getToken } from '@/utils/auth'
+
+function currentMonth() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
 
 export default {
   name: 'FinanceBank',
-  dicts: ['subsidy_type'],
+  components: { PlanDetailDialog },
+  dicts: ['shebao_grant_org'],
   data() {
     return {
-      loading: true,
+      loading: false,
       total: 0,
       dataList: [],
-      selectedRows: [],
+      detailOpen: false,
+      currentPlan: null,
       importOpen: false,
-      currentBatchNo: null,
-      uploadUrl: process.env.VUE_APP_BASE_API + '/shebao/finance/bank/import',
+      currentId: null,
       uploadHeaders: { Authorization: 'Bearer ' + getToken() },
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        batchNo: null,
-        approvalStatus: 'pending_finance'
+        businessPeriod: currentMonth(),
+        subsidyType: null,
+        distributionStatus: null,
+        batchNo: null
       }
+    }
+  },
+  computed: {
+    subsidyTypeOptions() {
+      return PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
+    },
+    uploadUrl() {
+      return process.env.VUE_APP_BASE_API + `/shebao/finance/bank/${this.currentId}/import-fail`
     }
   },
   created() {
@@ -99,57 +194,139 @@ export default {
   methods: {
     getList() {
       this.loading = true
-      listBatch(this.queryParams).then(response => {
-        this.dataList = response.rows
-        this.total = response.total
+      listBankBatch(this.queryParams).then(res => {
+        const rows = res.rows || []
+        rows.forEach(r => { this.$set(r, 'banks', []) })
+        this.dataList = rows
+        this.total = res.total || 0
+        this.loadBanks(rows)
+      }).finally(() => {
         this.loading = false
+      })
+    },
+    loadBanks(rows) {
+      rows.forEach(row => {
+        getBankExports(row.id).then(res => {
+          this.$set(row, 'banks', res.data || [])
+        }).catch(() => {})
       })
     },
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
-    handleSelectionChange(selection) {
-      this.selectedRows = selection
+    resetQuery() {
+      this.queryParams = {
+        pageNum: 1,
+        pageSize: 10,
+        businessPeriod: currentMonth(),
+        subsidyType: null,
+        distributionStatus: null,
+        batchNo: null
+      }
+      this.getList()
     },
-    handleGenerateFile(row) {
-      this.$modal.confirm('是否生成银行发放文件？').then(() => {
-        return generateBankFile(row.batchNo)
-      }).then(data => {
-        const blob = new Blob([data], { type: 'text/plain;charset=utf-8' })
+    distOf(row) {
+      return row.distributionStatus || 'pending'
+    },
+    hasBank(row, bank) {
+      return Array.isArray(row.banks) && row.banks.includes(bank)
+    },
+    openDetail(row) {
+      this.currentPlan = { ...row }
+      this.detailOpen = true
+    },
+    fetchSummary(planId) {
+      return getPaymentPlanSummary(planId).then(res => res.data || [])
+    },
+    fetchDetail(planId) {
+      return getPaymentPlanDetail(planId, { pageNum: 1, pageSize: 1000 }).then(res => res.rows || [])
+    },
+    fetchAudit(planId) {
+      return getPaymentPlanAudit(planId).then(res => res.data || [])
+    },
+    handleExport(row, bank) {
+      exportBankFile(row.id, bank).then(data => {
+        const isCsv = bank === 'boc'
+        const mime = isCsv ? 'text/csv;charset=utf-8' : 'application/vnd.ms-excel'
+        const ext = isCsv ? 'csv' : 'xls'
+        const prefix = bank === 'langfang' ? '廊坊银行代发' : '中国银行代发'
+        const blob = new Blob([data], { type: mime })
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `bank_${row.batchNo}.txt`
+        link.download = `${prefix}_${row.batchNo || row.id}.${ext}`
         link.click()
         window.URL.revokeObjectURL(url)
-        this.$modal.msgSuccess('文件生成成功')
       })
     },
     handleSubmitBank(row) {
-      this.$modal.confirm('是否确认提交银行发放？').then(() => {
-        return submitToBank({ batchNo: row.batchNo })
+      this.$modal.confirm('确认将该批次提交银行？提交后发放状态将变为「已提交银行」。').then(() => {
+        return submitBankDistribution(row.id)
       }).then(() => {
         this.$modal.msgSuccess('提交成功')
         this.getList()
       })
     },
-    handleImportResult(row) {
-      this.currentBatchNo = row.batchNo
+    handleImportFail(row) {
+      this.currentId = row.id
       this.importOpen = true
+    },
+    handleDownloadTemplate() {
+      downloadFailTemplate().then(data => {
+        const blob = new Blob([data], { type: 'application/vnd.ms-excel' })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = '发放失败导入模板.xls'
+        link.click()
+        window.URL.revokeObjectURL(url)
+      })
     },
     handleImportSuccess(response) {
       if (response.code !== 200) {
         this.$modal.msgError(response.msg || '导入失败')
         return
       }
-      this.$modal.msgSuccess('导入成功')
+      this.$modal.msgSuccess(response.msg || '导入成功')
       this.importOpen = false
       this.getList()
     },
     handleImportError() {
       this.$modal.msgError('导入失败')
+    },
+    handleComplete(row) {
+      this.$modal.confirm('确认标记该批次已完成？该批次所有未失败的明细将记为发放成功。').then(() => {
+        return completeBankDistribution(row.id)
+      }).then(() => {
+        this.$modal.msgSuccess('已标记完成')
+        this.getList()
+      })
+    },
+    determinationTypeText(val) {
+      return val === 'second' ? '二次发放' : '正常发放'
+    },
+    subsidyTypeLabel(val) {
+      return paymentPlanSubsidyTypeLabel(val)
+    },
+    distributionStatusLabel(val) {
+      return paymentPlanDistributionStatusLabel(val)
+    },
+    distTagType(val) {
+      const s = val || 'pending'
+      if (s === 'completed') return 'success'
+      if (s === 'submitted') return 'warning'
+      return 'info'
     }
   }
 }
 </script>
+
+<style scoped>
+.mb20 {
+  margin-bottom: 20px;
+}
+.mb10 {
+  margin-bottom: 10px;
+}
+</style>

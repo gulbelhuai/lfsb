@@ -22,6 +22,9 @@ public class PaymentPlanListReq extends PageReq
 
     private String approvalStatus;
 
+    /** 发放状态(pending/submitted/completed) */
+    private String distributionStatus;
+
     private String operatorName;
 
     /** 按批次号精确查询 */

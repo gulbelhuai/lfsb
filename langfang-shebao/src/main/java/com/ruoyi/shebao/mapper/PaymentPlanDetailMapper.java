@@ -20,4 +20,12 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
 
     List<PaymentPlanDetailResp> selectPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod,
                                                      @Param("subsidyType") String subsidyType);
+
+    /** 按身份证号将明细标记为发放失败并记录原因 */
+    int markFailedByIdCard(@Param("planId") Long planId,
+                           @Param("idCardNo") String idCardNo,
+                           @Param("reason") String reason);
+
+    /** 将未失败的明细标记为发放成功 */
+    int markRemainingSuccess(@Param("planId") Long planId);
 }

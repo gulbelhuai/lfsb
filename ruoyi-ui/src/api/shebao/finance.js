@@ -74,31 +74,55 @@ export function getBatchDetail(batchNo) {
   })
 }
 
-// 生成银行文件
-export function generateBankFile(batchNo) {
+/** 银行发放：财务已通过的支付计划列表 */
+export function listBankBatch(query) {
   return request({
-    url: `/shebao/finance/bank/file/${batchNo}`,
+    url: '/shebao/finance/bank/list',
+    method: 'get',
+    params: query
+  })
+}
+
+/** 银行发放：该批次涉及的代发银行(langfang/boc) */
+export function getBankExports(id) {
+  return request({
+    url: `/shebao/finance/bank/${id}/banks`,
+    method: 'get'
+  })
+}
+
+/** 银行发放：导出某代发银行的代发文件 */
+export function exportBankFile(id, bank) {
+  return request({
+    url: `/shebao/finance/bank/${id}/export`,
+    method: 'get',
+    params: { bank },
+    responseType: 'blob'
+  })
+}
+
+/** 银行发放：提交银行 */
+export function submitBankDistribution(id) {
+  return request({
+    url: `/shebao/finance/bank/${id}/submit`,
+    method: 'post'
+  })
+}
+
+/** 银行发放：下载失败数据导入模板 */
+export function downloadFailTemplate() {
+  return request({
+    url: '/shebao/finance/bank/import-fail/template',
     method: 'get',
     responseType: 'blob'
   })
 }
 
-// 提交银行发放
-export function submitToBank(data) {
+/** 银行发放：标记已完成 */
+export function completeBankDistribution(id) {
   return request({
-    url: '/shebao/finance/bank/submit',
-    method: 'post',
-    data: data
-  })
-}
-
-// 导入发放结果
-export function importPaymentResult(formData) {
-  return request({
-    url: '/shebao/finance/bank/import',
-    method: 'post',
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' }
+    url: `/shebao/finance/bank/${id}/complete`,
+    method: 'post'
   })
 }
 

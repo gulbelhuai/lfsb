@@ -34,6 +34,10 @@
           <el-table-column label="开户名" prop="accountName" width="100" />
           <el-table-column label="银行账号" prop="bankAccount" width="180" />
           <el-table-column label="与参保人关系" prop="relationToInsured" width="120" />
+          <el-table-column v-if="showDistributionResult" label="发放结果" prop="distributionResult" width="100">
+            <template slot-scope="scope">{{ distributionResultLabel(scope.row.distributionResult) }}</template>
+          </el-table-column>
+          <el-table-column v-if="showDistributionResult" label="失败原因" prop="failReason" min-width="140" show-overflow-tooltip />
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="审核记录" name="audit">
@@ -90,6 +94,7 @@ export default {
     statusFormatter: { type: Function, required: true },
     /** 用于控制详情底部按钮可见性的状态字段，默认 approvalStatus */
     statusField: { type: String, default: 'approvalStatus' },
+    showDistributionResult: { type: Boolean, default: false },
     fetchSummary: { type: Function, required: true },
     fetchDetail: { type: Function, required: true },
     fetchAudit: { type: Function, required: true }
@@ -134,6 +139,11 @@ export default {
   methods: {
     paymentPlanAuditOperationLabel,
     paymentPlanAuditStageLabelFromRow,
+    distributionResultLabel(val) {
+      if (val === 'success') return '成功'
+      if (val === 'failed') return '失败'
+      return '—'
+    },
     onClose() {
       this.$emit('update:visible', false)
     },

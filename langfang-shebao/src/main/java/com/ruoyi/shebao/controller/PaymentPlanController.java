@@ -51,7 +51,7 @@ public class PaymentPlanController extends BaseController
     /**
      * 详情-汇总
      */
-    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:query') or @ss.hasPermi('shebao:finance:batch:list')")
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:query') or @ss.hasPermi('shebao:finance:batch:list') or @ss.hasPermi('shebao:finance:bank:list')")
     @GetMapping(value = "/{id}/summary")
     public AjaxResult getSummary(@PathVariable("id") Long id)
     {
@@ -62,7 +62,7 @@ public class PaymentPlanController extends BaseController
     /**
      * 详情-明细
      */
-    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:query') or @ss.hasPermi('shebao:finance:batch:list')")
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:query') or @ss.hasPermi('shebao:finance:batch:list') or @ss.hasPermi('shebao:finance:bank:list')")
     @GetMapping(value = "/{id}/detail")
     public TableDataInfo getDetail(@PathVariable("id") Long id,
                                    @RequestParam(required = false) Integer pageNum,
@@ -130,7 +130,7 @@ public class PaymentPlanController extends BaseController
     /**
      * 详情-审核记录
      */
-    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:query') or @ss.hasPermi('shebao:finance:batch:list')")
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:query') or @ss.hasPermi('shebao:finance:batch:list') or @ss.hasPermi('shebao:finance:bank:list')")
     @GetMapping(value = "/{id}/audit")
     public AjaxResult getAudit(@PathVariable("id") Long id)
     {

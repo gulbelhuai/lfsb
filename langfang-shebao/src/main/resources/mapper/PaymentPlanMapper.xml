@@ -13,6 +13,7 @@
                p.operator_time as operatorTime,
                p.approval_status as approvalStatus,
                p.finance_status as financeStatus,
+               p.distribution_status as distributionStatus,
                (select group_concat(distinct s.subsidy_type order by s.subsidy_type separator ',')
                 from shebao_payment_plan_summary s
                 where s.plan_id = p.id and s.del_flag = '0') as subsidyTypes,
@@ -39,6 +40,9 @@
         </if>
         <if test="req.financeStatus != null and req.financeStatus != ''">
             and p.finance_status = #{req.financeStatus}
+        </if>
+        <if test="req.distributionStatus != null and req.distributionStatus != ''">
+            and ifnull(p.distribution_status, 'pending') = #{req.distributionStatus}
         </if>
         <if test="req.financeEnteredOnly != null and req.financeEnteredOnly">
             and p.finance_status is not null

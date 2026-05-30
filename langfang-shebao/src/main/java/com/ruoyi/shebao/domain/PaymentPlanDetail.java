@@ -53,5 +53,11 @@ public class PaymentPlanDetail extends BaseEntity
 
     private String relationToInsured;
 
+    /** 发放结果(success成功/failed失败) */
+    private String distributionResult;
+
+    /** 发放失败原因 */
+    private String failReason;
+
     private String delFlag;
 }

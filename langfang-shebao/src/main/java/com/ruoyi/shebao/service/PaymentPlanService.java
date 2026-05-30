@@ -1,6 +1,8 @@
 package com.ruoyi.shebao.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ruoyi.shebao.domain.PaymentPlan;
+import com.ruoyi.shebao.domain.PaymentPlanDetail;
 import com.ruoyi.shebao.dto.*;
 
 import java.util.List;
@@ -34,4 +36,22 @@ public interface PaymentPlanService
     int financeApprovePass(Long planId, PaymentPlanFinanceStatusChangeReq req);
 
     int financeApproveReject(Long planId, PaymentPlanFinanceStatusChangeReq req);
+
+    /** 银行发放：加载批次（校验存在） */
+    PaymentPlan getBankPlan(Long planId);
+
+    /** 银行发放：返回该批次涉及的代发银行(langfang/boc) */
+    List<String> selectAvailableBanks(Long planId);
+
+    /** 银行发放：返回某代发银行对应的明细 */
+    List<PaymentPlanDetail> selectDetailsForBank(Long planId, String bank);
+
+    /** 银行发放：提交银行（待发放 → 已提交银行） */
+    int submitToBank(Long planId);
+
+    /** 银行发放：导入失败数据，按身份证号标记明细发放失败 */
+    int importBankFailures(Long planId, List<PaymentPlanBankFailureRow> rows);
+
+    /** 银行发放：标记已完成（未失败明细记为成功，批次置已完成） */
+    int completeDistribution(Long planId);
 }

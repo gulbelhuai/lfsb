@@ -35,6 +35,9 @@ public class PaymentPlan extends BaseEntity
     /** 补贴类型(land_loss/expropriatee/demolition/village_official/teacher) */
     private String subsidyType;
 
+    /** 发放状态(pending待发放/submitted已提交银行/completed已完成) */
+    private String distributionStatus;
+
     /** 批次号(yyyyMM+01/02+序号)，首次保存生成后不再更新 */
     @TableField(updateStrategy = FieldStrategy.NEVER)
     private String batchNo;

@@ -35,12 +35,31 @@
                d.grant_org,
                d.account_name,
                d.bank_account,
-               d.relation_to_insured
+               d.relation_to_insured,
+               d.distribution_result,
+               d.fail_reason
         from shebao_payment_plan_detail d
         where d.plan_id = #{planId}
           and d.del_flag = '0'
         order by d.id asc
     </select>
+
+    <update id="markFailedByIdCard">
+        update shebao_payment_plan_detail
+        set distribution_result = 'failed',
+            fail_reason = #{reason}
+        where plan_id = #{planId}
+          and del_flag = '0'
+          and id_card_no = #{idCardNo}
+    </update>
+
+    <update id="markRemainingSuccess">
+        update shebao_payment_plan_detail
+        set distribution_result = 'success'
+        where plan_id = #{planId}
+          and del_flag = '0'
+          and ifnull(distribution_result, '') &lt;&gt; 'failed'
+    </update>
 
     <select id="selectPreviewDetails" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
         select null as id,

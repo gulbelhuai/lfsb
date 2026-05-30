@@ -17,7 +17,7 @@ export const PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS = [
   { value: 'expropriatee', label: '被征地补贴' },
   { value: 'demolition', label: '拆迁补贴' },
   { value: 'village_official', label: '村干部补贴' },
-  { value: 'teacher', label: '教师补贴' }
+  // { value: 'teacher', label: '教师补贴' }
 ]
 
 const PAYMENT_PLAN_SUBSIDY_TYPE_LABELS = {
@@ -48,6 +48,16 @@ export const PAYMENT_PLAN_FINANCE_STATUS_LABELS = {
 export function paymentPlanFinanceStatusLabel(status) {
   if (!status) return ''
   return PAYMENT_PLAN_FINANCE_STATUS_LABELS[status] || status
+}
+
+export const PAYMENT_PLAN_DISTRIBUTION_STATUS_LABELS = {
+  pending: '待发放',
+  submitted: '已提交银行',
+  completed: '已完成'
+}
+
+export function paymentPlanDistributionStatusLabel(status) {
+  return PAYMENT_PLAN_DISTRIBUTION_STATUS_LABELS[status || 'pending'] || '待发放'
 }
 
 export function paymentPlanAuditStageLabel(stage) {
