@@ -144,12 +144,46 @@ export function handleFailure(data) {
   })
 }
 
-// 查询财务账户
+// 查询财务账户概览
+export function getFinanceAccountOverview() {
+  return request({
+    url: '/shebao/finance/account/overview',
+    method: 'get'
+  })
+}
+
+// 查询财务账户（兼容）
 export function listFinanceAccount(query) {
   return request({
     url: '/shebao/finance/account/list',
     method: 'get',
     params: query
+  })
+}
+
+// 财务账户下拉
+export function listFinanceAccountSelect() {
+  return request({
+    url: '/shebao/finance/account/selectList',
+    method: 'get'
+  })
+}
+
+// 账户明细列表
+export function listFinanceAccountTransactions(query) {
+  return request({
+    url: '/shebao/finance/account/transaction/list',
+    method: 'get',
+    params: query
+  })
+}
+
+// 财政拨款
+export function fiscalAllocationAccount(id, data) {
+  return request({
+    url: `/shebao/finance/account/${id}/fiscal-allocation`,
+    method: 'post',
+    data: data || {}
   })
 }
 

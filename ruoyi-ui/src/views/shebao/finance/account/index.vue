@@ -1,174 +1,320 @@
 <template>
   <div class="app-container">
-    <el-row :gutter="20">
-      <el-col :span="24">
-        <el-card class="box-card">
-          <div slot="header"><span>财务账户概览</span></div>
-          <el-row :gutter="20">
-            <el-col :span="8" v-for="account in accountList" :key="account.accountType">
-              <el-card shadow="hover" class="account-card">
-                <div class="account-type">{{ getAccountTypeName(account.accountType) }}</div>
-                <div class="account-balance">{{ account.balance }} 元</div>
-                <div class="account-info">
-                  <span>账户：{{ account.accountCode }}</span>
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 账户概览 -->
+    <el-card class="box-card">
+      <div slot="header"><span>账户概览</span></div>
+      <el-row :gutter="12" v-loading="overviewLoading" class="overview-row">
+        <el-col :xs="12" :sm="8" :md="6" :lg="6" v-for="account in accountList" :key="account.id" class="overview-col">
+          <el-card shadow="hover" class="account-card" :body-style="{ padding: '12px 10px' }">
+            <div class="account-name">{{ accountDisplayName(account.accountType) }}</div>
+            <div class="account-balance">{{ formatMoney(account.balance) }} 元</div>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-hasPermi="['shebao:finance:account:allocate']"
+              @click="openAllocate(account)"
+            >财政拨款</el-button>
+          </el-card>
+        </el-col>
+      </el-row>
+      <el-empty v-if="!overviewLoading && accountList.length === 0" description="暂无财务账户" />
+    </el-card>
 
+    <!-- 账户明细 -->
     <el-card class="box-card mt20">
-      <div slot="header"><span>账户快照</span></div>
+      <div slot="header"><span>账户明细</span></div>
 
       <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
-        <el-form-item label="账户类型">
-          <el-select v-model="queryParams.accountType" clearable>
-            <el-option label="失地居民补贴" value="1" />
-            <el-option label="被征地居民补贴" value="2" />
-            <el-option label="拆迁居民补贴" value="3" />
-            <el-option label="村干部补贴" value="4" />
-            <el-option label="教龄补助" value="5" />
+        <el-form-item label="账户名称">
+          <el-select v-model="queryParams.accountId" clearable placeholder="全部" style="width: 220px">
+            <el-option
+              v-for="item in accountList"
+              :key="item.id"
+              :label="accountDisplayName(item.accountType)"
+              :value="item.id"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="开始日期">
-          <el-date-picker v-model="queryParams.startDate" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" />
-        </el-form-item>
-        <el-form-item label="结束日期">
-          <el-date-picker v-model="queryParams.endDate" type="date" placeholder="选择日期" value-format="yyyy-MM-dd" />
+        <el-form-item label="交易日期">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="yyyy-MM-dd"
+            style="width: 260px"
+          />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+          <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
 
-      <el-table v-loading="loading" :data="detailList">
-        <el-table-column type="index" label="序号" width="50" />
-        <el-table-column label="账户类型" prop="accountType" width="150">
+      <el-table v-loading="loading" :data="detailList" border>
+        <el-table-column type="index" label="序号" width="60" />
+        <el-table-column label="账户名称" prop="accountName" min-width="160" show-overflow-tooltip />
+        <el-table-column label="批次号" prop="batchNo" width="130" show-overflow-tooltip>
+          <template slot-scope="scope">{{ scope.row.batchNo || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="交易类型" prop="transactionType" width="110">
           <template slot-scope="scope">
-            {{ getAccountTypeName(scope.row.accountType) }}
+            <el-tag :type="transactionTagType(scope.row.transactionType)" size="small">
+              {{ transactionTypeLabel(scope.row.transactionType) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="批次号" prop="batchNo" width="160" />
-        <el-table-column label="交易类型" prop="transactionType" width="100">
+        <el-table-column label="交易金额(元)" prop="amount" width="130" align="right">
           <template slot-scope="scope">
-            <el-tag v-if="scope.row.transactionType === 'snapshot'" type="info">快照</el-tag>
-            <el-tag v-else-if="scope.row.transactionType === 'pay'" type="danger">支出</el-tag>
-            <el-tag v-else type="success">收入</el-tag>
+            <span :class="amountClass(scope.row.amount)">{{ formatSignedAmount(scope.row.amount) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="交易金额(元)" prop="amount" width="120" />
-        <el-table-column label="余额(元)" prop="balance" width="120" />
-        <el-table-column label="交易时间" prop="transactionTime" width="160" />
-        <el-table-column label="备注" prop="remark" />
+        <el-table-column label="余额(元)" prop="balance" width="120" align="right">
+          <template slot-scope="scope">{{ formatMoney(scope.row.balance) }}</template>
+        </el-table-column>
+        <el-table-column label="交易时间" prop="transactionTime" width="170" />
+        <el-table-column label="备注" prop="remark" min-width="140" show-overflow-tooltip />
       </el-table>
 
-      <pagination v-show="detailTotal>0" :total="detailTotal" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getDetailList" />
+      <pagination
+        v-show="detailTotal > 0"
+        :total="detailTotal"
+        :page.sync="queryParams.pageNum"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getDetailList"
+      />
     </el-card>
+
+    <!-- 财政拨款 -->
+    <el-dialog title="财政拨款" :visible.sync="allocateOpen" width="480px" :close-on-click-modal="false">
+      <el-form ref="allocateForm" :model="allocateForm" :rules="allocateRules" label-width="100px">
+        <el-form-item label="账户名称">
+          <el-input :value="allocateForm.accountName" disabled />
+        </el-form-item>
+        <el-form-item label="当前余额">
+          <el-input :value="formatMoney(allocateForm.currentBalance) + ' 元'" disabled />
+        </el-form-item>
+        <el-form-item label="拨款金额" prop="amount">
+          <el-input v-model="allocateForm.amount" placeholder="请输入大于0的金额">
+            <template slot="append">元</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="allocateForm.remark" type="textarea" placeholder="选填" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button type="primary" :loading="allocateLoading" @click="submitAllocate">确 定</el-button>
+        <el-button @click="allocateOpen = false">取 消</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { listFinanceAccount } from '@/api/shebao/finance'
+import {
+  getFinanceAccountOverview,
+  listFinanceAccountTransactions,
+  fiscalAllocationAccount
+} from '@/api/shebao/finance'
+import { paymentPlanSubsidyTypeLabel } from '../../payment/plan/planUiShared'
 
 export default {
   name: 'FinanceAccount',
   data() {
+    const validateAmount = (rule, value, callback) => {
+      if (value === '' || value === null || value === undefined) {
+        callback(new Error('请输入拨款金额'))
+        return
+      }
+      const num = Number(value)
+      if (Number.isNaN(num) || num <= 0) {
+        callback(new Error('拨款金额须大于0'))
+        return
+      }
+      callback()
+    }
     return {
-      loading: true,
+      overviewLoading: false,
+      loading: false,
       detailTotal: 0,
       accountList: [],
       detailList: [],
+      dateRange: [],
+      allocateOpen: false,
+      allocateLoading: false,
+      allocateForm: {
+        accountId: null,
+        accountName: '',
+        currentBalance: 0,
+        amount: '',
+        remark: ''
+      },
+      allocateRules: {
+        amount: [{ required: true, validator: validateAmount, trigger: 'blur' }]
+      },
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        accountType: null,
-        startDate: null,
-        endDate: null
+        accountId: null,
+        transactionDateStart: null,
+        transactionDateEnd: null
       }
     }
   },
   created() {
-    this.getAccountList()
+    this.loadOverview().then(() => this.getDetailList())
   },
   methods: {
-    getAccountList() {
-      listFinanceAccount().then(response => {
-        const rows = (response.data && response.data.rows) ? response.data.rows : []
-        this.accountList = rows
-        this.getDetailList()
+    loadOverview() {
+      this.overviewLoading = true
+      return getFinanceAccountOverview().then(res => {
+        this.accountList = res.data || []
+      }).finally(() => {
+        this.overviewLoading = false
       })
     },
     getDetailList() {
       this.loading = true
-      const filtered = this.accountList.filter(item => {
-        if (this.queryParams.accountType && item.accountType !== this.queryParams.accountType) {
-          return false
-        }
-        const snapshotDate = item.updateTime || item.createTime
-        if (this.queryParams.startDate && snapshotDate && snapshotDate < this.queryParams.startDate) {
-          return false
-        }
-        if (this.queryParams.endDate && snapshotDate && snapshotDate > this.queryParams.endDate + ' 23:59:59') {
-          return false
-        }
-        return true
+      if (this.dateRange && this.dateRange.length === 2) {
+        this.queryParams.transactionDateStart = this.dateRange[0]
+        this.queryParams.transactionDateEnd = this.dateRange[1]
+      } else {
+        this.queryParams.transactionDateStart = null
+        this.queryParams.transactionDateEnd = null
+      }
+      listFinanceAccountTransactions(this.queryParams).then(res => {
+        this.detailList = res.rows || []
+        this.detailTotal = res.total || 0
+      }).finally(() => {
+        this.loading = false
       })
-      this.detailList = filtered.map(item => ({
-        accountType: item.accountType,
-        batchNo: '-',
-        transactionType: 'snapshot',
-        amount: item.balance,
-        balance: item.balance,
-        transactionTime: item.updateTime || item.createTime,
-        remark: item.remark || item.accountName
-      }))
-      this.detailTotal = this.detailList.length
-      this.loading = false
     },
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getDetailList()
     },
-    getAccountTypeName(type) {
-      const typeMap = {
-        '1': '失地居民补贴',
-        '2': '被征地居民补贴',
-        '3': '拆迁居民补贴',
-        '4': '村干部补贴',
-        '5': '教师补贴',
-        land_loss_resident: '失地居民补贴',
-        expropriatee: '被征地居民补贴',
-        demolition_resident: '拆迁居民补贴',
-        village_official: '村干部补贴',
-        teacher: '教师补贴'
+    resetQuery() {
+      this.dateRange = []
+      this.queryParams = {
+        pageNum: 1,
+        pageSize: 10,
+        accountId: null,
+        transactionDateStart: null,
+        transactionDateEnd: null
       }
-      return typeMap[type] || type
+      this.getDetailList()
+    },
+    openAllocate(account) {
+      this.allocateForm = {
+        accountId: account.id,
+        accountName: this.accountDisplayName(account.accountType),
+        currentBalance: account.balance,
+        amount: '',
+        remark: ''
+      }
+      this.allocateOpen = true
+      this.$nextTick(() => {
+        if (this.$refs.allocateForm) {
+          this.$refs.allocateForm.clearValidate()
+        }
+      })
+    },
+    submitAllocate() {
+      this.$refs.allocateForm.validate(valid => {
+        if (!valid) return
+        this.allocateLoading = true
+        fiscalAllocationAccount(this.allocateForm.accountId, {
+          amount: Number(this.allocateForm.amount),
+          remark: this.allocateForm.remark
+        }).then(() => {
+          this.$modal.msgSuccess('财政拨款成功')
+          this.allocateOpen = false
+          this.loadOverview().then(() => this.getDetailList())
+        }).finally(() => {
+          this.allocateLoading = false
+        })
+      })
+    },
+    subsidyTypeLabel(type) {
+      return paymentPlanSubsidyTypeLabel(type)
+    },
+    accountDisplayName(type) {
+      const label = paymentPlanSubsidyTypeLabel(type)
+      if (!label || label === '—') return '账户'
+      return label + '账户'
+    },
+    transactionTypeLabel(type) {
+      const map = {
+        fiscal_allocation: '财政拨款',
+        subsidy_distribution: '补贴发放',
+        benefit_recovery: '待遇追回'
+      }
+      return map[type] || type || '—'
+    },
+    transactionTagType(type) {
+      if (type === 'fiscal_allocation') return 'success'
+      if (type === 'subsidy_distribution') return 'danger'
+      if (type === 'benefit_recovery') return 'warning'
+      return 'info'
+    },
+    formatMoney(val) {
+      if (val === null || val === undefined || val === '') return '0.00'
+      const num = Number(val)
+      if (Number.isNaN(num)) return val
+      return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    formatSignedAmount(val) {
+      if (val === null || val === undefined || val === '') return '—'
+      const num = Number(val)
+      if (Number.isNaN(num)) return val
+      const formatted = this.formatMoney(Math.abs(num))
+      if (num > 0) return '+' + formatted
+      if (num < 0) return '-' + formatted
+      return formatted
+    },
+    amountClass(val) {
+      const num = Number(val)
+      if (num > 0) return 'amount-in'
+      if (num < 0) return 'amount-out'
+      return ''
     }
   }
 }
 </script>
 
 <style scoped>
+.overview-row {
+  margin-bottom: 0;
+}
+.overview-col {
+  margin-bottom: 12px;
+}
 .account-card {
   text-align: center;
-  margin-bottom: 20px;
 }
-.account-type {
+.account-name {
   font-size: 14px;
-  color: #909399;
-  margin-bottom: 10px;
+  color: #303133;
+  margin-bottom: 8px;
+  font-weight: 500;
+  line-height: 1.3;
 }
 .account-balance {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: bold;
   color: #409EFF;
   margin-bottom: 10px;
 }
-.account-info {
-  font-size: 12px;
-  color: #909399;
+.amount-in {
+  color: #67C23A;
+  font-weight: 500;
+}
+.amount-out {
+  color: #F56C6C;
+  font-weight: 500;
 }
 .mt20 {
   margin-top: 20px;

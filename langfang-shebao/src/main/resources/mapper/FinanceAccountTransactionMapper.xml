@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.FinanceAccountTransactionMapper">
+
+    <select id="selectTransactionList" resultType="com.ruoyi.shebao.dto.FinanceAccountTransactionListResp">
+        select t.id as id,
+               t.account_id as accountId,
+               t.account_name as accountName,
+               t.batch_no as batchNo,
+               t.transaction_type as transactionType,
+               t.amount as amount,
+               t.balance as balance,
+               t.transaction_time as transactionTime,
+               t.remark as remark
+        from finance_account_transaction t
+        where t.del_flag = '0'
+        <if test="req.accountId != null">
+            and t.account_id = #{req.accountId}
+        </if>
+        <if test="req.transactionTimeStart != null">
+            and t.transaction_time &gt;= #{req.transactionTimeStart}
+        </if>
+        <if test="req.transactionTimeEnd != null">
+            and t.transaction_time &lt;= #{req.transactionTimeEnd}
+        </if>
+        order by t.transaction_time desc, t.id desc
+    </select>
+</mapper>
