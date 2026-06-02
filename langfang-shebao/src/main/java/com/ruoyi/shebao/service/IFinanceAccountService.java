@@ -7,6 +7,7 @@ import com.ruoyi.shebao.dto.FinanceAccountFiscalAllocationReq;
 import com.ruoyi.shebao.dto.FinanceAccountTransactionListReq;
 import com.ruoyi.shebao.dto.FinanceAccountTransactionListResp;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -22,4 +23,13 @@ public interface IFinanceAccountService extends IService<FinanceAccount>
 
     /** 财政拨款：增加账户余额并记明细 */
     int fiscalAllocation(Long accountId, FinanceAccountFiscalAllocationReq req);
+
+    /**
+     * 补贴发放扣款：按补贴类型扣减账户余额（原生SQL原子扣减）并记支出明细
+     *
+     * @param subsidyType 补贴类型
+     * @param batchNo     支付计划批次号
+     * @param amount      扣款金额（正数）
+     */
+    void deductForSubsidyDistribution(String subsidyType, String batchNo, BigDecimal amount);
 }

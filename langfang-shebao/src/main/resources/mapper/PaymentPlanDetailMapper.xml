@@ -61,6 +61,14 @@
           and ifnull(distribution_result, '') &lt;&gt; 'failed'
     </update>
 
+    <select id="sumSuccessAmountByPlanId" resultType="java.math.BigDecimal">
+        select ifnull(sum(d.distribution_amount), 0)
+        from shebao_payment_plan_detail d
+        where d.plan_id = #{planId}
+          and d.del_flag = '0'
+          and d.distribution_result = 'success'
+    </select>
+
     <select id="selectPreviewDetails" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
         select null as id,
                null as plan_id,

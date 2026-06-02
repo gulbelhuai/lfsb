@@ -15,6 +15,7 @@ import com.ruoyi.shebao.mapper.PaymentPlanAuditMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanSummaryMapper;
+import com.ruoyi.shebao.service.IFinanceAccountService;
 import com.ruoyi.shebao.service.PaymentPlanService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +69,8 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private PaymentPlanDetailMapper paymentPlanDetailMapper;
     @Autowired
     private PaymentPlanAuditMapper paymentPlanAuditMapper;
+    @Autowired
+    private IFinanceAccountService financeAccountService;
 
     @Override
     public Page<PaymentPlanListResp> selectPaymentPlanList(PaymentPlanListReq req)
@@ -447,6 +450,15 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             throw new ServiceException("仅已提交银行的批次可标记已完成");
         }
         paymentPlanDetailMapper.markRemainingSuccess(planId);
+        BigDecimal successAmount = paymentPlanDetailMapper.sumSuccessAmountByPlanId(planId);
+        if (successAmount == null)
+        {
+            successAmount = BigDecimal.ZERO;
+        }
+        if (successAmount.compareTo(BigDecimal.ZERO) > 0)
+        {
+            financeAccountService.deductForSubsidyDistribution(plan.getSubsidyType(), plan.getBatchNo(), successAmount);
+        }
         PaymentPlan upd = new PaymentPlan();
         upd.setId(planId);
         upd.setDistributionStatus(DIST_COMPLETED);

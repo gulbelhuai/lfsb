@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.shebao.domain.FinanceAccount;
 import com.ruoyi.shebao.domain.FinanceAccountTransaction;
 import com.ruoyi.shebao.dto.FinanceAccountFiscalAllocationReq;
@@ -92,6 +93,51 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         upd.setUpdateBy(username);
         upd.setUpdateTime(now);
         return baseMapper.updateById(upd);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deductForSubsidyDistribution(String subsidyType, String batchNo, BigDecimal amount)
+    {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0)
+        {
+            return;
+        }
+        if (StringUtils.isEmpty(subsidyType))
+        {
+            throw new ServiceException("支付计划缺少补贴类型，无法扣款");
+        }
+        FinanceAccount account = baseMapper.selectBySubsidyType(subsidyType);
+        if (account == null)
+        {
+            throw new ServiceException("未找到对应补贴类型的财务账户");
+        }
+        BigDecimal before = account.getBalance() == null ? BigDecimal.ZERO : account.getBalance();
+        LocalDateTime now = LocalDateTime.now();
+        String username = SecurityUtils.getUsername();
+
+        int rows = baseMapper.deductBalance(account.getId(), amount, username, now);
+        if (rows == 0)
+        {
+            throw new ServiceException("账户余额不足，无法完成发放扣款");
+        }
+
+        BigDecimal after = before.subtract(amount);
+        FinanceAccountTransaction txn = new FinanceAccountTransaction();
+        txn.setAccountId(account.getId());
+        txn.setAccountName(buildAccountDisplayName(account.getAccountType()));
+        txn.setBatchNo(batchNo);
+        txn.setTransactionType(TX_SUBSIDY_DISTRIBUTION);
+        txn.setAmount(amount.negate());
+        txn.setBalance(after);
+        txn.setTransactionTime(now);
+        txn.setRemark("银行发放完成扣款");
+        txn.setDelFlag("0");
+        txn.setCreateBy(username);
+        txn.setCreateTime(now);
+        txn.setUpdateBy(username);
+        txn.setUpdateTime(now);
+        financeAccountTransactionMapper.insert(txn);
     }
 
     private String buildAccountDisplayName(String subsidyType)
