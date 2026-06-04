@@ -36,6 +36,9 @@ public class BenefitSuspensionItem extends BaseDomain
     /** 是否需要追回（0否 1是） */
     private String needRecover;
 
+    /** 暂停是否仍生效（1是 0已恢复） */
+    private String pauseActive;
+
     /** 追回开始年月 */
     @JsonFormat(pattern = "yyyy-MM")
     private Date recoverStartMonth;

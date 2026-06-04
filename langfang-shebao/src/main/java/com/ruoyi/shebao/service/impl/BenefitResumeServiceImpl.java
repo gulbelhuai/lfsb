@@ -9,6 +9,7 @@ import com.ruoyi.shebao.domain.BenefitDetermination;
 import com.ruoyi.shebao.domain.BenefitDeterminationItem;
 import com.ruoyi.shebao.domain.BenefitResume;
 import com.ruoyi.shebao.domain.BenefitResumeItem;
+import com.ruoyi.shebao.domain.BenefitSuspensionItem;
 import com.ruoyi.shebao.domain.StreetOffice;
 import com.ruoyi.shebao.domain.SubsidyPerson;
 import com.ruoyi.shebao.domain.VillageCommittee;
@@ -21,6 +22,7 @@ import com.ruoyi.shebao.mapper.BenefitDeterminationItemMapper;
 import com.ruoyi.shebao.mapper.BenefitDeterminationMapper;
 import com.ruoyi.shebao.mapper.BenefitResumeItemMapper;
 import com.ruoyi.shebao.mapper.BenefitResumeMapper;
+import com.ruoyi.shebao.mapper.BenefitSuspensionItemMapper;
 import com.ruoyi.shebao.mapper.StreetOfficeMapper;
 import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
 import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
@@ -46,6 +48,7 @@ public class BenefitResumeServiceImpl implements BenefitResumeService
 {
     private final BenefitResumeMapper benefitResumeMapper;
     private final BenefitResumeItemMapper benefitResumeItemMapper;
+    private final BenefitSuspensionItemMapper benefitSuspensionItemMapper;
     private final BenefitDeterminationMapper benefitDeterminationMapper;
     private final BenefitDeterminationItemMapper benefitDeterminationItemMapper;
     private final SubsidyPersonMapper subsidyPersonMapper;
@@ -273,6 +276,15 @@ public class BenefitResumeServiceImpl implements BenefitResumeService
                 update.setUpdateBy(SecurityUtils.getUsername());
                 update.setUpdateTime(LocalDateTime.now());
                 benefitDeterminationItemMapper.updateById(update);
+
+                BenefitSuspensionItem closePause = new BenefitSuspensionItem();
+                closePause.setPauseActive("0");
+                closePause.setUpdateBy(SecurityUtils.getUsername());
+                closePause.setUpdateTime(LocalDateTime.now());
+                benefitSuspensionItemMapper.update(closePause, new LambdaQueryWrapper<BenefitSuspensionItem>()
+                        .eq(BenefitSuspensionItem::getDeterminationItemId, item.getId())
+                        .eq(BenefitSuspensionItem::getPauseActive, "1")
+                        .eq(BenefitSuspensionItem::getDelFlag, "0"));
             }
         }
         return resume.getId();

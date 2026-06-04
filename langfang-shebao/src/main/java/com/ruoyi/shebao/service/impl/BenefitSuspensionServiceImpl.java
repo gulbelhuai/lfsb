@@ -120,7 +120,9 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
                     .collect(Collectors.joining("、"));
             resp.setSubsidyTypes(allTypes);
 
-            List<BenefitSuspensionItem> pausedItems = pauseItemMap.getOrDefault(record.getId(), List.of());
+            List<BenefitSuspensionItem> pausedItems = pauseItemMap.getOrDefault(record.getId(), List.of()).stream()
+                    .filter(item -> "1".equals(StringUtils.defaultIfBlank(item.getPauseActive(), "1")))
+                    .toList();
             String pausedTypes = pausedItems.stream()
                     .map(BenefitSuspensionItem::getSubsidyType)
                     .distinct()
@@ -371,6 +373,7 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
         suspensionItem.setBenefitStartMonth(yearMonthToDate(item.getBenefitStartYear(), item.getBenefitStartMonth()));
         suspensionItem.setSubsidyStandard(standard);
         suspensionItem.setNeedRecover(needRecover ? "1" : "0");
+        suspensionItem.setPauseActive("1");
         suspensionItem.setRecoverStartMonth(yearMonthToDate(pauseYm));
         suspensionItem.setRecoverEndMonth(yearMonthToDate(recoverEndYm));
         suspensionItem.setRecoverMonths(recoverMonths);
