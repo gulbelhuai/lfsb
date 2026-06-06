@@ -28,6 +28,11 @@ public class FinanceAccountTransaction implements Serializable
 
     private String batchNo;
 
+    /**
+     * 关联业务ID：补贴发放=发放记录ID，待遇追回=追回记录ID，财政拨款为空
+     */
+    private Long businessId;
+
     /** fiscal_allocation / subsidy_distribution / benefit_recovery */
     private String transactionType;
 

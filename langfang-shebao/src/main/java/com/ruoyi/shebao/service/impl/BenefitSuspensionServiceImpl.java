@@ -25,6 +25,7 @@ import com.ruoyi.shebao.mapper.StreetOfficeMapper;
 import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
 import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
 import com.ruoyi.shebao.service.BenefitSuspensionService;
+import com.ruoyi.shebao.service.FinanceBenefitRecoveryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,7 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
     private final SubsidyPersonMapper subsidyPersonMapper;
     private final StreetOfficeMapper streetOfficeMapper;
     private final VillageCommitteeMapper villageCommitteeMapper;
+    private final FinanceBenefitRecoveryService financeBenefitRecoveryService;
 
     @Override
     public Page<BenefitSuspensionListResp> list(BenefitSuspensionListReq req)
@@ -251,6 +253,7 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
         {
             BenefitSuspensionItem suspensionItem = buildSuspensionItem(suspension.getId(), selectedItem, pauseYm, currentYm);
             benefitSuspensionItemMapper.insert(suspensionItem);
+            financeBenefitRecoveryService.syncFromSuspensionItem(suspension, suspensionItem);
         }
 
         for (BenefitDeterminationItem selectedItem : selectedItems)

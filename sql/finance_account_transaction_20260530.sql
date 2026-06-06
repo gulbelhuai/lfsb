@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS `finance_account_transaction` (
   `account_id` bigint NOT NULL COMMENT '财务账户ID',
   `account_name` varchar(100) NOT NULL COMMENT '账户名称(冗余)',
   `batch_no` varchar(32) DEFAULT NULL COMMENT '批次号(可为空)',
+  `business_id` bigint DEFAULT NULL COMMENT '关联业务ID(补贴发放/待遇追回等)',
   `transaction_type` varchar(32) NOT NULL COMMENT '交易类型(fiscal_allocation/subsidy_distribution/benefit_recovery)',
   `amount` decimal(16,2) NOT NULL COMMENT '交易金额(正=收入,负=支出)',
   `balance` decimal(16,2) NOT NULL COMMENT '交易后余额',

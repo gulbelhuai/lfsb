@@ -23,4 +23,14 @@
           and status = '1'
           and balance &gt;= #{amount}
     </update>
+
+    <update id="addBalance">
+        update finance_account
+        set balance = balance + #{amount},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        where id = #{id}
+          and del_flag = '0'
+          and status = '1'
+    </update>
 </mapper>

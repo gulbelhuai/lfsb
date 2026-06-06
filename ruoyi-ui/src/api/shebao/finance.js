@@ -126,6 +126,23 @@ export function completeBankDistribution(id) {
   })
 }
 
+/** 待遇追回列表 */
+export function listBenefitRecovery(query) {
+  return request({
+    url: '/shebao/finance/recovery/list',
+    method: 'get',
+    params: query
+  })
+}
+
+/** 待遇追回-确认已追回 */
+export function confirmBenefitRecovery(id) {
+  return request({
+    url: `/shebao/finance/recovery/${id}/confirm`,
+    method: 'post'
+  })
+}
+
 // 查询失败记录
 export function listFailureRecords(query) {
   return request({

@@ -23,4 +23,12 @@ public interface FinanceAccountMapper extends BaseMapper<FinanceAccount>
                     @Param("amount") BigDecimal amount,
                     @Param("updateBy") String updateBy,
                     @Param("updateTime") LocalDateTime updateTime);
+
+    /**
+     * 原子增加账户余额，返回影响行数
+     */
+    int addBalance(@Param("id") Long id,
+                   @Param("amount") BigDecimal amount,
+                   @Param("updateBy") String updateBy,
+                   @Param("updateTime") LocalDateTime updateTime);
 }

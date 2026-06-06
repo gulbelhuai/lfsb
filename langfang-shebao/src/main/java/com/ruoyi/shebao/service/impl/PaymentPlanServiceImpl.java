@@ -457,7 +457,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         }
         if (successAmount.compareTo(BigDecimal.ZERO) > 0)
         {
-            financeAccountService.deductForSubsidyDistribution(plan.getSubsidyType(), plan.getBatchNo(), successAmount);
+            financeAccountService.deductForSubsidyDistribution(plan.getSubsidyType(), planId, plan.getBatchNo(), successAmount);
         }
         PaymentPlan upd = new PaymentPlan();
         upd.setId(planId);

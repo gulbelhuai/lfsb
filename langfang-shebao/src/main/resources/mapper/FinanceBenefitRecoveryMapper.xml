@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.FinanceBenefitRecoveryMapper">
+
+    <select id="selectRecoveryPage" resultType="com.ruoyi.shebao.dto.FinanceBenefitRecoveryListResp">
+        select r.id as id,
+               r.subsidy_person_id as subsidyPersonId,
+               sp.name as personName,
+               r.id_card_no as idCardNo,
+               r.subsidy_type as subsidyType,
+               r.suspension_id as suspensionId,
+               r.recover_start_month as recoverStartMonth,
+               r.recover_end_month as recoverEndMonth,
+               r.recover_amount as recoverAmount,
+               r.recovery_status as recoveryStatus,
+               r.recovery_time as recoveryTime,
+               r.create_time as createTime
+        from shebao_finance_benefit_recovery r
+        left join shebao_subsidy_person sp on sp.id = r.subsidy_person_id and sp.del_flag = '0'
+        where r.del_flag = '0'
+        <if test="req != null and req.personName != null and req.personName != ''">
+            and sp.name like concat('%', #{req.personName}, '%')
+        </if>
+        <if test="req != null and req.idCardNo != null and req.idCardNo != ''">
+            and r.id_card_no like concat('%', #{req.idCardNo}, '%')
+        </if>
+        <if test="req != null and req.subsidyType != null and req.subsidyType != ''">
+            and r.subsidy_type = #{req.subsidyType}
+        </if>
+        <if test="req != null and req.recoveryStatus != null and req.recoveryStatus != ''">
+            and r.recovery_status = #{req.recoveryStatus}
+        </if>
+        order by r.recovery_status asc, r.create_time desc, r.id desc
+    </select>
+</mapper>

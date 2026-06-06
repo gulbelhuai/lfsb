@@ -28,8 +28,16 @@ public interface IFinanceAccountService extends IService<FinanceAccount>
      * 补贴发放扣款：按补贴类型扣减账户余额（原生SQL原子扣减）并记支出明细
      *
      * @param subsidyType 补贴类型
-     * @param batchNo     支付计划批次号
+     * @param businessId  补贴发放记录ID（如支付计划ID）
+     * @param batchNo     批次号
      * @param amount      扣款金额（正数）
      */
-    void deductForSubsidyDistribution(String subsidyType, String batchNo, BigDecimal amount);
+    void deductForSubsidyDistribution(String subsidyType, Long businessId, String batchNo, BigDecimal amount);
+
+    /**
+     * 待遇追回入账：按补贴类型增加账户余额并记收入明细
+     *
+     * @return 财务账户明细ID
+     */
+    Long creditForBenefitRecovery(String subsidyType, Long recoveryId, BigDecimal amount, String remark);
 }

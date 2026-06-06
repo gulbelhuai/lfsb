@@ -223,6 +223,14 @@ export default {
       meta: { title: '财务账户管理', icon: 'money' },
       hidden: false
     },
+    // 5.5 待遇追回
+    {
+      path: 'finance/recovery',
+      component: () => import('@/views/shebao/finance/recovery/index'),
+      name: 'FinanceBenefitRecovery',
+      meta: { title: '待遇追回', icon: 'money' },
+      hidden: false
+    },
 
     // ==================== 6. 统计管理（原审计） ====================
     {

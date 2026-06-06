@@ -75,6 +75,7 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         txn.setAccountId(accountId);
         txn.setAccountName(buildAccountDisplayName(account.getAccountType()));
         txn.setBatchNo(null);
+        txn.setBusinessId(null);
         txn.setTransactionType(TX_FISCAL_ALLOCATION);
         txn.setAmount(req.getAmount());
         txn.setBalance(newBalance);
@@ -97,7 +98,7 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deductForSubsidyDistribution(String subsidyType, String batchNo, BigDecimal amount)
+    public void deductForSubsidyDistribution(String subsidyType, Long businessId, String batchNo, BigDecimal amount)
     {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0)
         {
@@ -127,6 +128,7 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         txn.setAccountId(account.getId());
         txn.setAccountName(buildAccountDisplayName(account.getAccountType()));
         txn.setBatchNo(batchNo);
+        txn.setBusinessId(businessId);
         txn.setTransactionType(TX_SUBSIDY_DISTRIBUTION);
         txn.setAmount(amount.negate());
         txn.setBalance(after);
@@ -138,6 +140,53 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         txn.setUpdateBy(username);
         txn.setUpdateTime(now);
         financeAccountTransactionMapper.insert(txn);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long creditForBenefitRecovery(String subsidyType, Long recoveryId, BigDecimal amount, String remark)
+    {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0)
+        {
+            throw new ServiceException("追回金额须大于0");
+        }
+        if (StringUtils.isEmpty(subsidyType))
+        {
+            throw new ServiceException("追回记录缺少补贴类型，无法入账");
+        }
+        FinanceAccount account = baseMapper.selectBySubsidyType(subsidyType);
+        if (account == null)
+        {
+            throw new ServiceException("未找到对应补贴类型的财务账户");
+        }
+        BigDecimal before = account.getBalance() == null ? BigDecimal.ZERO : account.getBalance();
+        LocalDateTime now = LocalDateTime.now();
+        String username = SecurityUtils.getUsername();
+
+        int rows = baseMapper.addBalance(account.getId(), amount, username, now);
+        if (rows == 0)
+        {
+            throw new ServiceException("财务账户不可用，无法完成待遇追收入账");
+        }
+
+        BigDecimal after = before.add(amount);
+        FinanceAccountTransaction txn = new FinanceAccountTransaction();
+        txn.setAccountId(account.getId());
+        txn.setAccountName(buildAccountDisplayName(account.getAccountType()));
+        txn.setBatchNo(null);
+        txn.setBusinessId(recoveryId);
+        txn.setTransactionType(TX_BENEFIT_RECOVERY);
+        txn.setAmount(amount);
+        txn.setBalance(after);
+        txn.setTransactionTime(now);
+        txn.setRemark(remark == null || remark.isBlank() ? "待遇追回" : remark.trim());
+        txn.setDelFlag("0");
+        txn.setCreateBy(username);
+        txn.setCreateTime(now);
+        txn.setUpdateBy(username);
+        txn.setUpdateTime(now);
+        financeAccountTransactionMapper.insert(txn);
+        return txn.getId();
     }
 
     private String buildAccountDisplayName(String subsidyType)
