@@ -247,6 +247,14 @@ export default {
       meta: { title: '操作日志', icon: 'documentation' },
       hidden: false
     },
+    // 历史数据导入
+    {
+      path: 'historicalImport',
+      component: () => import('@/views/shebao/historicalImport/index'),
+      name: 'HistoricalDataImport',
+      meta: { title: '历史数据导入', icon: 'upload' },
+      hidden: false
+    },
     // 6.2 审批历史
     {
       path: 'audit/approval',

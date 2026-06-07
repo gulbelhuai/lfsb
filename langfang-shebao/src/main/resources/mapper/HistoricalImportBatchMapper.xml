@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.shebao.mapper.HistoricalImportBatchMapper">
+
+    <resultMap id="BatchListRespResult" type="com.ruoyi.shebao.dto.historicalimport.HistoricalImportBatchListResp">
+        <result property="id" column="id"/>
+        <result property="subsidyType" column="subsidy_type"/>
+        <result property="fileName" column="file_name"/>
+        <result property="totalRows" column="total_rows"/>
+        <result property="successRows" column="success_rows"/>
+        <result property="failureRows" column="failure_rows"/>
+        <result property="importStatus" column="import_status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="hasFailureFile" column="has_failure_file"/>
+        <result property="failureFilePath" column="failure_file_path"/>
+    </resultMap>
+
+    <select id="selectBatchList" resultMap="BatchListRespResult">
+        select id, subsidy_type, file_name, total_rows, success_rows, failure_rows,
+               import_status, create_time, create_by, failure_file_path,
+               case when failure_file_path is not null and failure_file_path != '' then 1 else 0 end as has_failure_file
+        from shebao_historical_import_batch
+        where del_flag = '0'
+        order by create_time desc
+    </select>
+</mapper>
