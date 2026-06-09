@@ -520,8 +520,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
             }
             String targetDir = RuoYiConfig.getProfile() + "/historical-import/failures";
             Files.createDirectories(Path.of(targetDir));
-            String targetName = HistoricalImportFileNames.failureFileName(
-                    HistoricalImportSubsidyType.fromCode(subsidyType()).getLabel());
+            String targetName = HistoricalImportFileNames.storedFailureFileName();
             Path target = Path.of(targetDir, targetName);
             Files.move(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             return "/profile/historical-import/failures/" + targetName;

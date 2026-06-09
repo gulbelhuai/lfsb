@@ -19,8 +19,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +54,8 @@ public class HistoricalDataImportServiceImpl implements HistoricalDataImportServ
                 }
                 if (StringUtils.isNotBlank(row.getFailureFilePath()))
                 {
-                    row.setFailureFileName(Path.of(row.getFailureFilePath()).getFileName().toString());
+                    row.setFailureFileName(HistoricalImportFileNames.resolveFailureDownloadName(
+                            row.getFailureFilePath(), row.getSubsidyTypeLabel()));
                 }
             }
         }
@@ -131,15 +132,33 @@ public class HistoricalDataImportServiceImpl implements HistoricalDataImportServ
         {
             throw new ServiceException("该批次无失败记录文件");
         }
-        String relative = batch.getFailureFilePath().replace("/profile/", "");
-        Path filePath = Path.of(RuoYiConfig.getProfile(), relative);
-        if (!Files.exists(filePath))
+        File file = resolveFailureFile(batch.getFailureFilePath());
+        if (file == null || !file.exists())
         {
             throw new ServiceException("失败记录文件不存在或已被清理");
         }
-        String downloadName = filePath.getFileName().toString();
+        String subsidyTypeLabel = HistoricalImportSubsidyType.fromCode(batch.getSubsidyType()).getLabel();
+        String downloadName = HistoricalImportFileNames.resolveFailureDownloadName(
+                batch.getFailureFilePath(), subsidyTypeLabel);
+        if (StringUtils.isBlank(downloadName))
+        {
+            downloadName = file.getName();
+        }
         FileUtils.setAttachmentResponseHeader(response, downloadName);
-        Files.copy(filePath, response.getOutputStream());
+        try (FileInputStream input = new FileInputStream(file))
+        {
+            input.transferTo(response.getOutputStream());
+        }
+    }
+
+    private File resolveFailureFile(String failureFilePath)
+    {
+        if (StringUtils.isBlank(failureFilePath))
+        {
+            return null;
+        }
+        String relative = failureFilePath.replace("/profile/", "").replace("/", File.separator);
+        return new File(RuoYiConfig.getProfile(), relative);
     }
 
     private HistoricalImportHandler resolveHandler(String subsidyType)
