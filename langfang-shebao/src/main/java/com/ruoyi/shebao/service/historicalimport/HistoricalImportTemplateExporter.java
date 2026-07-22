@@ -46,7 +46,8 @@ public class HistoricalImportTemplateExporter
     private static final String DICT_SHEET_NAME = "字典说明";
     private static final String IMPORT_INSTRUCTIONS = "导入说明：\n"
             + "1、村委会只需要填写/号之后的部分即可\n"
-            + "2、年月的格式为yyyy-MM，日期的格式为yyyy-MM-dd";
+            + "2、年月的格式为yyyy-MM，日期的格式为yyyy-MM-dd\n"
+            + "3、参保状态为「终止」时须填写注销时间与注销原因；注销时间不能晚于今天";
 
     private final StreetOfficeMapper streetOfficeMapper;
     private final VillageCommitteeMapper villageCommitteeMapper;
@@ -96,7 +97,7 @@ public class HistoricalImportTemplateExporter
         {
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, colCount - 1));
         }
-        instructionRow.setHeightInPoints(54);
+        instructionRow.setHeightInPoints(68);
 
         Row headerRow = sheet.createRow(1);
         for (int col = 0; col < columns.size(); col++)
@@ -129,6 +130,7 @@ public class HistoricalImportTemplateExporter
         columns.add(new DictColumn("是否健在", List.of("是", "否")));
         columns.add(new DictColumn("参保状态", dictLabels("shebao_subsidy_status")));
         columns.add(new DictColumn("人员状态", dictLabels("shebao_person_status")));
+        columns.add(new DictColumn("注销原因", dictLabels("cancel_reason")));
         columns.add(new DictColumn("是否村合作经济组织成员", List.of("是", "否")));
         columns.add(new DictColumn("发放机构", dictLabels("shebao_grant_org")));
         columns.add(new DictColumn("暂停原因", dictLabels("pause_reason")));

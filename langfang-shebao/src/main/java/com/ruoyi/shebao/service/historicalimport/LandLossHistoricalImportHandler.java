@@ -14,6 +14,7 @@ import com.ruoyi.shebao.domain.BenefitSuspension;
 import com.ruoyi.shebao.domain.BenefitSuspensionItem;
 import com.ruoyi.shebao.domain.HistoricalImportBatch;
 import com.ruoyi.shebao.domain.LandLossResident;
+import com.ruoyi.shebao.domain.PersonCancel;
 import com.ruoyi.shebao.domain.StreetOffice;
 import com.ruoyi.shebao.domain.SubsidyPerson;
 import com.ruoyi.shebao.domain.VillageCommittee;
@@ -21,7 +22,6 @@ import com.ruoyi.shebao.dto.LandLossResidentFormDto;
 import com.ruoyi.shebao.dto.historicalimport.HistoricalImportResult;
 import com.ruoyi.shebao.dto.historicalimport.LandLossHistoricalImportDto;
 import com.ruoyi.shebao.enums.HistoricalImportSubsidyType;
-import com.ruoyi.shebao.service.historicalimport.HistoricalImportFileNames;
 import com.ruoyi.shebao.mapper.BenefitDeterminationItemMapper;
 import com.ruoyi.shebao.mapper.BenefitDeterminationMapper;
 import com.ruoyi.shebao.mapper.BenefitSuspensionItemMapper;
@@ -31,6 +31,7 @@ import com.ruoyi.shebao.mapper.LandLossResidentMapper;
 import com.ruoyi.shebao.mapper.StreetOfficeMapper;
 import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
 import com.ruoyi.shebao.service.FinanceBenefitRecoveryService;
+import com.ruoyi.shebao.service.PersonCancelService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.support.SubsidyPersonRegistrationHelper;
 import jakarta.servlet.http.HttpServletResponse;
@@ -77,6 +78,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
     private final BenefitSuspensionMapper benefitSuspensionMapper;
     private final BenefitSuspensionItemMapper benefitSuspensionItemMapper;
     private final FinanceBenefitRecoveryService financeBenefitRecoveryService;
+    private final PersonCancelService personCancelService;
     private final PlatformTransactionManager transactionManager;
     private final HistoricalImportTemplateExporter historicalImportTemplateExporter;
 
@@ -170,6 +172,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         SubsidyPerson existing = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
         if (existing != null)
         {
+            assertNoApprovedCancel(existing.getId());
             long duplicate = landLossResidentMapper.selectCount(new LambdaQueryWrapper<LandLossResident>()
                     .eq(LandLossResident::getSubsidyPersonId, existing.getId())
                     .eq(LandLossResident::getDelFlag, "0"));
@@ -208,6 +211,11 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
                 createHistoricalSuspension(determinationId, subsidyPersonId, row, validated);
             }
         }
+
+        if (validated.hasCancelBlock)
+        {
+            createApprovedPersonCancel(subsidyPersonId, validated);
+        }
     }
 
     private ValidatedRow validateRow(LandLossHistoricalImportDto row)
@@ -232,6 +240,19 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         validated.isVillageCoopMember = HistoricalImportDictSupport.requireYesNo(
                 row.getIsVillageCoopMember(), "是否村合作经济组织成员");
 
+        validated.hasCancelBlock = StringUtils.isNotBlank(row.getCancelTime())
+                || StringUtils.isNotBlank(row.getCancelReason());
+        if ("1".equals(validated.subsidyStatus) && !validated.hasCancelBlock)
+        {
+            throw new ServiceException("参保状态为终止时必须填写注销时间与注销原因");
+        }
+        if (validated.hasCancelBlock)
+        {
+            validated.cancelTime = parseRequiredDateNotAfterToday(row.getCancelTime(), "注销时间");
+            validated.cancelReason = HistoricalImportDictSupport.requireDictByLabelOrValue(
+                    "cancel_reason", row.getCancelReason(), "注销原因");
+        }
+
         SubsidyPerson existing = subsidyPersonService.selectSubsidyPersonByIdCardNo(idCard);
         if (existing == null)
         {
@@ -241,6 +262,10 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
             }
             validated.streetOffice = resolveStreetOffice(row.getStreetOfficeName());
             validated.villageCommittee = resolveVillageCommittee(row.getVillageCommitteeName(), validated.streetOffice.getId());
+        }
+        else
+        {
+            assertNoApprovedCancel(existing.getId());
         }
 
         validated.hasBenefitBlock = hasBenefitDeterminationData(row);
@@ -566,6 +591,8 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         copy.setIsAlive(row.getIsAlive());
         copy.setSubsidyStatus(row.getSubsidyStatus());
         copy.setPersonStatus(row.getPersonStatus());
+        copy.setCancelTime(row.getCancelTime());
+        copy.setCancelReason(row.getCancelReason());
         copy.setLandRequisitionTime(row.getLandRequisitionTime());
         copy.setCompensationCompleteTime(row.getCompensationCompleteTime());
         copy.setRecognitionTime(row.getRecognitionTime());
@@ -590,15 +617,78 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         return copy;
     }
 
+    private void assertNoApprovedCancel(Long subsidyPersonId)
+    {
+        long count = personCancelService.count(new LambdaQueryWrapper<PersonCancel>()
+                .eq(PersonCancel::getSubsidyPersonId, subsidyPersonId)
+                .eq(PersonCancel::getDelFlag, "0")
+                .eq(PersonCancel::getApprovalStatus, "approved"));
+        if (count > 0)
+        {
+            throw new ServiceException("该人员已存在注销登记记录");
+        }
+    }
+
+    private void createApprovedPersonCancel(Long subsidyPersonId, ValidatedRow validated)
+    {
+        String operator = SecurityUtils.getUsername();
+        LocalDateTime now = LocalDateTime.now();
+        PersonCancel pc = new PersonCancel();
+        pc.setSubsidyPersonId(subsidyPersonId);
+        pc.setDeathDate(validated.cancelTime);
+        pc.setCancelReason(validated.cancelReason);
+        pc.setApprovalStatus("approved");
+        pc.setReviewBy(operator);
+        pc.setReviewTime(now);
+        pc.setDelFlag("0");
+        pc.setCreateBy(operator);
+        pc.setCreateTime(now);
+        pc.setUpdateBy(operator);
+        pc.setUpdateTime(now);
+        personCancelService.save(pc);
+
+        SubsidyPerson person = subsidyPersonService.selectSubsidyPersonById(subsidyPersonId);
+        personCancelService.applyApprovedCancelToPerson(person, validated.cancelTime, validated.cancelReason);
+    }
+
+    private LocalDate parseRequiredDateNotAfterToday(String value, String label)
+    {
+        if (StringUtils.isBlank(value))
+        {
+            throw new ServiceException(label + "不能为空");
+        }
+        LocalDate date = parseOptionalDate(value, label);
+        if (date == null)
+        {
+            throw new ServiceException(label + "不能为空");
+        }
+        if (date.isAfter(LocalDate.now()))
+        {
+            throw new ServiceException(label + "不能晚于今天");
+        }
+        return date;
+    }
+
     private LocalDate parseOptionalDate(String value, String label)
     {
         if (StringUtils.isBlank(value))
         {
             return null;
         }
+        String trimmed = value.trim();
+        // Excel 日期单元格可能被读成序列号字符串
+        if (trimmed.matches("^\\d+(\\.\\d+)?$"))
+        {
+            double serial = Double.parseDouble(trimmed);
+            if (serial >= 20000 && serial < 100000)
+            {
+                return DateUtil.getJavaDate(serial).toInstant()
+                        .atZone(ZoneId.systemDefault()).toLocalDate();
+            }
+        }
         try
         {
-            return LocalDate.parse(value.trim(), DATE_FMT);
+            return LocalDate.parse(trimmed, DATE_FMT);
         }
         catch (DateTimeParseException ex)
         {
@@ -715,6 +805,9 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         private VillageCommittee villageCommittee;
         private boolean hasBenefitBlock;
         private boolean hasPauseBlock;
+        private boolean hasCancelBlock;
+        private LocalDate cancelTime;
+        private String cancelReason;
         private String grantOrg;
         private String accountName;
         private String relationToInsured;

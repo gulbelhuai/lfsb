@@ -3,10 +3,12 @@ package com.ruoyi.shebao.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.shebao.domain.PersonCancel;
+import com.ruoyi.shebao.domain.SubsidyPerson;
 import com.ruoyi.shebao.dto.PersonCancelFormDto;
 import com.ruoyi.shebao.dto.PersonCancelListReq;
 import com.ruoyi.shebao.dto.PersonCancelListResp;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -30,5 +32,10 @@ public interface PersonCancelService extends IService<PersonCancel>
     int review(Long id, boolean approved, String remark);
 
     int deletePersonCancelByIds(Long[] ids);
+
+    /**
+     * 复核通过后同步人员主表：参保终止、写入注销时间；仅死亡原因将是否健在改为否。
+     */
+    void applyApprovedCancelToPerson(SubsidyPerson person, LocalDate cancelTime, String cancelReason);
 }
 

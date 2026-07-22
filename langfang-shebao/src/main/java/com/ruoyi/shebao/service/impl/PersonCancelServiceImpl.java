@@ -27,8 +27,8 @@ import java.util.Set;
  * 人员注销登记Service实现
  *
  * 说明：
- * - 新增/修改注销登记时，会同步把基础信息（shebao_subsidy_person）标记为死亡：is_alive=0，death_date=填入时间
- * - 删除注销登记记录仅做逻辑删除，不自动回滚人员死亡状态（避免误删导致状态回退）
+ * - 新增/修改仅写入注销表，待复核
+ * - 复核通过：参保状态改为终止，写入注销时间；仅当注销原因为「死亡」时将是否健在改为否
  *
  * @author ruoyi
  * @date 2026-01-24
@@ -36,6 +36,9 @@ import java.util.Set;
 @Service
 public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, PersonCancel> implements PersonCancelService
 {
+    /** 字典 cancel_reason：死亡 */
+    public static final String CANCEL_REASON_DEAD = "dead";
+
     @Autowired
     private PersonCancelMapper personCancelMapper;
 
@@ -76,6 +79,10 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
         {
             throw new ServiceException("注销时间不能为空");
         }
+        if (cancelTime.isAfter(LocalDate.now()))
+        {
+            throw new ServiceException("注销时间不能晚于今天");
+        }
 
         SubsidyPerson person = subsidyPersonService.selectSubsidyPersonByIdCardNo(formDto.getIdCardNo());
         if (person == null)
@@ -108,6 +115,10 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
         if (cancelTime == null)
         {
             throw new ServiceException("注销时间不能为空");
+        }
+        if (cancelTime.isAfter(LocalDate.now()))
+        {
+            throw new ServiceException("注销时间不能晚于今天");
         }
 
         PersonCancelFormDto existing = personCancelMapper.selectPersonCancelFormById(formDto.getId());
@@ -169,12 +180,7 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
             }
             if (person != null)
             {
-                person.setSubsidyStatus("1");
-                person.setIsAlive("0");
-                person.setDeathDate(entity.getDeathDate());
-                person.setUpdateBy(SecurityUtils.getUsername());
-                person.setUpdateTime(LocalDateTime.now());
-                subsidyPersonService.updateSubsidyPerson(person);
+                applyApprovedCancelToPerson(person, entity.getDeathDate(), entity.getCancelReason());
             }
         }
         else
@@ -227,20 +233,47 @@ public class PersonCancelServiceImpl extends ServiceImpl<PersonCancelMapper, Per
 
             if (remaining <= 0)
             {
-                // 没有任何注销记录 -> 视为回滚到健在
+                // 无已通过注销记录：回滚死亡相关字段（参保状态不回滚，与历史行为一致）
                 person.setIsAlive("1");
                 person.setDeathDate(null);
             }
             else
             {
-                // 仍有注销记录 -> 以最新（最大）死亡时间为准
                 LocalDate maxDeathDate = personCancelMapper.selectMaxDeathDateByPersonId(personId);
-                person.setIsAlive("0");
                 person.setDeathDate(maxDeathDate);
+                // 仅当仍存在「死亡」原因的已通过注销时，保持是否健在=否
+                long deadApproved = this.lambdaQuery()
+                        .eq(PersonCancel::getSubsidyPersonId, personId)
+                        .eq(PersonCancel::getDelFlag, "0")
+                        .eq(PersonCancel::getApprovalStatus, "approved")
+                        .eq(PersonCancel::getCancelReason, CANCEL_REASON_DEAD)
+                        .count();
+                if (deadApproved > 0)
+                {
+                    person.setIsAlive("0");
+                }
             }
             subsidyPersonService.updateSubsidyPerson(person);
         }
         return ids.length;
+    }
+
+    @Override
+    public void applyApprovedCancelToPerson(SubsidyPerson person, LocalDate cancelTime, String cancelReason)
+    {
+        if (person == null)
+        {
+            return;
+        }
+        person.setSubsidyStatus("1");
+        person.setDeathDate(cancelTime);
+        if (CANCEL_REASON_DEAD.equals(cancelReason))
+        {
+            person.setIsAlive("0");
+        }
+        person.setUpdateBy(SecurityUtils.getUsername());
+        person.setUpdateTime(LocalDateTime.now());
+        subsidyPersonService.updateSubsidyPerson(person);
     }
 }
 
