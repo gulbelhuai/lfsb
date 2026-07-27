@@ -3,8 +3,10 @@ package com.ruoyi.shebao.service.historicalimport;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.annotation.Excel.Type;
+import com.ruoyi.common.config.RuoYiConfig;
 import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.common.utils.reflect.ReflectUtils;
 import com.ruoyi.shebao.domain.StreetOffice;
 import com.ruoyi.shebao.domain.VillageCommittee;
 import com.ruoyi.shebao.dto.historicalimport.LandLossHistoricalImportDto;
@@ -26,6 +28,8 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -64,6 +68,29 @@ public class HistoricalImportTemplateExporter
         }
     }
 
+    /**
+     * 用 XSSF 写失败记录，避免 ExcelUtil/SXSSF 在无字体服务器上触发 AWT FontManager 崩溃。
+     *
+     * @return 相对 profile 的访问路径，如 /profile/historical-import/failures/failure_xxx.xlsx
+     */
+    public String exportLandLossFailureFile(List<LandLossHistoricalImportDto> failedRows) throws IOException
+    {
+        File dir = new File(RuoYiConfig.getProfile(), "historical-import" + File.separator + "failures");
+        if (!dir.exists() && !dir.mkdirs())
+        {
+            throw new IOException("无法创建失败记录目录：" + dir.getAbsolutePath());
+        }
+        String fileName = HistoricalImportFileNames.storedFailureFileName();
+        File target = new File(dir, fileName);
+        try (Workbook workbook = new XSSFWorkbook();
+             FileOutputStream out = new FileOutputStream(target))
+        {
+            writeExportSheet(workbook, "失败记录", LandLossHistoricalImportDto.class, failedRows);
+            workbook.write(out);
+        }
+        return "/profile/historical-import/failures/" + fileName;
+    }
+
     private void createDataSheet(Workbook workbook, Class<?> dtoClass)
     {
         Sheet sheet = workbook.createSheet(DATA_SHEET_NAME);
@@ -76,6 +103,39 @@ public class HistoricalImportTemplateExporter
             cell.setCellValue(fields.get(i).name());
             cell.setCellStyle(headerStyle);
             sheet.setColumnWidth(i, 18 * 256);
+        }
+        sheet.createFreezePane(0, 1);
+    }
+
+    private void writeExportSheet(Workbook workbook, String sheetName, Class<?> dtoClass,
+                                  List<LandLossHistoricalImportDto> rows)
+    {
+        Sheet sheet = workbook.createSheet(sheetName);
+        CellStyle headerStyle = buildHeaderStyle(workbook);
+        List<ExcelField> fields = resolveExportFields(dtoClass);
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < fields.size(); i++)
+        {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(fields.get(i).name());
+            cell.setCellStyle(headerStyle);
+            sheet.setColumnWidth(i, 18 * 256);
+        }
+        if (rows != null)
+        {
+            for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++)
+            {
+                LandLossHistoricalImportDto rowData = rows.get(rowIdx);
+                Row row = sheet.createRow(rowIdx + 1);
+                for (int col = 0; col < fields.size(); col++)
+                {
+                    Object value = ReflectUtils.invokeGetter(rowData, fields.get(col).fieldName());
+                    if (value != null)
+                    {
+                        row.createCell(col).setCellValue(String.valueOf(value));
+                    }
+                }
+            }
         }
         sheet.createFreezePane(0, 1);
     }
@@ -199,7 +259,28 @@ public class HistoricalImportTemplateExporter
             {
                 continue;
             }
-            fields.add(new ExcelField(excel.sort(), excel.name()));
+            fields.add(new ExcelField(excel.sort(), excel.name(), field.getName()));
+        }
+        fields.sort(Comparator.comparingInt(ExcelField::sort));
+        return fields;
+    }
+
+    /** 失败导出：导入列 + 失败原因 */
+    private List<ExcelField> resolveExportFields(Class<?> dtoClass)
+    {
+        List<ExcelField> fields = new ArrayList<>();
+        for (Field field : dtoClass.getDeclaredFields())
+        {
+            Excel excel = field.getAnnotation(Excel.class);
+            if (excel == null)
+            {
+                continue;
+            }
+            if (excel.type() == Type.IMPORT)
+            {
+                continue;
+            }
+            fields.add(new ExcelField(excel.sort(), excel.name(), field.getName()));
         }
         fields.sort(Comparator.comparingInt(ExcelField::sort));
         return fields;
@@ -234,7 +315,7 @@ public class HistoricalImportTemplateExporter
     {
     }
 
-    private record ExcelField(int sort, String name)
+    private record ExcelField(int sort, String name, String fieldName)
     {
     }
 }

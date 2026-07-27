@@ -1,8 +1,6 @@
 package com.ruoyi.shebao.service.historicalimport;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ruoyi.common.config.RuoYiConfig;
-import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -45,8 +43,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -535,20 +531,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
     {
         try
         {
-            ExcelUtil<LandLossHistoricalImportDto> util = new ExcelUtil<>(LandLossHistoricalImportDto.class);
-            AjaxResult exportResult = util.exportExcel(failedRows, "失败记录");
-            String tempName = resolveExcelTempFileName(exportResult);
-            Path source = Path.of(RuoYiConfig.getDownloadPath()).resolve(tempName);
-            if (!Files.exists(source))
-            {
-                throw new ServiceException("失败记录临时文件不存在：" + source);
-            }
-            String targetDir = RuoYiConfig.getProfile() + "/historical-import/failures";
-            Files.createDirectories(Path.of(targetDir));
-            String targetName = HistoricalImportFileNames.storedFailureFileName();
-            Path target = Path.of(targetDir, targetName);
-            Files.move(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            return "/profile/historical-import/failures/" + targetName;
+            return historicalImportTemplateExporter.exportLandLossFailureFile(failedRows);
         }
         catch (ServiceException e)
         {
@@ -558,24 +541,6 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         {
             throw new ServiceException("生成失败记录文件失败：" + e.getMessage());
         }
-    }
-
-    /**
-     * ExcelUtil.exportExcel 返回的 AjaxResult 中，文件名因方法重载落在 msg 而非 data。
-     */
-    private String resolveExcelTempFileName(AjaxResult exportResult)
-    {
-        Object data = exportResult.get(AjaxResult.DATA_TAG);
-        if (data != null && StringUtils.isNotBlank(data.toString()))
-        {
-            return data.toString();
-        }
-        Object msg = exportResult.get(AjaxResult.MSG_TAG);
-        if (msg != null && StringUtils.isNotBlank(msg.toString()) && msg.toString().endsWith(".xlsx"))
-        {
-            return msg.toString();
-        }
-        throw new ServiceException("导出失败记录未返回有效文件名");
     }
 
     private LandLossHistoricalImportDto copyRow(LandLossHistoricalImportDto row)
