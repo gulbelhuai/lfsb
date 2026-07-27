@@ -187,7 +187,6 @@ public class HistoricalImportTemplateExporter
     private List<DictColumn> buildLandLossDictColumns()
     {
         List<DictColumn> columns = new ArrayList<>();
-        columns.add(new DictColumn("是否健在", List.of("是", "否")));
         columns.add(new DictColumn("参保状态", dictLabels("shebao_subsidy_status")));
         columns.add(new DictColumn("人员状态", dictLabels("shebao_person_status")));
         columns.add(new DictColumn("注销原因", dictLabels("cancel_reason")));

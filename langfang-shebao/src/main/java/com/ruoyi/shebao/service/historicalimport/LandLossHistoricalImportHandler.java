@@ -181,7 +181,6 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         Long subsidyPersonId = subsidyPersonRegistrationHelper.resolveSubsidyPersonForCreate(formDto, personId -> false, person -> {
             person.setPersonStatus(validated.personStatus);
             person.setSubsidyStatus(validated.subsidyStatus);
-            person.setIsAlive(validated.isAlive);
             person.setIsVillageCoopMember(validated.isVillageCoopMember);
         });
 
@@ -232,7 +231,6 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
                 "shebao_person_status", row.getPersonStatus(), "人员状态");
         validated.subsidyStatus = HistoricalImportDictSupport.requireDictByLabelOrValue(
                 "shebao_subsidy_status", row.getSubsidyStatus(), "参保状态");
-        validated.isAlive = HistoricalImportDictSupport.requireYesNo(row.getIsAlive(), "是否健在");
         validated.isVillageCoopMember = HistoricalImportDictSupport.requireYesNo(
                 row.getIsVillageCoopMember(), "是否村合作经济组织成员");
 
@@ -553,7 +551,6 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         copy.setPhone(row.getPhone());
         copy.setStreetOfficeName(row.getStreetOfficeName());
         copy.setVillageCommitteeName(row.getVillageCommitteeName());
-        copy.setIsAlive(row.getIsAlive());
         copy.setSubsidyStatus(row.getSubsidyStatus());
         copy.setPersonStatus(row.getPersonStatus());
         copy.setCancelTime(row.getCancelTime());
@@ -764,7 +761,6 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
     {
         private String personStatus;
         private String subsidyStatus;
-        private String isAlive;
         private String isVillageCoopMember;
         private StreetOffice streetOffice;
         private VillageCommittee villageCommittee;
