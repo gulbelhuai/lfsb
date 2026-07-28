@@ -6,12 +6,12 @@ import com.ruoyi.shebao.service.historicalimport.HistoricalImportCommonColumns;
 import lombok.Data;
 
 /**
- * 失地居民历史数据导入模板
+ * 拆迁居民历史数据导入模板
  */
 @Data
-public class LandLossHistoricalImportDto implements HistoricalImportCommonColumns
+public class DemolitionHistoricalImportDto implements HistoricalImportCommonColumns
 {
-    // ===== 个人基本信息 =====
+    // ===== 个人基本信息（与失地模板列 1-11 一致） =====
     @Excel(name = "姓名", sort = 1)
     private String name;
 
@@ -45,18 +45,15 @@ public class LandLossHistoricalImportDto implements HistoricalImportCommonColumn
     @Excel(name = "注销原因", sort = 11)
     private String cancelReason;
 
-    // ===== 失地登记信息 =====
-    @Excel(name = "征地时间", sort = 12, dateFormat = "yyyy-MM-dd")
-    private String landRequisitionTime;
+    // ===== 拆迁登记信息（列 12-18，与失地登记段列序对齐） =====
+    @Excel(name = "拆迁事由", sort = 12)
+    private String demolitionReason;
 
-    @Excel(name = "完成补偿时间", sort = 13, dateFormat = "yyyy-MM-dd")
-    private String compensationCompleteTime;
+    @Excel(name = "拆迁时间", sort = 13, dateFormat = "yyyy-MM-dd")
+    private String demolitionTime;
 
     @Excel(name = "认定时间", sort = 14, dateFormat = "yyyy-MM-dd")
     private String recognitionTime;
-
-    @Excel(name = "征地批次", sort = 15)
-    private String landRequisitionBatch;
 
     @Excel(name = "认定时所在村街", sort = 16)
     private String villageStreet;

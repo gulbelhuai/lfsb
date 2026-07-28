@@ -10,7 +10,7 @@ public enum HistoricalImportSubsidyType
 {
     LAND_LOSS_RESIDENT("land_loss_resident", "失地居民补贴", true),
     EXPROPRIATEE("expropriatee", "被征地农民补贴", false),
-    DEMOLITION_RESIDENT("demolition_resident", "拆迁居民补贴", false),
+    DEMOLITION_RESIDENT("demolition_resident", "拆迁居民补贴", true),
     VILLAGE_OFFICIAL("village_official", "村干部补贴", false),
     TEACHER_SUBSIDY("teacher_subsidy", "教龄补助", false);
 

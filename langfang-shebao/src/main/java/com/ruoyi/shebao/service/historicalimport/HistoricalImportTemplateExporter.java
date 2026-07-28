@@ -9,6 +9,7 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.reflect.ReflectUtils;
 import com.ruoyi.shebao.domain.StreetOffice;
 import com.ruoyi.shebao.domain.VillageCommittee;
+import com.ruoyi.shebao.dto.historicalimport.DemolitionHistoricalImportDto;
 import com.ruoyi.shebao.dto.historicalimport.LandLossHistoricalImportDto;
 import com.ruoyi.shebao.mapper.StreetOfficeMapper;
 import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
@@ -58,9 +59,19 @@ public class HistoricalImportTemplateExporter
 
     public void exportLandLossTemplate(HttpServletResponse response) throws IOException
     {
+        exportTemplate(response, LandLossHistoricalImportDto.class);
+    }
+
+    public void exportDemolitionTemplate(HttpServletResponse response) throws IOException
+    {
+        exportTemplate(response, DemolitionHistoricalImportDto.class);
+    }
+
+    private void exportTemplate(HttpServletResponse response, Class<?> dtoClass) throws IOException
+    {
         try (Workbook workbook = new XSSFWorkbook())
         {
-            createDataSheet(workbook, LandLossHistoricalImportDto.class);
+            createDataSheet(workbook, dtoClass);
             createDictSheet(workbook);
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setCharacterEncoding("utf-8");
@@ -75,6 +86,16 @@ public class HistoricalImportTemplateExporter
      */
     public String exportLandLossFailureFile(List<LandLossHistoricalImportDto> failedRows) throws IOException
     {
+        return exportFailureFile(LandLossHistoricalImportDto.class, failedRows);
+    }
+
+    public String exportDemolitionFailureFile(List<DemolitionHistoricalImportDto> failedRows) throws IOException
+    {
+        return exportFailureFile(DemolitionHistoricalImportDto.class, failedRows);
+    }
+
+    private <T> String exportFailureFile(Class<T> dtoClass, List<T> failedRows) throws IOException
+    {
         File dir = new File(RuoYiConfig.getProfile(), "historical-import" + File.separator + "failures");
         if (!dir.exists() && !dir.mkdirs())
         {
@@ -85,7 +106,7 @@ public class HistoricalImportTemplateExporter
         try (Workbook workbook = new XSSFWorkbook();
              FileOutputStream out = new FileOutputStream(target))
         {
-            writeExportSheet(workbook, "失败记录", LandLossHistoricalImportDto.class, failedRows);
+            writeExportSheet(workbook, "失败记录", dtoClass, failedRows);
             workbook.write(out);
         }
         return "/profile/historical-import/failures/" + fileName;
@@ -132,8 +153,7 @@ public class HistoricalImportTemplateExporter
         sheet.createFreezePane(0, 1);
     }
 
-    private void writeExportSheet(Workbook workbook, String sheetName, Class<?> dtoClass,
-                                  List<LandLossHistoricalImportDto> rows)
+    private <T> void writeExportSheet(Workbook workbook, String sheetName, Class<T> dtoClass, List<T> rows)
     {
         Sheet sheet = workbook.createSheet(sheetName);
         CellStyle headerStyle = buildHeaderStyle(workbook);
@@ -150,7 +170,7 @@ public class HistoricalImportTemplateExporter
         {
             for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++)
             {
-                LandLossHistoricalImportDto rowData = rows.get(rowIdx);
+                T rowData = rows.get(rowIdx);
                 Row row = sheet.createRow(rowIdx + 1);
                 for (int col = 0; col < fields.size(); col++)
                 {

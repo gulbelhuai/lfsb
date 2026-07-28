@@ -53,6 +53,26 @@ public class SubsidyPersonRegistrationHelper
     }
 
     /**
+     * 历史数据导入：不校验主表是否已注销/已死亡，已存在人员不更新基础信息。
+     */
+    public Long resolveSubsidyPersonForHistoricalImport(SubsidyPersonBasicForm form,
+                                                        Consumer<SubsidyPerson> newPersonCustomizer)
+    {
+        if (StringUtils.isEmpty(form.getIdCardNo()))
+        {
+            throw new ServiceException("身份证号不能为空");
+        }
+
+        SubsidyPerson existingPerson = subsidyPersonService.selectSubsidyPersonByIdCardNo(form.getIdCardNo());
+        if (existingPerson != null)
+        {
+            return existingPerson.getId();
+        }
+
+        return createNewSubsidyPerson(form, newPersonCustomizer);
+    }
+
+    /**
      * 修改补贴记录：仅校验主表存在且可办理，不更新基础信息。
      */
     public Long resolveSubsidyPersonForUpdate(Long subsidyPersonId)
