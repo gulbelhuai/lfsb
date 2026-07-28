@@ -91,6 +91,31 @@ public class HistoricalImportTemplateExporter
         return "/profile/historical-import/failures/" + fileName;
     }
 
+    /**
+     * 保存导入源文件（磁盘用 ASCII 别名）。
+     *
+     * @return 相对 profile 的访问路径，如 /profile/historical-import/sources/import_xxx.xlsx
+     */
+    public String saveImportSourceFile(byte[] content, String originalFileName) throws IOException
+    {
+        if (content == null || content.length == 0)
+        {
+            throw new IOException("导入文件内容为空");
+        }
+        File dir = new File(RuoYiConfig.getProfile(), "historical-import" + File.separator + "sources");
+        if (!dir.exists() && !dir.mkdirs())
+        {
+            throw new IOException("无法创建导入源文件目录：" + dir.getAbsolutePath());
+        }
+        String storedName = HistoricalImportFileNames.storedSourceFileName(originalFileName);
+        File target = new File(dir, storedName);
+        try (FileOutputStream out = new FileOutputStream(target))
+        {
+            out.write(content);
+        }
+        return "/profile/historical-import/sources/" + storedName;
+    }
+
     private void createDataSheet(Workbook workbook, Class<?> dtoClass)
     {
         Sheet sheet = workbook.createSheet(DATA_SHEET_NAME);

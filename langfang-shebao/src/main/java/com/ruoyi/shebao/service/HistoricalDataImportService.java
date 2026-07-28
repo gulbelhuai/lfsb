@@ -20,4 +20,6 @@ public interface HistoricalDataImportService
     HistoricalImportResult importData(String subsidyType, MultipartFile file) throws Exception;
 
     void downloadFailureFile(Long batchId, HttpServletResponse response) throws Exception;
+
+    void downloadSourceFile(Long batchId, HttpServletResponse response) throws Exception;
 }

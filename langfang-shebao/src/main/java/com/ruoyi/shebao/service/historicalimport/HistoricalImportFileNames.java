@@ -8,6 +8,7 @@ import com.ruoyi.common.utils.StringUtils;
 public final class HistoricalImportFileNames
 {
     private static final String FAILURE_STORED_PREFIX = "failure_";
+    private static final String SOURCE_STORED_PREFIX = "import_";
     private static final String FAILURE_STORED_SUFFIX = ".xlsx";
 
     private HistoricalImportFileNames()
@@ -28,6 +29,36 @@ public final class HistoricalImportFileNames
     public static String storedFailureFileName(long timestamp)
     {
         return FAILURE_STORED_PREFIX + timestamp + FAILURE_STORED_SUFFIX;
+    }
+
+    /** 导入源文件磁盘存储名（仅 ASCII） */
+    public static String storedSourceFileName(String originalFileName)
+    {
+        return storedSourceFileName(System.currentTimeMillis(), resolveExtension(originalFileName));
+    }
+
+    public static String storedSourceFileName(long timestamp, String extension)
+    {
+        String ext = StringUtils.isBlank(extension) ? ".xlsx" : extension;
+        if (!ext.startsWith("."))
+        {
+            ext = "." + ext;
+        }
+        return SOURCE_STORED_PREFIX + timestamp + ext.toLowerCase();
+    }
+
+    public static String resolveExtension(String originalFileName)
+    {
+        if (StringUtils.isBlank(originalFileName))
+        {
+            return ".xlsx";
+        }
+        int dot = originalFileName.lastIndexOf('.');
+        if (dot < 0 || dot == originalFileName.length() - 1)
+        {
+            return ".xlsx";
+        }
+        return originalFileName.substring(dot);
     }
 
     /** 失败记录下载展示名 */

@@ -16,5 +16,5 @@ public interface HistoricalImportHandler
 
     List<?> parseRows(MultipartFile file) throws Exception;
 
-    HistoricalImportResult process(List<?> rows, String fileName);
+    HistoricalImportResult process(List<?> rows, String fileName, String sourceFilePath);
 }

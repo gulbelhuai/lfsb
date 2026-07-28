@@ -3,6 +3,7 @@ package com.ruoyi.shebao.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class BenefitSuspensionCreateReq
     @NotBlank
     private String pauseReason;
 
+    @Size(max = 500, message = "备注不能超过500个字符")
     private String remark;
 
     /** 选择暂停的核定子项ID */

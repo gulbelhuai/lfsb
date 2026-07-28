@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS `shebao_historical_import_batch` (
     `id`              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
     `subsidy_type`    VARCHAR(50)  NOT NULL COMMENT '补贴类型：land_loss_resident/expropriatee/...',
     `file_name`       VARCHAR(255) NOT NULL COMMENT '导入文件名',
+    `source_file_path` VARCHAR(500) DEFAULT NULL COMMENT '导入源文件路径（别名）',
     `total_rows`      INT          DEFAULT 0 COMMENT '导入行数',
     `success_rows`    INT          DEFAULT 0 COMMENT '成功行数',
     `failure_rows`    INT          DEFAULT 0 COMMENT '失败行数',

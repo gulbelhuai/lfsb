@@ -17,6 +17,10 @@ public class HistoricalImportBatchListResp
     private Integer failureRows;
     private String importStatus;
     private Boolean hasFailureFile;
+    private Boolean hasSourceFile;
+
+    /** 导入源文件路径（库内存储别名） */
+    private String sourceFilePath;
 
     /** 失败记录文件路径（库内存储） */
     private String failureFilePath;

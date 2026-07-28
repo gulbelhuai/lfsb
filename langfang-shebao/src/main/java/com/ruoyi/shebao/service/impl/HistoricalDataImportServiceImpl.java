@@ -13,6 +13,7 @@ import com.ruoyi.shebao.mapper.HistoricalImportBatchMapper;
 import com.ruoyi.shebao.service.HistoricalDataImportService;
 import com.ruoyi.shebao.service.historicalimport.HistoricalImportFileNames;
 import com.ruoyi.shebao.service.historicalimport.HistoricalImportHandler;
+import com.ruoyi.shebao.service.historicalimport.HistoricalImportTemplateExporter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
@@ -34,6 +35,7 @@ public class HistoricalDataImportServiceImpl implements HistoricalDataImportServ
 {
     private final HistoricalImportBatchMapper historicalImportBatchMapper;
     private final List<HistoricalImportHandler> handlers;
+    private final HistoricalImportTemplateExporter historicalImportTemplateExporter;
 
     @Override
     public Page<HistoricalImportBatchListResp> selectBatchList(long pageNum, long pageSize)
@@ -117,7 +119,17 @@ public class HistoricalDataImportServiceImpl implements HistoricalDataImportServ
         {
             throw new ServiceException("导入文件无有效数据，请检查模板与内容");
         }
-        return handler.process(rows, originalName);
+
+        String sourceFilePath;
+        try
+        {
+            sourceFilePath = historicalImportTemplateExporter.saveImportSourceFile(file.getBytes(), originalName);
+        }
+        catch (Exception ex)
+        {
+            throw new ServiceException("保存导入文件失败：" + ex.getMessage());
+        }
+        return handler.process(rows, originalName, sourceFilePath);
     }
 
     @Override
@@ -132,7 +144,7 @@ public class HistoricalDataImportServiceImpl implements HistoricalDataImportServ
         {
             throw new ServiceException("该批次无失败记录文件");
         }
-        File file = resolveFailureFile(batch.getFailureFilePath());
+        File file = resolveProfileFile(batch.getFailureFilePath());
         if (file == null || !file.exists())
         {
             throw new ServiceException("失败记录文件不存在或已被清理");
@@ -151,13 +163,38 @@ public class HistoricalDataImportServiceImpl implements HistoricalDataImportServ
         }
     }
 
-    private File resolveFailureFile(String failureFilePath)
+    @Override
+    public void downloadSourceFile(Long batchId, HttpServletResponse response) throws Exception
     {
-        if (StringUtils.isBlank(failureFilePath))
+        HistoricalImportBatch batch = historicalImportBatchMapper.selectById(batchId);
+        if (batch == null || !"0".equals(batch.getDelFlag()))
+        {
+            throw new ServiceException("导入记录不存在");
+        }
+        if (StringUtils.isBlank(batch.getSourceFilePath()))
+        {
+            throw new ServiceException("该批次无导入源文件");
+        }
+        File file = resolveProfileFile(batch.getSourceFilePath());
+        if (file == null || !file.exists())
+        {
+            throw new ServiceException("导入源文件不存在或已被清理");
+        }
+        String downloadName = StringUtils.isNotBlank(batch.getFileName()) ? batch.getFileName() : file.getName();
+        FileUtils.setAttachmentResponseHeader(response, downloadName);
+        try (FileInputStream input = new FileInputStream(file))
+        {
+            input.transferTo(response.getOutputStream());
+        }
+    }
+
+    private File resolveProfileFile(String profileRelativePath)
+    {
+        if (StringUtils.isBlank(profileRelativePath))
         {
             return null;
         }
-        String relative = failureFilePath.replace("/profile/", "").replace("/", File.separator);
+        String relative = profileRelativePath.replace("/profile/", "").replace("/", File.separator);
         return new File(RuoYiConfig.getProfile(), relative);
     }
 

@@ -62,6 +62,8 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
     private static final Pattern ID_CARD_PATTERN = Pattern.compile("^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]$");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter YM_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
+    /** 与待遇暂停页面备注字段、库表 varchar(500) 一致 */
+    private static final int PAUSE_REASON_REMARK_MAX_LENGTH = 500;
 
     private final HistoricalImportBatchMapper historicalImportBatchMapper;
     private final SubsidyPersonService subsidyPersonService;
@@ -103,7 +105,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
     }
 
     @Override
-    public HistoricalImportResult process(List<?> rows, String fileName)
+    public HistoricalImportResult process(List<?> rows, String fileName, String sourceFilePath)
     {
         @SuppressWarnings("unchecked")
         List<LandLossHistoricalImportDto> importRows = (List<LandLossHistoricalImportDto>) rows;
@@ -138,6 +140,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         HistoricalImportBatch batch = new HistoricalImportBatch();
         batch.setSubsidyType(subsidyType());
         batch.setFileName(fileName);
+        batch.setSourceFilePath(sourceFilePath);
         batch.setTotalRows(importRows.size());
         batch.setSuccessRows(successCount);
         batch.setFailureRows(failedRows.size());
@@ -287,6 +290,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
 
         validated.hasPauseBlock = StringUtils.isNotBlank(row.getPauseMonth())
                 || StringUtils.isNotBlank(row.getPauseReason())
+                || StringUtils.isNotBlank(row.getPauseReasonRemark())
                 || StringUtils.isNotBlank(row.getRecoverStartMonth())
                 || StringUtils.isNotBlank(row.getRecoverEndMonth())
                 || StringUtils.isNotBlank(row.getRecoverAmount());
@@ -299,6 +303,8 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
             validated.pauseMonth = parseYearMonth(row.getPauseMonth(), "暂停年月");
             validated.pauseReason = HistoricalImportDictSupport.requireDictByLabelOrValue(
                     "pause_reason", row.getPauseReason(), "暂停原因");
+            validated.pauseReasonRemark = parseOptionalMaxLength(
+                    row.getPauseReasonRemark(), "暂停原因备注", PAUSE_REASON_REMARK_MAX_LENGTH);
             validated.recoverStartMonth = parseYearMonth(row.getRecoverStartMonth(), "追回开始年月");
             validated.recoverEndMonth = parseYearMonth(row.getRecoverEndMonth(), "追回结束年月");
             if (validated.recoverStartMonth.isAfter(validated.recoverEndMonth))
@@ -430,6 +436,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         suspension.setIdCardNo(row.getIdCardNo());
         suspension.setPauseMonth(yearMonthToDate(validated.pauseMonth));
         suspension.setPauseReason(validated.pauseReason);
+        suspension.setRemark(validated.pauseReasonRemark);
         suspension.setStatus("0");
         suspension.setCreateBy(operator);
         suspension.setCreateTime(now);
@@ -571,6 +578,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         copy.setBenefitAmount(row.getBenefitAmount());
         copy.setPauseMonth(row.getPauseMonth());
         copy.setPauseReason(row.getPauseReason());
+        copy.setPauseReasonRemark(row.getPauseReasonRemark());
         copy.setRecoverStartMonth(row.getRecoverStartMonth());
         copy.setRecoverEndMonth(row.getRecoverEndMonth());
         copy.setRecoverAmount(row.getRecoverAmount());
@@ -718,6 +726,20 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         }
     }
 
+    private String parseOptionalMaxLength(String value, String label, int maxLength)
+    {
+        if (StringUtils.isBlank(value))
+        {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() > maxLength)
+        {
+            throw new ServiceException(label + "不能超过" + maxLength + "个字符");
+        }
+        return trimmed;
+    }
+
     private LocalDate parseBirthdayFromIdCard(String idCardNo)
     {
         try
@@ -784,6 +806,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         private BigDecimal benefitAmount;
         private YearMonth pauseMonth;
         private String pauseReason;
+        private String pauseReasonRemark;
         private YearMonth recoverStartMonth;
         private YearMonth recoverEndMonth;
         private BigDecimal recoverAmount;

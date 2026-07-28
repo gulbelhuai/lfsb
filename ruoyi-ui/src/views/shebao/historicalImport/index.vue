@@ -22,8 +22,15 @@
       <el-table-column label="失败行数" align="center" prop="failureRows" width="90" />
       <el-table-column label="操作时间" align="center" prop="createTime" width="170" />
       <el-table-column label="操作人" align="center" prop="createBy" width="100" />
-      <el-table-column label="操作" align="center" width="120" fixed="right">
+      <el-table-column label="操作" align="center" width="200" fixed="right">
         <template slot-scope="scope">
+          <el-button
+            v-if="scope.row.hasSourceFile"
+            size="mini"
+            type="text"
+            icon="el-icon-download"
+            @click="handleDownloadSource(scope.row)"
+          >导入文件</el-button>
           <el-button
             v-if="scope.row.hasFailureFile"
             size="mini"
@@ -31,7 +38,7 @@
             icon="el-icon-download"
             @click="handleDownloadFailure(scope.row)"
           >失败记录</el-button>
-          <span v-else style="color: #909399;">-</span>
+          <span v-if="!scope.row.hasSourceFile && !scope.row.hasFailureFile" style="color: #909399;">-</span>
         </template>
       </el-table-column>
     </el-table>
@@ -221,6 +228,10 @@ export default {
         return
       }
       this.$refs.upload.submit()
+    },
+    handleDownloadSource(row) {
+      const fileName = row.fileName || `历史数据导入文件_${row.subsidyTypeLabel}_${new Date().getTime()}.xlsx`
+      this.download(`shebao/historicalImport/sourceFile/${row.id}`, {}, fileName)
     },
     handleDownloadFailure(row) {
       const fileName = row.failureFileName || `导入失败记录_${row.subsidyTypeLabel}_${new Date().getTime()}.xlsx`

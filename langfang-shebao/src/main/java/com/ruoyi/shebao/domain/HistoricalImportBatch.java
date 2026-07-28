@@ -18,8 +18,11 @@ public class HistoricalImportBatch extends BaseDomain
     /** 补贴类型 */
     private String subsidyType;
 
-    /** 导入文件名 */
+    /** 导入文件名（原始展示名） */
     private String fileName;
+
+    /** 导入源文件路径（磁盘别名） */
+    private String sourceFilePath;
 
     /** 导入行数 */
     private Integer totalRows;

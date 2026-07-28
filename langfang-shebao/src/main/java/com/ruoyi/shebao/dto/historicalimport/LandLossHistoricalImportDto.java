@@ -98,13 +98,16 @@ public class LandLossHistoricalImportDto
     @Excel(name = "暂停原因", sort = 28)
     private String pauseReason;
 
-    @Excel(name = "追回开始年月", sort = 29, dateFormat = "yyyy-MM")
+    @Excel(name = "暂停原因备注", sort = 29)
+    private String pauseReasonRemark;
+
+    @Excel(name = "追回开始年月", sort = 30, dateFormat = "yyyy-MM")
     private String recoverStartMonth;
 
-    @Excel(name = "追回结束年月", sort = 30, dateFormat = "yyyy-MM")
+    @Excel(name = "追回结束年月", sort = 31, dateFormat = "yyyy-MM")
     private String recoverEndMonth;
 
-    @Excel(name = "需要追回金额", sort = 31)
+    @Excel(name = "需要追回金额", sort = 32)
     private String recoverAmount;
 
     /** 仅失败导出使用 */

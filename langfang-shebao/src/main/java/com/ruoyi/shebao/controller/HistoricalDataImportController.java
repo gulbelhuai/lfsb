@@ -64,4 +64,11 @@ public class HistoricalDataImportController extends BaseController
     {
         historicalDataImportService.downloadFailureFile(batchId, response);
     }
+
+    @PreAuthorize("@ss.hasPermi('shebao:historicalImport:list')")
+    @PostMapping("/sourceFile/{batchId}")
+    public void sourceFile(@PathVariable Long batchId, HttpServletResponse response) throws Exception
+    {
+        historicalDataImportService.downloadSourceFile(batchId, response);
+    }
 }
