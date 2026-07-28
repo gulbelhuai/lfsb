@@ -270,7 +270,7 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
             validated.accountName = HistoricalImportDictSupport.requireNotBlank(row.getAccountName(), "开户名");
             validated.relationToInsured = HistoricalImportDictSupport.requireNotBlank(row.getRelationToInsured(), "与参保人关系");
             validated.bankAccount = HistoricalImportDictSupport.requireNotBlank(row.getBankAccount(), "银行账号");
-            validated.eligibleYearMonth = parseYearMonth(row.getEligibleYearMonth(), "到龄年月");
+            validated.eligibleYearMonth = computeEligibleYearMonthFromIdCard(idCard);
             validated.subsidyStandard = parseRequiredAmount(row.getSubsidyStandard(), "补贴标准");
             validated.benefitStartMonth = parseYearMonth(row.getBenefitStartMonth(), "享受开始年月");
             if (row.getBenefitMonths() == null)
@@ -500,7 +500,6 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
                 || StringUtils.isNotBlank(row.getAccountName())
                 || StringUtils.isNotBlank(row.getRelationToInsured())
                 || StringUtils.isNotBlank(row.getBankAccount())
-                || StringUtils.isNotBlank(row.getEligibleYearMonth())
                 || StringUtils.isNotBlank(row.getSubsidyStandard())
                 || StringUtils.isNotBlank(row.getBenefitStartMonth())
                 || row.getBenefitMonths() != null
@@ -566,7 +565,6 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         copy.setAccountName(row.getAccountName());
         copy.setRelationToInsured(row.getRelationToInsured());
         copy.setBankAccount(row.getBankAccount());
-        copy.setEligibleYearMonth(row.getEligibleYearMonth());
         copy.setSubsidyStandard(row.getSubsidyStandard());
         copy.setBenefitStartMonth(row.getBenefitStartMonth());
         copy.setBenefitMonths(row.getBenefitMonths());
@@ -730,6 +728,12 @@ public class LandLossHistoricalImportHandler implements HistoricalImportHandler
         {
             throw new ServiceException("无法从身份证号解析出生日期");
         }
+    }
+
+    /** 到龄年月：年满60周岁所在年月，与待遇核定登记模块一致 */
+    private YearMonth computeEligibleYearMonthFromIdCard(String idCardNo)
+    {
+        return YearMonth.from(parseBirthdayFromIdCard(idCardNo).plusYears(60));
     }
 
     private String parseGenderFromIdCard(String idCardNo)

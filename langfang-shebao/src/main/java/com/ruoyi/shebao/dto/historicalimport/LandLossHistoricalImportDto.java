@@ -79,35 +79,32 @@ public class LandLossHistoricalImportDto
     @Excel(name = "银行账号", sort = 22)
     private String bankAccount;
 
-    @Excel(name = "到龄年月", sort = 23, dateFormat = "yyyy-MM")
-    private String eligibleYearMonth;
-
-    @Excel(name = "补贴标准", sort = 24)
+    @Excel(name = "补贴标准", sort = 23)
     private String subsidyStandard;
 
-    @Excel(name = "享受开始年月", sort = 25, dateFormat = "yyyy-MM")
+    @Excel(name = "享受开始年月", sort = 24, dateFormat = "yyyy-MM")
     private String benefitStartMonth;
 
-    @Excel(name = "补发月数", sort = 26)
+    @Excel(name = "补发月数", sort = 25)
     private Integer benefitMonths;
 
-    @Excel(name = "补发金额", sort = 27)
+    @Excel(name = "补发金额", sort = 26)
     private String benefitAmount;
 
     // ===== 待遇暂停（选填一组，有则整组必填） =====
-    @Excel(name = "暂停年月", sort = 28, dateFormat = "yyyy-MM")
+    @Excel(name = "暂停年月", sort = 27, dateFormat = "yyyy-MM")
     private String pauseMonth;
 
-    @Excel(name = "暂停原因", sort = 29)
+    @Excel(name = "暂停原因", sort = 28)
     private String pauseReason;
 
-    @Excel(name = "追回开始年月", sort = 30, dateFormat = "yyyy-MM")
+    @Excel(name = "追回开始年月", sort = 29, dateFormat = "yyyy-MM")
     private String recoverStartMonth;
 
-    @Excel(name = "追回结束年月", sort = 31, dateFormat = "yyyy-MM")
+    @Excel(name = "追回结束年月", sort = 30, dateFormat = "yyyy-MM")
     private String recoverEndMonth;
 
-    @Excel(name = "需要追回金额", sort = 32)
+    @Excel(name = "需要追回金额", sort = 31)
     private String recoverAmount;
 
     /** 仅失败导出使用 */
