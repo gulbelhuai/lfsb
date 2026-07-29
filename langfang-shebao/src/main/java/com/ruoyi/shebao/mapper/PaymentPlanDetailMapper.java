@@ -38,4 +38,10 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
     /** 银行发放失败明细列表 */
     Page<PaymentPlanFailureListResp> selectFailureList(Page<PaymentPlanFailureListResp> page,
                                                      @Param("req") PaymentPlanFailureListReq req);
+
+    /** 统计某补贴类型下未复核的登记记录数 */
+    int countPendingRegistrationReview(@Param("subsidyType") String subsidyType);
+
+    /** 统计某补贴类型下未审核通过的核定记录数 */
+    int countPendingDeterminationApproval(@Param("subsidyType") String subsidyType);
 }

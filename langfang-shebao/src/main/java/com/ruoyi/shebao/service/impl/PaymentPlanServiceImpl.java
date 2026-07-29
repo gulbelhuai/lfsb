@@ -107,8 +107,32 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     @Transactional(rollbackFor = Exception.class)
     public Long generate(PaymentPlanGenerateReq req)
     {
+        validateNoPendingRecords(req.getSubsidyType());
         req.setTargetStatus(STATUS_PENDING_REVIEW);
         return saveOrSubmit(req);
+    }
+
+    private void validateNoPendingRecords(String subsidyType)
+    {
+        if (StringUtils.isEmpty(subsidyType))
+        {
+            return;
+        }
+        List<String> problems = new ArrayList<>();
+        int pendingReg = paymentPlanDetailMapper.countPendingRegistrationReview(subsidyType);
+        if (pendingReg > 0)
+        {
+            problems.add("未复核的登记记录 " + pendingReg + " 条");
+        }
+        int pendingDet = paymentPlanDetailMapper.countPendingDeterminationApproval(subsidyType);
+        if (pendingDet > 0)
+        {
+            problems.add("未审核的核定记录 " + pendingDet + " 条");
+        }
+        if (!problems.isEmpty())
+        {
+            throw new ServiceException("存在" + String.join("、", problems) + "，请先完成复核/审核后再生成支付计划");
+        }
     }
 
     @Override

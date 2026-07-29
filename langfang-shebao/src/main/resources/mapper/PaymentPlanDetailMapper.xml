@@ -147,4 +147,53 @@
         </if>
         order by p.batch_no desc, d.id asc
     </select>
+
+    <!-- 统计某补贴类型下未复核的登记记录数（登记提交后 approval_status != 'approved' 且未被删除） -->
+    <select id="countPendingRegistrationReview" resultType="int">
+        <choose>
+            <when test="subsidyType == 'land_loss'">
+                select count(*) from shebao_land_loss_resident
+                where del_flag = '0'
+                  and approval_status is not null
+                  and approval_status != ''
+                  and approval_status != 'approved'
+            </when>
+            <when test="subsidyType == 'demolition'">
+                select count(*) from shebao_demolition_resident
+                where del_flag = '0'
+                  and approval_status is not null
+                  and approval_status != ''
+                  and approval_status != 'approved'
+            </when>
+            <when test="subsidyType == 'expropriatee'">
+                select count(*) from shebao_expropriatee_subsidy
+                where del_flag = '0'
+                  and approval_status is not null
+                  and approval_status != ''
+                  and approval_status != 'approved'
+            </when>
+            <when test="subsidyType == 'village_official'">
+                select count(*) from shebao_village_official
+                where del_flag = '0'
+                  and approval_status is not null
+                  and approval_status != ''
+                  and approval_status != 'approved'
+            </when>
+            <otherwise>
+                select 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 统计某补贴类型下未审核通过的核定记录数（提交复核但尚未通过） -->
+    <select id="countPendingDeterminationApproval" resultType="int">
+        select count(*)
+        from benefit_determination bd
+        join benefit_determination_item bdi on bdi.determination_id = bd.id and bdi.del_flag = '0'
+        where bd.del_flag = '0'
+          and bd.approval_status is not null
+          and bd.approval_status != ''
+          and bd.approval_status != 'approved'
+          and bdi.subsidy_type = #{subsidyType}
+    </select>
 </mapper>
