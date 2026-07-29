@@ -270,10 +270,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
         {
             throw new ServiceException("与参保人关系不能为空");
         }
-        if (!"uploaded".equals(determination.getMaterialStatus()) && !"verified".equals(determination.getMaterialStatus()))
-        {
-            throw new ServiceException("请先上传并解压证明材料ZIP");
-        }
+        // 证明材料为非必要件，不上传也允许提交复核
         int rows = this.lambdaUpdate()
                 .eq(BenefitDetermination::getId, id)
                 .set(BenefitDetermination::getApprovalStatus, "pending_review")
