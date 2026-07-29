@@ -162,17 +162,35 @@ public class HistoricalImportCommonSupport
                     "pause_reason", row.getPauseReason(), "暂停原因");
             ctx.pauseReasonRemark = parseOptionalMaxLength(
                     row.getPauseReasonRemark(), "暂停原因备注", PAUSE_REASON_REMARK_MAX_LENGTH);
-            ctx.recoverStartMonth = parseYearMonth(row.getRecoverStartMonth(), "追回开始年月");
-            ctx.recoverEndMonth = parseYearMonth(row.getRecoverEndMonth(), "追回结束年月");
-            if (ctx.recoverStartMonth.isAfter(ctx.recoverEndMonth))
+
+            boolean hasRecoverStart = StringUtils.isNotBlank(row.getRecoverStartMonth());
+            boolean hasRecoverEnd = StringUtils.isNotBlank(row.getRecoverEndMonth());
+            boolean hasRecoverAmount = StringUtils.isNotBlank(row.getRecoverAmount());
+            boolean anyRecover = hasRecoverStart || hasRecoverEnd || hasRecoverAmount;
+            boolean allRecover = hasRecoverStart && hasRecoverEnd && hasRecoverAmount;
+            if (anyRecover && !allRecover)
             {
-                throw new ServiceException("追回开始年月不能晚于追回结束年月");
+                throw new ServiceException("追回开始年月、追回结束年月、需要追回金额须同时填写或同时留空");
             }
-            ctx.recoverAmount = parseRequiredAmount(row.getRecoverAmount(), "需要追回金额");
-            ctx.recoverMonths = (int) ChronoUnit.MONTHS.between(ctx.recoverStartMonth, ctx.recoverEndMonth) + 1;
-            if (ctx.recoverMonths <= 0)
+            if (allRecover)
             {
-                throw new ServiceException("追回月数必须大于0");
+                ctx.needRecover = true;
+                ctx.recoverStartMonth = parseYearMonth(row.getRecoverStartMonth(), "追回开始年月");
+                ctx.recoverEndMonth = parseYearMonth(row.getRecoverEndMonth(), "追回结束年月");
+                if (ctx.recoverStartMonth.isAfter(ctx.recoverEndMonth))
+                {
+                    throw new ServiceException("追回开始年月不能晚于追回结束年月");
+                }
+                ctx.recoverAmount = parseRequiredAmount(row.getRecoverAmount(), "需要追回金额");
+                ctx.recoverMonths = (int) ChronoUnit.MONTHS.between(ctx.recoverStartMonth, ctx.recoverEndMonth) + 1;
+                if (ctx.recoverMonths <= 0)
+                {
+                    throw new ServiceException("追回月数必须大于0");
+                }
+            }
+            else
+            {
+                ctx.needRecover = false;
             }
         }
     }
@@ -292,12 +310,19 @@ public class HistoricalImportCommonSupport
         suspensionItem.setSubsidyType(detItem.getSubsidyType());
         suspensionItem.setBenefitStartMonth(yearMonthToDate(detItem.getBenefitStartYear(), detItem.getBenefitStartMonth()));
         suspensionItem.setSubsidyStandard(detItem.getSubsidyStandard());
-        suspensionItem.setNeedRecover("1");
+        suspensionItem.setNeedRecover(ctx.needRecover ? "1" : "0");
         suspensionItem.setPauseActive("1");
-        suspensionItem.setRecoverStartMonth(yearMonthToDate(ctx.recoverStartMonth));
-        suspensionItem.setRecoverEndMonth(yearMonthToDate(ctx.recoverEndMonth));
-        suspensionItem.setRecoverMonths(ctx.recoverMonths);
-        suspensionItem.setRecoverAmount(ctx.recoverAmount);
+        if (ctx.needRecover)
+        {
+            suspensionItem.setRecoverStartMonth(yearMonthToDate(ctx.recoverStartMonth));
+            suspensionItem.setRecoverEndMonth(yearMonthToDate(ctx.recoverEndMonth));
+            suspensionItem.setRecoverMonths(ctx.recoverMonths);
+            suspensionItem.setRecoverAmount(ctx.recoverAmount);
+        }
+        else
+        {
+            suspensionItem.setRecoverMonths(0);
+        }
         suspensionItem.setStatus("0");
         suspensionItem.setCreateBy(operator);
         suspensionItem.setCreateTime(now);
@@ -576,6 +601,7 @@ public class HistoricalImportCommonSupport
         private YearMonth pauseMonth;
         private String pauseReason;
         private String pauseReasonRemark;
+        private boolean needRecover;
         private YearMonth recoverStartMonth;
         private YearMonth recoverEndMonth;
         private BigDecimal recoverAmount;
