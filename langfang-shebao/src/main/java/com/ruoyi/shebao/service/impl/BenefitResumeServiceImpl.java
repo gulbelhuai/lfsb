@@ -387,12 +387,25 @@ public class BenefitResumeServiceImpl implements BenefitResumeService
                                               YearMonth resumeYm,
                                               YearMonth currentYm)
     {
-        YearMonth endYm = currentYm.minusMonths(1);
+        YearMonth endYm;
+        if (StringUtils.isNotBlank(reqItem.getSupplementEndMonth()))
+        {
+            endYm = parseYearMonth(reqItem.getSupplementEndMonth());
+        }
+        else
+        {
+            endYm = currentYm.minusMonths(1);
+        }
         int supplementMonths = 0;
         Date supplementEndMonth = null;
         if (!resumeYm.isAfter(endYm))
         {
             supplementMonths = (int) ChronoUnit.MONTHS.between(resumeYm, endYm) + 1;
+            supplementEndMonth = yearMonthToDate(endYm);
+        }
+        else if (StringUtils.isNotBlank(reqItem.getSupplementEndMonth()))
+        {
+            // 人工填写了终止年月但早于开始年月：仍落库终止年月，月数/金额为 0
             supplementEndMonth = yearMonthToDate(endYm);
         }
         BigDecimal standard = determinationItem.getSubsidyStandard() == null ? BigDecimal.ZERO : determinationItem.getSubsidyStandard();

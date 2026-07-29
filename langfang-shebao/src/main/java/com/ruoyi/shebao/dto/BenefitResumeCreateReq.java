@@ -40,6 +40,9 @@ public class BenefitResumeCreateReq
         @NotBlank
         private String resumeMonth;
 
+        /** 补发终止年月 yyyy-MM，可选；空则按系统默认（当前月前一月） */
+        private String supplementEndMonth;
+
         private String remark;
     }
 }

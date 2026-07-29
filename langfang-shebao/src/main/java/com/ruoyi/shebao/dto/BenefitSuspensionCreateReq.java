@@ -1,5 +1,6 @@
 package com.ruoyi.shebao.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -34,7 +35,18 @@ public class BenefitSuspensionCreateReq
     @Size(max = 500, message = "备注不能超过500个字符")
     private String remark;
 
-    /** 选择暂停的核定子项ID */
+    /** 选择暂停的核定子项 */
     @NotEmpty
-    private List<Long> determinationItemIds;
+    @Valid
+    private List<Item> items;
+
+    @Data
+    public static class Item
+    {
+        @NotNull
+        private Long determinationItemId;
+
+        /** 追回终止年月 yyyy-MM，可选；空则按系统默认（当前月前一月） */
+        private String recoverEndMonth;
+    }
 }

@@ -217,12 +217,17 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
         }
 
         YearMonth pauseYm = parsePauseMonth(req.getPauseMonth());
+        List<Long> determinationItemIds = req.getItems().stream()
+                .map(BenefitSuspensionCreateReq.Item::getDeterminationItemId)
+                .toList();
+        Map<Long, BenefitSuspensionCreateReq.Item> reqItemMap = req.getItems().stream()
+                .collect(Collectors.toMap(BenefitSuspensionCreateReq.Item::getDeterminationItemId, item -> item, (a, b) -> b));
         List<BenefitDeterminationItem> selectedItems = benefitDeterminationItemMapper.selectList(
                 new LambdaQueryWrapper<BenefitDeterminationItem>()
-                        .in(BenefitDeterminationItem::getId, req.getDeterminationItemIds())
+                        .in(BenefitDeterminationItem::getId, determinationItemIds)
                         .eq(BenefitDeterminationItem::getDeterminationId, req.getDeterminationId())
                         .eq(BenefitDeterminationItem::getDelFlag, "0"));
-        if (selectedItems.size() != req.getDeterminationItemIds().size())
+        if (selectedItems.size() != determinationItemIds.size())
         {
             throw new ServiceException("所选补贴类型不存在或不属于当前待遇核定记录");
         }
@@ -251,7 +256,8 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
         YearMonth currentYm = YearMonth.now();
         for (BenefitDeterminationItem selectedItem : selectedItems)
         {
-            BenefitSuspensionItem suspensionItem = buildSuspensionItem(suspension.getId(), selectedItem, pauseYm, currentYm);
+            BenefitSuspensionCreateReq.Item reqItem = reqItemMap.get(selectedItem.getId());
+            BenefitSuspensionItem suspensionItem = buildSuspensionItem(suspension.getId(), selectedItem, pauseYm, currentYm, reqItem);
             benefitSuspensionItemMapper.insert(suspensionItem);
             financeBenefitRecoveryService.syncFromSuspensionItem(suspension, suspensionItem);
         }
@@ -357,10 +363,22 @@ public class BenefitSuspensionServiceImpl implements BenefitSuspensionService
     private BenefitSuspensionItem buildSuspensionItem(Long suspensionId,
                                                       BenefitDeterminationItem item,
                                                       YearMonth pauseYm,
-                                                      YearMonth currentYm)
+                                                      YearMonth currentYm,
+                                                      BenefitSuspensionCreateReq.Item reqItem)
     {
         boolean needRecover = pauseYm.isBefore(currentYm);
-        YearMonth recoverEndYm = needRecover ? currentYm.minusMonths(1) : null;
+        YearMonth recoverEndYm = null;
+        if (needRecover)
+        {
+            if (reqItem != null && StringUtils.isNotBlank(reqItem.getRecoverEndMonth()))
+            {
+                recoverEndYm = parsePauseMonth(reqItem.getRecoverEndMonth());
+            }
+            else
+            {
+                recoverEndYm = currentYm.minusMonths(1);
+            }
+        }
         int recoverMonths = 0;
         if (needRecover && recoverEndYm != null && !pauseYm.isAfter(recoverEndYm))
         {
