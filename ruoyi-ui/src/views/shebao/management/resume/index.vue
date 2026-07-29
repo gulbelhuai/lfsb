@@ -94,6 +94,7 @@
                 size="mini"
                 placeholder="恢复年月"
                 style="width: 120px"
+                @change="onResumeMonthChange(scope.row)"
               />
             </template>
           </el-table-column>
@@ -102,9 +103,16 @@
               {{ calcSupplementInfo(scope.row).startMonth }}
             </template>
           </el-table-column>
-          <el-table-column label="补发终止年月" width="130">
+          <el-table-column label="补发终止年月" width="160">
             <template slot-scope="scope">
-              {{ calcSupplementInfo(scope.row).endMonth }}
+              <el-date-picker
+                v-model="scope.row.supplementEndMonth"
+                type="month"
+                value-format="yyyy-MM"
+                size="mini"
+                placeholder="补发终止年月"
+                style="width: 130px"
+              />
             </template>
           </el-table-column>
           <el-table-column label="补发月数" width="100">
@@ -234,16 +242,20 @@ export default {
       }
       getResumeCandidate(this.candidateQueryIdCardNo).then(response => {
         this.candidate = response.data
-        this.editResumeItems = (this.candidate.resumeItems || []).map(item => ({
-          determinationItemId: item.determinationItemId,
-          subsidyType: item.subsidyType,
-          pauseStartMonth: item.pauseStartMonth,
-          needResume: item.needResume || '1',
-          resumeReason: item.resumeReason || '',
-          resumeMonth: this.formatMonthText(item.resumeMonth),
-          remark: item.remark || '',
-          subsidyStandard: item.subsidyStandard
-        }))
+        this.editResumeItems = (this.candidate.resumeItems || []).map(item => {
+          const resumeMonth = this.formatMonthText(item.resumeMonth)
+          return {
+            determinationItemId: item.determinationItemId,
+            subsidyType: item.subsidyType,
+            pauseStartMonth: item.pauseStartMonth,
+            needResume: item.needResume || '1',
+            resumeReason: item.resumeReason || '',
+            resumeMonth: resumeMonth === '-' ? null : resumeMonth,
+            supplementEndMonth: this.defaultSupplementEndMonth(resumeMonth === '-' ? null : resumeMonth),
+            remark: item.remark || '',
+            subsidyStandard: item.subsidyStandard
+          }
+        })
       }).catch(() => {
         this.candidate = null
         this.editResumeItems = []
@@ -278,6 +290,7 @@ export default {
           needResume: item.needResume,
           resumeReason: item.resumeReason,
           resumeMonth: item.resumeMonth,
+          supplementEndMonth: item.supplementEndMonth || null,
           remark: item.remark
         }))
       }).then(() => {
@@ -294,16 +307,30 @@ export default {
         this.detailOpen = true
       })
     },
+    onResumeMonthChange(row) {
+      row.supplementEndMonth = this.defaultSupplementEndMonth(row.resumeMonth)
+    },
+    defaultSupplementEndMonth(resumeMonth) {
+      const resumeYm = this.parseYearMonth(resumeMonth)
+      if (!resumeYm) return null
+      const endYm = this.minusOneMonth(this.currentYearMonth())
+      if (this.compareYm(resumeYm, endYm) > 0) return null
+      return this.ymText(endYm.year, endYm.month)
+    },
     calcSupplementInfo(row) {
       const resumeYm = this.parseYearMonth(row.resumeMonth)
       if (!resumeYm) {
         return { startMonth: '-', endMonth: '-', months: 0, amount: '0.00' }
       }
-      const currentYm = this.currentYearMonth()
-      const endYm = this.minusOneMonth(currentYm)
       const startText = this.ymText(resumeYm.year, resumeYm.month)
-      if (this.compareYm(resumeYm, endYm) > 0) {
-        return { startMonth: startText, endMonth: '-', months: 0, amount: '0.00' }
+      const endYm = this.parseYearMonth(row.supplementEndMonth)
+      if (!endYm || this.compareYm(resumeYm, endYm) > 0) {
+        return {
+          startMonth: startText,
+          endMonth: endYm ? this.ymText(endYm.year, endYm.month) : '-',
+          months: 0,
+          amount: '0.00'
+        }
       }
       const months = this.monthDiffInclusive(resumeYm, endYm)
       const standard = Number(row.subsidyStandard || 0)

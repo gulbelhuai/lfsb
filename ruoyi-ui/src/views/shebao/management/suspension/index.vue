@@ -134,7 +134,7 @@
         </el-form>
 
         <div class="section-title">追回信息</div>
-        <el-table class="rx-table--compact" :data="computedRecoverItems" border size="small">
+        <el-table class="rx-table--compact" :data="editRecoverItems" border size="small">
           <el-table-column label="补贴类型" min-width="140">
             <template slot-scope="scope">
               {{ subsidyTypeLabel(scope.row.subsidyType) }}
@@ -150,9 +150,19 @@
               {{ scope.row.recoverStartYm || '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="追回终止年月" width="130">
+          <el-table-column label="追回终止年月" width="160">
             <template slot-scope="scope">
-              {{ scope.row.recoverEndYm || '-' }}
+              <el-date-picker
+                v-if="scope.row.needRecover === '1'"
+                v-model="scope.row.recoverEndYm"
+                type="month"
+                value-format="yyyy-MM"
+                size="mini"
+                placeholder="追回终止年月"
+                style="width: 130px"
+                @change="recalcRecoverItem(scope.row)"
+              />
+              <span v-else>-</span>
             </template>
           </el-table-column>
           <el-table-column label="需追回金额" min-width="140">
@@ -272,6 +282,7 @@ export default {
         pauseReason: null,
         remark: null
       },
+      editRecoverItems: [],
       pauseRules: {
         determinationItemIds: [{ required: true, message: '请选择补贴类型', trigger: 'change' }],
         pauseMonth: [{ required: true, message: '请选择暂停年月', trigger: 'change' }],
@@ -280,37 +291,21 @@ export default {
     }
   },
   computed: {
-    computedRecoverItems() {
-      const itemMap = new Map()
-      ;(this.candidate && this.candidate.treatmentItems ? this.candidate.treatmentItems : []).forEach(item => {
-        itemMap.set(item.determinationItemId, item)
-      })
-      const pauseYm = this.parseYearMonth(this.pauseForm.pauseMonth)
-      return (this.pauseForm.determinationItemIds || []).map(itemId => {
-        const item = itemMap.get(itemId) || {}
-        const currentYm = this.currentYearMonth()
-        const needRecover = pauseYm && this.compareYm(pauseYm, currentYm) < 0 ? '1' : '0'
-        let recoverEnd = null
-        let recoverMonths = 0
-        if (needRecover === '1') {
-          recoverEnd = this.minusOneMonth(currentYm)
-          recoverMonths = this.monthDiffInclusive(pauseYm, recoverEnd)
-        }
-        const standard = Number(item.subsidyStandard || 0)
-        const amount = (recoverMonths * standard).toFixed(2)
-        return {
-          subsidyType: item.subsidyType,
-          needRecover,
-          recoverStartYm: pauseYm ? this.ymText(pauseYm.year, pauseYm.month) : '-',
-          recoverEndYm: recoverEnd ? this.ymText(recoverEnd.year, recoverEnd.month) : '-',
-          recoverAmount: amount
-        }
-      })
-    },
     detailPausedTypes() {
       return (this.detailData.recoverItems || [])
         .map(item => this.subsidyTypeLabel(item.subsidyType))
         .join('、') || '-'
+    }
+  },
+  watch: {
+    'pauseForm.determinationItemIds': {
+      handler() {
+        this.syncRecoverItems(false)
+      },
+      deep: true
+    },
+    'pauseForm.pauseMonth'() {
+      this.syncRecoverItems(true)
     }
   },
   created() {
@@ -338,6 +333,7 @@ export default {
       this.addOpen = true
       this.candidateQueryIdCardNo = null
       this.candidate = null
+      this.editRecoverItems = []
       this.pauseForm = {
         determinationItemIds: [],
         pauseMonth: null,
@@ -353,9 +349,56 @@ export default {
       getSuspensionCandidate(this.candidateQueryIdCardNo).then(response => {
         this.candidate = response.data
         this.pauseForm.determinationItemIds = (this.candidate.treatmentItems || []).map(item => item.determinationItemId)
+        this.syncRecoverItems(true)
       }).catch(() => {
         this.candidate = null
+        this.editRecoverItems = []
       })
+    },
+    syncRecoverItems(resetEnd) {
+      const itemMap = new Map()
+      ;(this.candidate && this.candidate.treatmentItems ? this.candidate.treatmentItems : []).forEach(item => {
+        itemMap.set(item.determinationItemId, item)
+      })
+      const oldMap = new Map(this.editRecoverItems.map(item => [item.determinationItemId, item]))
+      const pauseYm = this.parseYearMonth(this.pauseForm.pauseMonth)
+      const currentYm = this.currentYearMonth()
+      this.editRecoverItems = (this.pauseForm.determinationItemIds || []).map(itemId => {
+        const item = itemMap.get(itemId) || {}
+        const old = oldMap.get(itemId)
+        const needRecover = pauseYm && this.compareYm(pauseYm, currentYm) < 0 ? '1' : '0'
+        const defaultEnd = needRecover === '1' ? this.minusOneMonth(currentYm) : null
+        const defaultEndYm = defaultEnd ? this.ymText(defaultEnd.year, defaultEnd.month) : null
+        let recoverEndYm = null
+        if (needRecover === '1') {
+          if (!resetEnd && old && old.needRecover === '1' && old.recoverEndYm) {
+            recoverEndYm = old.recoverEndYm
+          } else {
+            recoverEndYm = defaultEndYm
+          }
+        }
+        const row = {
+          determinationItemId: itemId,
+          subsidyType: item.subsidyType,
+          subsidyStandard: item.subsidyStandard,
+          needRecover,
+          recoverStartYm: pauseYm ? this.ymText(pauseYm.year, pauseYm.month) : '-',
+          recoverEndYm,
+          recoverAmount: '0.00'
+        }
+        this.recalcRecoverItem(row)
+        return row
+      })
+    },
+    recalcRecoverItem(row) {
+      const startYm = this.parseYearMonth(row.recoverStartYm)
+      const endYm = this.parseYearMonth(row.recoverEndYm)
+      let months = 0
+      if (row.needRecover === '1' && startYm && endYm && this.compareYm(startYm, endYm) <= 0) {
+        months = this.monthDiffInclusive(startYm, endYm)
+      }
+      const standard = Number(row.subsidyStandard || 0)
+      row.recoverAmount = (months * standard).toFixed(2)
     },
     submitPause() {
       if (!this.candidate) {
@@ -364,15 +407,23 @@ export default {
       }
       this.$refs.pauseFormRef.validate(valid => {
         if (!valid) return
+        const invalidEnd = this.editRecoverItems.some(item => item.needRecover === '1' && !item.recoverEndYm)
+        if (invalidEnd) {
+          this.$modal.msgWarning('请为需要追回的记录选择追回终止年月')
+          return
+        }
         this.submitLoading = true
         addBenefitSuspension({
           determinationId: this.candidate.determinationId,
           subsidyPersonId: this.candidate.subsidyPersonId,
           idCardNo: this.candidate.idCardNo,
-          determinationItemIds: this.pauseForm.determinationItemIds,
           pauseMonth: this.pauseForm.pauseMonth,
           pauseReason: this.pauseForm.pauseReason,
-          remark: this.pauseForm.remark
+          remark: this.pauseForm.remark,
+          items: this.editRecoverItems.map(item => ({
+            determinationItemId: item.determinationItemId,
+            recoverEndMonth: item.needRecover === '1' ? item.recoverEndYm : null
+          }))
         }).then(() => {
           this.$modal.msgSuccess('保存成功')
           this.addOpen = false
