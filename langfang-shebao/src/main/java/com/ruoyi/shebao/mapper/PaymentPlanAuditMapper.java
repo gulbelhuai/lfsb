@@ -12,4 +12,6 @@ import java.util.List;
 public interface PaymentPlanAuditMapper extends BaseMapper<PaymentPlanAudit>
 {
     List<PaymentPlanAuditResp> selectByPlanId(@Param("planId") Long planId);
+
+    int deleteByPlanId(@Param("planId") Long planId);
 }

@@ -64,7 +64,7 @@
               type="text"
               size="mini"
               @click="handleWithdraw(scope.row)"
-            >撤回</el-button>
+            >撤销</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -210,7 +210,8 @@ import {
   getPaymentPlanSummary,
   getPaymentPlanDetail,
   getPaymentPlanAudit,
-  changePaymentPlanStatus
+  changePaymentPlanStatus,
+  revokePaymentPlan
 } from '@/api/shebao/payment'
 import { selectDictLabel } from '@/utils/ruoyi'
 import {
@@ -423,12 +424,12 @@ export default {
       })
     },
     handleWithdraw(row) {
-      promptPlanAction(this, 'draft').then((value) => {
-        return changePaymentPlanStatus(row.id, { targetStatus: 'draft', remark: value })
+      this.$modal.confirm('确认撤销该支付计划？撤销后将删除计划及明细，需重新生成并提交。').then(() => {
+        return revokePaymentPlan(row.id)
       }).then(() => {
-        this.$modal.msgSuccess('撤回成功')
+        this.$modal.msgSuccess('撤销成功')
         this.getList()
-      })
+      }).catch(() => {})
     },
     handleSaveFromDetail() {
       this.saveLoading = true

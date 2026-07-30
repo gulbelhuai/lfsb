@@ -61,12 +61,20 @@ export function getPaymentPlanAudit(id) {
   })
 }
 
-// 状态变更（提交/撤回）
+// 状态变更（提交等）
 export function changePaymentPlanStatus(id, data) {
   return request({
     url: `/shebao/payment/plan/${id}/status`,
     method: 'post',
     data: data
+  })
+}
+
+/** 撤销支付计划（删除计划及明细） */
+export function revokePaymentPlan(id) {
+  return request({
+    url: `/shebao/payment/plan/${id}/revoke`,
+    method: 'post'
   })
 }
 

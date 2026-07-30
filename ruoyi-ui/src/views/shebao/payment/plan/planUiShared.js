@@ -97,7 +97,6 @@ export function paymentPlanAuditStageLabelFromRow(row) {
 
 export const PAYMENT_PLAN_ACTION_META = {
   pending_review: { title: '提交', reject: false },
-  draft: { title: '撤回', reject: false },
   pending_approve: { title: '复核通过', reject: false },
   review_rejected: { title: '复核驳回', reject: true },
   approved: { title: '审批通过', reject: false },

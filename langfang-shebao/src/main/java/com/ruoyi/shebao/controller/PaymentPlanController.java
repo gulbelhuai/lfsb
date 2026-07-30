@@ -109,7 +109,7 @@ public class PaymentPlanController extends BaseController
     }
 
     /**
-     * 状态变更（提交/撤回）
+     * 状态变更（提交等）
      */
     @PreAuthorize("@ss.hasPermi('shebao:payment:plan:generate')")
     @Log(title = "支付计划状态变更", businessType = BusinessType.UPDATE)
@@ -117,6 +117,17 @@ public class PaymentPlanController extends BaseController
     public AjaxResult changeStatus(@PathVariable("id") Long id, @RequestBody PaymentPlanStatusChangeReq req)
     {
         return toAjax(paymentPlanService.changeStatus(id, req));
+    }
+
+    /**
+     * 撤销：删除支付计划及明细，需重新生成并提交
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:generate')")
+    @Log(title = "支付计划撤销", businessType = BusinessType.DELETE)
+    @PostMapping("/{id}/revoke")
+    public AjaxResult revoke(@PathVariable("id") Long id)
+    {
+        return toAjax(paymentPlanService.revoke(id));
     }
 
     @PreAuthorize("@ss.hasPermi('shebao:payment:batch:upload')")

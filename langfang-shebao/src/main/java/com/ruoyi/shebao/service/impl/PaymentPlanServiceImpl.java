@@ -285,6 +285,29 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int revoke(Long planId)
+    {
+        PaymentPlan plan = paymentPlanMapper.selectById(planId);
+        if (plan == null || !"0".equals(plan.getDelFlag()))
+        {
+            throw new ServiceException("支付计划不存在");
+        }
+        if (!STATUS_PENDING_REVIEW.equals(plan.getApprovalStatus()))
+        {
+            throw new ServiceException("仅待复核状态的支付计划可撤销");
+        }
+        if (StringUtils.isNotEmpty(plan.getFinanceStatus()))
+        {
+            throw new ServiceException("已进入财务流程的支付计划不可撤销");
+        }
+        paymentPlanDetailMapper.deleteByPlanId(planId);
+        paymentPlanSummaryMapper.deleteByPlanId(planId);
+        paymentPlanAuditMapper.deleteByPlanId(planId);
+        return paymentPlanMapper.deleteById(planId);
+    }
+
+    @Override
     public List<PaymentPlanSummaryResp> selectSummaryByPlanId(Long planId)
     {
         return paymentPlanSummaryMapper.selectByPlanId(planId);
@@ -679,10 +702,6 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         if (STATUS_PENDING_REVIEW.equals(target) && SUBMIT_ALLOWED.contains(current))
         {
             return; // 提交
-        }
-        if (STATUS_DRAFT.equals(target) && STATUS_PENDING_REVIEW.equals(current))
-        {
-            return; // 撤回
         }
         if (STATUS_PENDING_APPROVE.equals(target) && STATUS_PENDING_REVIEW.equals(current))
         {

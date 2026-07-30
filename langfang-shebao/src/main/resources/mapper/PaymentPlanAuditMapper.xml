@@ -14,4 +14,8 @@
           and a.del_flag = '0'
         order by a.operation_time asc, a.id asc
     </select>
+
+    <delete id="deleteByPlanId">
+        delete from shebao_payment_plan_audit where plan_id = #{planId}
+    </delete>
 </mapper>
