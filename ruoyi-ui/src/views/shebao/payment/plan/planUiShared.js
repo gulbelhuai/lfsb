@@ -51,6 +51,22 @@ export function paymentPlanFinanceStatusLabel(status) {
   return PAYMENT_PLAN_FINANCE_STATUS_LABELS[status] || status
 }
 
+/**
+ * 列表发放机构展示：汇总多机构时用顿号拼接字典标签
+ * @param {string} value 单个编码，或逗号/顿号分隔的多编码
+ * @param {Array} dictOptions dict.type.shebao_grant_org
+ */
+export function paymentPlanGrantOrgLabels(value, dictOptions) {
+  if (value === null || value === undefined || value === '') return '—'
+  const codes = String(value).split(/[,、]/).map(s => s.trim()).filter(Boolean)
+  if (!codes.length) return '—'
+  const options = dictOptions || []
+  return codes.map(code => {
+    const hit = options.find(o => o.value === code || String(o.value) === String(code))
+    return (hit && hit.label) || code
+  }).join('、')
+}
+
 export const PAYMENT_PLAN_DISTRIBUTION_STATUS_LABELS = {
   pending: '待发放',
   submitted: '已提交银行',

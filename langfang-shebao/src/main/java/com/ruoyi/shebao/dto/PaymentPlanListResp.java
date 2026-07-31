@@ -26,7 +26,8 @@ public class PaymentPlanListResp
     private String financeStatus;
     /** 发放状态(pending待发放/submitted已提交银行/completed已完成) */
     private String distributionStatus;
-    /** 汇总涉及的补贴类型（展示用） */
+    /** 汇总涉及的补贴类型（展示用，多值逗号分隔） */
     private String subsidyTypes;
+    /** 汇总涉及的发放机构（展示用，多值逗号分隔字典编码） */
     private String grantOrg;
 }

@@ -41,10 +41,8 @@
       </el-table-column>
       <el-table-column label="发放人次" prop="totalCount" width="100" />
       <el-table-column label="总金额" prop="totalAmount" width="120" />
-      <el-table-column label="发放机构" prop="grantOrg" width="120">
-        <template slot-scope="scope">
-          <dict-tag :options="dict.type.shebao_grant_org" :value="scope.row.grantOrg" />
-        </template>
+      <el-table-column label="发放机构" prop="grantOrg" min-width="160" show-overflow-tooltip>
+        <template slot-scope="scope">{{ grantOrgLabels(scope.row.grantOrg) }}</template>
       </el-table-column>
       <el-table-column label="经办人" prop="operatorName" width="100" />
       <el-table-column label="经办时间" prop="operatorTime" width="170" />
@@ -140,6 +138,7 @@ import {
   promptFinanceBatchAction,
   paymentPlanAuditOperationLabel,
   paymentPlanSubsidyTypeLabel,
+  paymentPlanGrantOrgLabels,
   PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
 } from '../../payment/plan/planUiShared'
 import PlanDetailDialog from '../../payment/plan/PlanDetailDialog'
@@ -291,6 +290,9 @@ export default {
     },
     subsidyTypeLabel(val) {
       return paymentPlanSubsidyTypeLabel(val)
+    },
+    grantOrgLabels(val) {
+      return paymentPlanGrantOrgLabels(val, this.dict.type.shebao_grant_org)
     }
   }
 }

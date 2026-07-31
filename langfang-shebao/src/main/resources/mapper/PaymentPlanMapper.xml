@@ -17,7 +17,9 @@
                (select group_concat(distinct s.subsidy_type order by s.subsidy_type separator ',')
                 from shebao_payment_plan_summary s
                 where s.plan_id = p.id and s.del_flag = '0') as subsidyTypes,
-               (select min(s.grant_org) from shebao_payment_plan_summary s where s.plan_id = p.id and s.del_flag = '0') as grantOrg
+               (select group_concat(distinct s.grant_org order by s.grant_org separator ',')
+                from shebao_payment_plan_summary s
+                where s.plan_id = p.id and s.del_flag = '0') as grantOrg
         from shebao_payment_plan p
         where p.del_flag = '0'
         <if test="req.batchNo != null and req.batchNo != ''">
