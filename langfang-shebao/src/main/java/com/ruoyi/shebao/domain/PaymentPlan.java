@@ -61,6 +61,7 @@ public class PaymentPlan extends BaseEntity
     /**
      * 财务状态：空=未进入财务；pending_finance=待财务；finance_pending_review=待复核；
      * finance_pending_approve=待审批；finance_approved=已通过；finance_rejected=已驳回
+     * （驳回时同时将 approvalStatus 置为 finance_rejected，退回业务可再提交）
      */
     private String financeStatus;
 

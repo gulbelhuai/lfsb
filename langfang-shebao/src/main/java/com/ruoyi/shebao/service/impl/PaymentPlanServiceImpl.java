@@ -1,6 +1,7 @@
 package com.ruoyi.shebao.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DictUtils;
@@ -39,7 +40,10 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private static final String STATUS_APPROVED = "approved";
     private static final String STATUS_REVIEW_REJECTED = "review_rejected";
     private static final String STATUS_APPROVE_REJECTED = "approve_rejected";
-    private static final Set<String> SUBMIT_ALLOWED = Set.of(STATUS_DRAFT, STATUS_REVIEW_REJECTED, STATUS_APPROVE_REJECTED);
+    /** 财务驳回后退回业务侧，可再提交/重算（与 finance_status 同值） */
+    private static final String STATUS_FINANCE_REJECTED = "finance_rejected";
+    private static final Set<String> SUBMIT_ALLOWED = Set.of(
+            STATUS_DRAFT, STATUS_REVIEW_REJECTED, STATUS_APPROVE_REJECTED, STATUS_FINANCE_REJECTED);
 
     private static final String AUDIT_STAGE_SUBSIDY = "subsidy";
     private static final String AUDIT_STAGE_FINANCE = "finance";
@@ -97,7 +101,8 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             return resp;
         }
         LocalDate businessPeriod = parseBusinessPeriod(req.getBusinessPeriod());
-        List<PaymentPlanDetailResp> details = paymentPlanDetailMapper.selectPreviewDetails(businessPeriod, req.getSubsidyType());
+        List<PaymentPlanDetailResp> details = paymentPlanDetailMapper.selectPreviewDetails(
+                businessPeriod, req.getSubsidyType(), req.getExcludePlanId());
         resp.setDetailList(details);
         fillSummaryAndTotal(resp, details);
         return resp;
@@ -139,17 +144,6 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     @Transactional(rollbackFor = Exception.class)
     public Long saveOrSubmit(PaymentPlanGenerateReq req)
     {
-        PaymentPlanPreviewReq previewReq = new PaymentPlanPreviewReq();
-        BeanUtils.copyProperties(req, previewReq);
-        PaymentPlanPreviewResp preview = preview(previewReq);
-        if (!TYPE_NORMAL.equals(req.getDeterminationType()))
-        {
-            throw new ServiceException("二次发放暂未实现");
-        }
-        if (preview.getDetailList().isEmpty())
-        {
-            throw new ServiceException("没有可保存的支付计划数据");
-        }
         LocalDate period = parseBusinessPeriod(req.getBusinessPeriod());
         Date now = new Date();
         String operatorName = resolveOperatorName();
@@ -184,6 +178,20 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             }
         }
 
+        PaymentPlanPreviewReq previewReq = new PaymentPlanPreviewReq();
+        BeanUtils.copyProperties(req, previewReq);
+        // 重算时排除本计划已有明细，避免防重条件把本计划自身挡掉
+        previewReq.setExcludePlanId(plan.getId());
+        PaymentPlanPreviewResp preview = preview(previewReq);
+        if (!TYPE_NORMAL.equals(req.getDeterminationType()))
+        {
+            throw new ServiceException("二次发放暂未实现");
+        }
+        if (preview.getDetailList().isEmpty())
+        {
+            throw new ServiceException("没有可保存的支付计划数据");
+        }
+
         plan.setTotalCount(preview.getTotalCount());
         plan.setTotalAmount(preview.getTotalAmount());
         plan.setOperatorName(operatorName);
@@ -201,6 +209,10 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             paymentPlanMapper.updateById(plan);
             paymentPlanSummaryMapper.deleteByPlanId(plan.getId());
             paymentPlanDetailMapper.deleteByPlanId(plan.getId());
+            if (STATUS_FINANCE_REJECTED.equals(previousStatus) || StringUtils.isNotEmpty(plan.getFinanceStatus()))
+            {
+                clearFinanceStatus(plan.getId());
+            }
         }
         final Long persistedPlanId = plan.getId();
 
@@ -279,6 +291,10 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         int updated = paymentPlanMapper.updateById(plan);
         if (updated > 0)
         {
+            if (STATUS_FINANCE_REJECTED.equals(current))
+            {
+                clearFinanceStatus(planId);
+            }
             insertAudit(planId, target, req.getRemark(), AUDIT_STAGE_SUBSIDY);
         }
         return updated;
@@ -293,13 +309,15 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         {
             throw new ServiceException("支付计划不存在");
         }
-        if (!STATUS_PENDING_REVIEW.equals(plan.getApprovalStatus()))
+        String status = plan.getApprovalStatus();
+        boolean canRevoke = STATUS_DRAFT.equals(status)
+                || STATUS_REVIEW_REJECTED.equals(status)
+                || STATUS_APPROVE_REJECTED.equals(status)
+                || STATUS_FINANCE_REJECTED.equals(status)
+                || (STATUS_PENDING_REVIEW.equals(status) && StringUtils.isEmpty(plan.getFinanceStatus()));
+        if (!canRevoke)
         {
-            throw new ServiceException("仅待复核状态的支付计划可撤销");
-        }
-        if (StringUtils.isNotEmpty(plan.getFinanceStatus()))
-        {
-            throw new ServiceException("已进入财务流程的支付计划不可撤销");
+            throw new ServiceException("当前状态不可撤销，仅草稿/驳回/待复核(未进财务)可撤销");
         }
         paymentPlanDetailMapper.deleteByPlanId(planId);
         paymentPlanSummaryMapper.deleteByPlanId(planId);
@@ -572,6 +590,11 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         PaymentPlan upd = new PaymentPlan();
         upd.setId(planId);
         upd.setFinanceStatus(target);
+        if (remarkRequired)
+        {
+            // 财务驳回：业务审批退回可再提交态
+            upd.setApprovalStatus(STATUS_FINANCE_REJECTED);
+        }
         upd.setUpdateBy(SecurityUtils.getUsername());
         upd.setUpdateTime(new Date());
         int rows = paymentPlanMapper.updateById(upd);
@@ -580,6 +603,16 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             insertAudit(planId, target, remark, AUDIT_STAGE_FINANCE);
         }
         return rows;
+    }
+
+    /** 清空财务状态，便于重新走上传财务 */
+    private void clearFinanceStatus(Long planId)
+    {
+        paymentPlanMapper.update(null, new LambdaUpdateWrapper<PaymentPlan>()
+                .eq(PaymentPlan::getId, planId)
+                .set(PaymentPlan::getFinanceStatus, null)
+                .set(PaymentPlan::getUpdateBy, SecurityUtils.getUsername())
+                .set(PaymentPlan::getUpdateTime, new Date()));
     }
 
     private void validateReq(String determinationType, String businessPeriod, String subsidyType)
@@ -690,7 +723,8 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
                 STATUS_PENDING_APPROVE,
                 STATUS_APPROVED,
                 STATUS_REVIEW_REJECTED,
-                STATUS_APPROVE_REJECTED).contains(status))
+                STATUS_APPROVE_REJECTED,
+                STATUS_FINANCE_REJECTED).contains(status))
         {
             return status;
         }
@@ -701,7 +735,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     {
         if (STATUS_PENDING_REVIEW.equals(target) && SUBMIT_ALLOWED.contains(current))
         {
-            return; // 提交
+            return; // 提交（含财务驳回后重新提交）
         }
         if (STATUS_PENDING_APPROVE.equals(target) && STATUS_PENDING_REVIEW.equals(current))
         {

@@ -81,7 +81,7 @@ class PaymentPlanServiceImplTest {
 
         assertTrue(resp.getDetailList().isEmpty());
         assertEquals(0, resp.getTotalCount());
-        verify(paymentPlanDetailMapper, never()).selectPreviewDetails(any(LocalDate.class), any(String.class));
+        verify(paymentPlanDetailMapper, never()).selectPreviewDetails(any(LocalDate.class), any(), any());
     }
 
     @Test
@@ -102,7 +102,7 @@ class PaymentPlanServiceImplTest {
         d2.setGrantOrg("A");
         d2.setDistributionAmount(new BigDecimal("50"));
 
-        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss"))
+        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss", null))
                 .thenReturn(List.of(d1, d2));
 
         PaymentPlanPreviewResp resp = paymentPlanService.preview(req);
@@ -135,7 +135,7 @@ class PaymentPlanServiceImplTest {
         d.setDeterminationId(1L);
         d.setDeterminationItemId(2L);
 
-        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "demolition"))
+        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "demolition", null))
                 .thenReturn(List.of(d));
 
         when(paymentPlanMapper.selectMaxBatchSeqSuffix("20260401")).thenReturn(0);
@@ -199,7 +199,7 @@ class PaymentPlanServiceImplTest {
     @Test
     @DisplayName("无可生成数据时应拒绝保存")
     void generate_empty_throws() {
-        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss"))
+        when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss", null))
                 .thenReturn(Collections.emptyList());
 
         PaymentPlanGenerateReq req = new PaymentPlanGenerateReq();
@@ -243,21 +243,25 @@ class PaymentPlanServiceImplTest {
     }
 
     @Test
-    @DisplayName("已提交银行的批次标记完成时未失败明细记为成功")
-    void complete_marksRemainingSuccess() {
+    @DisplayName("财务驳回应同时回退审批状态为 finance_rejected")
+    void financeReject_setsApprovalFinanceRejected() {
         PaymentPlan plan = new PaymentPlan();
-        plan.setId(11L);
+        plan.setId(12L);
         plan.setDelFlag("0");
-        plan.setDistributionStatus("submitted");
-        when(paymentPlanMapper.selectById(11L)).thenReturn(plan);
+        plan.setApprovalStatus("approved");
+        plan.setFinanceStatus("pending_finance");
+        when(paymentPlanMapper.selectById(12L)).thenReturn(plan);
         when(paymentPlanMapper.updateById(any(PaymentPlan.class))).thenReturn(1);
 
-        int rows = paymentPlanService.completeDistribution(11L);
+        PaymentPlanFinanceStatusChangeReq req = new PaymentPlanFinanceStatusChangeReq();
+        req.setRemark("账号有误");
+        int rows = paymentPlanService.financeReject(12L, req);
 
         assertEquals(1, rows);
-        verify(paymentPlanDetailMapper).markRemainingSuccess(11L);
         ArgumentCaptor<PaymentPlan> cap = ArgumentCaptor.forClass(PaymentPlan.class);
         verify(paymentPlanMapper).updateById(cap.capture());
-        assertEquals("completed", cap.getValue().getDistributionStatus());
+        assertEquals("finance_rejected", cap.getValue().getFinanceStatus());
+        assertEquals("finance_rejected", cap.getValue().getApprovalStatus());
+        verify(paymentPlanAuditMapper).insert(any(PaymentPlanAudit.class));
     }
 }

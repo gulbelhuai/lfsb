@@ -14,7 +14,7 @@ public interface PaymentPlanMapper extends BaseMapper<PaymentPlan>
     Page<PaymentPlanListResp> selectPaymentPlanList(Page<PaymentPlanListResp> page, @Param("req") PaymentPlanListReq req);
 
     /**
-     * 同业务期年月+类型前缀下，已用最大三位序号（无前缀记录则 0）
+     * 同业务期年月+类型前缀下，未删除记录中已用最大三位序号（无则 0）
      *
      * @param prefix8 前 8 位：yyyyMM + 01/02
      */

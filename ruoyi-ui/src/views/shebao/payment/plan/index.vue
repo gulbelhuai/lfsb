@@ -24,6 +24,7 @@
             <el-option label="审批通过" value="approved" />
             <el-option label="复核驳回" value="review_rejected" />
             <el-option label="审批驳回" value="approve_rejected" />
+            <el-option label="财务驳回" value="finance_rejected" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -60,7 +61,7 @@
               @click="handleSubmit(scope.row)"
             >提交</el-button>
             <el-button
-              v-if="scope.row.approvalStatus === 'pending_review'"
+              v-if="canRevoke(scope.row)"
               type="text"
               size="mini"
               @click="handleWithdraw(scope.row)"
@@ -442,6 +443,7 @@ export default {
       }).then(() => {
         this.$modal.msgSuccess('保存成功')
         this.currentPlan.approvalStatus = 'draft'
+        this.currentPlan.financeStatus = null
         this.getList()
         this.loadSummaryData()
       }).finally(() => {
@@ -462,6 +464,7 @@ export default {
       }).then(() => {
         this.$modal.msgSuccess('提交成功')
         this.currentPlan.approvalStatus = 'pending_review'
+        this.currentPlan.financeStatus = null
         this.getList()
         this.loadSummaryData()
         this.loadAuditData()
@@ -474,7 +477,8 @@ export default {
       previewPaymentPlan({
         determinationType: this.currentPlan.determinationType,
         businessPeriod: this.currentPlan.businessPeriod,
-        subsidyType: this.currentPlan.subsidyType
+        subsidyType: this.currentPlan.subsidyType,
+        excludePlanId: this.currentPlanId
       }).then(response => {
         const previewData = response.data || { summaryList: [], detailList: [] }
         this.detailSummaryList = previewData.summaryList || []
@@ -485,10 +489,22 @@ export default {
       })
     },
     canSubmit(status) {
-      return ['draft', 'review_rejected', 'approve_rejected'].includes(status)
+      return ['draft', 'review_rejected', 'approve_rejected', 'finance_rejected'].includes(status)
     },
     canEditStatus(status) {
-      return ['draft', 'review_rejected', 'approve_rejected'].includes(status)
+      return ['draft', 'review_rejected', 'approve_rejected', 'finance_rejected'].includes(status)
+    },
+    canRevoke(row) {
+      if (!row) return false
+      const status = row.approvalStatus
+      if (['draft', 'review_rejected', 'approve_rejected', 'finance_rejected'].includes(status)) {
+        return true
+      }
+      if (status === 'pending_review') {
+        const fs = row.financeStatus || row.finance_status
+        return !fs
+      }
+      return false
     },
     determinationTypeText(val) {
       return val === 'second' ? '二次发放' : '正常发放'

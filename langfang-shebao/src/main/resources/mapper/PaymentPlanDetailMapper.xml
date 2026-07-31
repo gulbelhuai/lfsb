@@ -105,6 +105,9 @@
                 where pd.determination_item_id = bdi.id
                   and pd.business_period = #{businessPeriod}
                   and pd.del_flag = '0'
+                  <if test="excludePlanId != null">
+                    and pd.plan_id &lt;&gt; #{excludePlanId}
+                  </if>
           )
         order by bdi.id asc
     </select>

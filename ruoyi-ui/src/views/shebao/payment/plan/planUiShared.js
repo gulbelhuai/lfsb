@@ -4,7 +4,8 @@ export const PAYMENT_PLAN_STATUS_LABELS = {
   pending_approve: '待审批',
   approved: '审批通过',
   review_rejected: '复核驳回',
-  approve_rejected: '审批驳回'
+  approve_rejected: '审批驳回',
+  finance_rejected: '财务驳回'
 }
 
 export function paymentPlanStatusLabel(status) {

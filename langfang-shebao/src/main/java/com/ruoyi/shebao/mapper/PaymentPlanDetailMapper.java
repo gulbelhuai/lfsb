@@ -22,7 +22,8 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
     Page<PaymentPlanDetailResp> selectByPlanId(Page<PaymentPlanDetailResp> page, @Param("planId") Long planId);
 
     List<PaymentPlanDetailResp> selectPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod,
-                                                     @Param("subsidyType") String subsidyType);
+                                                     @Param("subsidyType") String subsidyType,
+                                                     @Param("excludePlanId") Long excludePlanId);
 
     /** 按身份证号将明细标记为发放失败并记录原因 */
     int markFailedByIdCard(@Param("planId") Long planId,

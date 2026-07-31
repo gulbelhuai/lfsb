@@ -7,6 +7,8 @@ git clone https://gitee.com/y_project/RuoYi-Vue
 # 进入项目目录
 cd ruoyi-ui
 
+nvm use v18.20.8
+
 # 安装依赖
 npm install
 

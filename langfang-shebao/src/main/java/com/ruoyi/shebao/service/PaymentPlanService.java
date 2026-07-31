@@ -17,7 +17,7 @@ public interface PaymentPlanService
     Long saveOrSubmit(PaymentPlanGenerateReq req);
     int changeStatus(Long planId, PaymentPlanStatusChangeReq req);
 
-    /** 撤销：物理删除支付计划及明细/汇总/审核记录，需重新生成 */
+    /** 撤销：物理删除支付计划及明细/汇总/审核记录；草稿/驳回/待复核(未进财务)可撤销 */
     int revoke(Long planId);
 
     List<PaymentPlanSummaryResp> selectSummaryByPlanId(Long planId);
