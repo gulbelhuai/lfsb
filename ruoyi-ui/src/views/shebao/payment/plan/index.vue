@@ -51,9 +51,10 @@
         <el-table-column label="审批状态" prop="approvalStatus" width="120">
           <template slot-scope="scope">{{ approvalStatusText(scope.row.approvalStatus) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template slot-scope="scope">
             <el-button type="text" size="mini" @click="openDetailDialog(scope.row)">详情</el-button>
+            <el-button type="text" size="mini" @click="handleExportDetail(scope.row)">明细导出</el-button>
             <el-button
               v-if="canSubmit(scope.row.approvalStatus)"
               type="text"
@@ -305,6 +306,15 @@ export default {
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
+    },
+    handleExportDetail(row) {
+      if (!row || !row.id) return
+      const batchNo = row.batchNo || row.batch_no || row.id
+      this.download(
+        `shebao/payment/plan/${row.id}/detail/export`,
+        {},
+        `支付计划明细_${batchNo}_${new Date().getTime()}.xlsx`
+      )
     },
     resetQuery() {
       this.queryParams.determinationType = null

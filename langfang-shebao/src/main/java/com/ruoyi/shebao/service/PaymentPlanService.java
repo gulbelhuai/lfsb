@@ -25,6 +25,9 @@ public interface PaymentPlanService
 
     Page<PaymentPlanDetailResp> selectDetailByPlanId(Long planId, Integer pageNum, Integer pageSize);
 
+    /** 导出：查询计划全部明细（字段与详情-明细表一致） */
+    List<PaymentPlanDetailExportResp> selectDetailExportByPlanId(Long planId);
+
     /** 上传财务：将财务状态置为待财务并记财务审核流水 */
     int submitFinanceUpload(Long planId);
 

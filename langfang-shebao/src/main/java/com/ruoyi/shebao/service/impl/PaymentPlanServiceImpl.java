@@ -385,6 +385,22 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     }
 
     @Override
+    public List<PaymentPlanDetailExportResp> selectDetailExportByPlanId(Long planId)
+    {
+        PaymentPlan plan = paymentPlanMapper.selectById(planId);
+        if (plan == null || !"0".equals(plan.getDelFlag()))
+        {
+            throw new ServiceException("支付计划不存在");
+        }
+        List<PaymentPlanDetailResp> details = paymentPlanDetailMapper.selectListByPlanId(planId);
+        return details.stream().map(item -> {
+            PaymentPlanDetailExportResp row = new PaymentPlanDetailExportResp();
+            BeanUtils.copyProperties(item, row);
+            return row;
+        }).toList();
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public int submitFinanceUpload(Long planId)
     {

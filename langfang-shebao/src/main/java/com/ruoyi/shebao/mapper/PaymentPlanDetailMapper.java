@@ -21,6 +21,9 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
 
     Page<PaymentPlanDetailResp> selectByPlanId(Page<PaymentPlanDetailResp> page, @Param("planId") Long planId);
 
+    /** 导出：按计划查询全部明细 */
+    List<PaymentPlanDetailResp> selectListByPlanId(@Param("planId") Long planId);
+
     List<PaymentPlanDetailResp> selectPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod,
                                                      @Param("subsidyType") String subsidyType,
                                                      @Param("excludePlanId") Long excludePlanId);

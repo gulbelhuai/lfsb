@@ -24,6 +24,22 @@
     </delete>
 
     <select id="selectByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
+        <include refid="selectDetailColumns"/>
+        from shebao_payment_plan_detail d
+        where d.plan_id = #{planId}
+          and d.del_flag = '0'
+        order by d.id asc
+    </select>
+
+    <select id="selectListByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
+        <include refid="selectDetailColumns"/>
+        from shebao_payment_plan_detail d
+        where d.plan_id = #{planId}
+          and d.del_flag = '0'
+        order by d.id asc
+    </select>
+
+    <sql id="selectDetailColumns">
         select d.id,
                d.plan_id,
                d.determination_id,
@@ -48,11 +64,7 @@
                d.relation_to_insured,
                d.distribution_result,
                d.fail_reason
-        from shebao_payment_plan_detail d
-        where d.plan_id = #{planId}
-          and d.del_flag = '0'
-        order by d.id asc
-    </select>
+    </sql>
 
     <update id="markFailedByIdCard">
         update shebao_payment_plan_detail

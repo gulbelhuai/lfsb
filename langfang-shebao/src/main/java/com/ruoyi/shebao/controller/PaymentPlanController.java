@@ -6,12 +6,14 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.shebao.dto.*;
 import com.ruoyi.shebao.service.PaymentPlanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -74,6 +76,19 @@ public class PaymentPlanController extends BaseController
         rsp.setRows(page.getRecords());
         rsp.setTotal(page.getTotal());
         return rsp;
+    }
+
+    /**
+     * 导出支付计划明细（列与详情-明细表一致）
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:payment:plan:list') or @ss.hasPermi('shebao:payment:plan:query')")
+    @Log(title = "支付计划明细导出", businessType = BusinessType.EXPORT)
+    @PostMapping("/{id}/detail/export")
+    public void exportDetail(HttpServletResponse response, @PathVariable("id") Long id)
+    {
+        List<PaymentPlanDetailExportResp> list = paymentPlanService.selectDetailExportByPlanId(id);
+        ExcelUtil<PaymentPlanDetailExportResp> util = new ExcelUtil<>(PaymentPlanDetailExportResp.class);
+        util.exportExcel(response, list, "支付计划明细");
     }
 
     /**
