@@ -11,7 +11,7 @@ import com.ruoyi.shebao.dto.LandLossResidentListResp;
 import com.ruoyi.shebao.dto.LandLossResidentFormDto;
 import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.mapper.LandLossResidentMapper;
-import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
+import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.service.LandLossResidentService;
 import com.ruoyi.shebao.service.support.SubsidyPersonRegistrationHelper;
 import org.apache.commons.collections4.CollectionUtils;
@@ -43,7 +43,7 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
     private SubsidyPersonServiceImpl subsidyPersonService;
 
     @Autowired
-    private SubsidyDistributionMapper subsidyDistributionMapper;
+    private PaymentPlanDetailMapper paymentPlanDetailMapper;
 
     @Autowired
     private SubsidyPersonRegistrationHelper subsidyPersonRegistrationHelper;
@@ -175,10 +175,11 @@ public class LandLossResidentServiceImpl extends ServiceImpl<LandLossResidentMap
         // 逻辑删除
         for (Long id : ids)
         {
-            // 检查是否有未删除的发放记录
-            int count = subsidyDistributionMapper.checkUndeletedDistributions("1", id);
-            if (count > 0) {
-                throw new ServiceException("该失地居民存在未删除的补贴发放记录，无法删除");
+            LandLossResident existing = landLossResidentMapper.selectById(id);
+            if (existing != null && existing.getSubsidyPersonId() != null
+                    && paymentPlanDetailMapper.countUndeletedBySubsidyPersonId(existing.getSubsidyPersonId()) > 0)
+            {
+                throw new ServiceException("该失地居民存在未删除的支付计划发放明细，无法删除");
             }
 
             LandLossResident landLossResident = new LandLossResident();

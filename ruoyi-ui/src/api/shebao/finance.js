@@ -9,15 +9,6 @@ export function listFinanceBatch(query) {
   })
 }
 
-// 查询批次列表（旧发放批次，银行发放等仍可能使用）
-export function listBatch(query) {
-  return request({
-    url: '/shebao/finance/batch/list',
-    method: 'get',
-    params: query
-  })
-}
-
 export function financeBatchPass(id, data) {
   return request({
     url: `/shebao/finance/batch/${id}/finance-pass`,
@@ -63,14 +54,6 @@ export function financeBatchApproveReject(id, data) {
     url: `/shebao/finance/batch/${id}/approve-reject`,
     method: 'post',
     data
-  })
-}
-
-// 查询批次详情
-export function getBatchDetail(batchNo) {
-  return request({
-    url: `/shebao/finance/batch/detail/${batchNo}`,
-    method: 'get'
   })
 }
 

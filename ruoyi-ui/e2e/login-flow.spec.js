@@ -109,7 +109,7 @@ const roleCases = [
         menuItem('determination', '待遇核定', 'shebao/benefit/determination/index')
       ]),
       menuGroup('/shebao/distribution', '补贴发放', [
-        menuItem('distribution', '补贴发放记录', 'shebao/subsidyDistribution/index')
+        menuItem('distribution', '补贴发放记录', 'shebao/distribution/record/index')
       ])
     ]
   },

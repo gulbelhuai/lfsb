@@ -10,7 +10,7 @@ import com.ruoyi.shebao.dto.TeacherSubsidyFormDto;
 import com.ruoyi.shebao.dto.TeacherSubsidyListReq;
 import com.ruoyi.shebao.dto.TeacherSubsidyListResp;
 import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
-import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
+import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.mapper.TeacherSubsidyMapper;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.TeacherSubsidyService;
@@ -41,7 +41,7 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
     private SubsidyPersonService subsidyPersonService;
 
     @Autowired
-    private SubsidyDistributionMapper subsidyDistributionMapper;
+    private PaymentPlanDetailMapper paymentPlanDetailMapper;
 
     @Autowired
     private SubsidyPersonRegistrationHelper subsidyPersonRegistrationHelper;
@@ -164,11 +164,11 @@ public class TeacherSubsidyServiceImpl extends ServiceImpl<TeacherSubsidyMapper,
     {
         for (Long id : ids)
         {
-            // 约定：教龄补助=补贴类型5（教师）
-            int count = subsidyDistributionMapper.checkUndeletedDistributions("5", id);
-            if (count > 0)
+            TeacherSubsidy existing = teacherSubsidyMapper.selectById(id);
+            if (existing != null && existing.getSubsidyPersonId() != null
+                    && paymentPlanDetailMapper.countUndeletedBySubsidyPersonId(existing.getSubsidyPersonId()) > 0)
             {
-                throw new ServiceException("该教龄补助存在未删除的补贴发放记录，无法删除");
+                throw new ServiceException("该教龄补助存在未删除的支付计划发放明细，无法删除");
             }
 
             TeacherSubsidy ts = new TeacherSubsidy();

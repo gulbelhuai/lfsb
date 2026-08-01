@@ -3,6 +3,7 @@ package com.ruoyi.shebao.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.shebao.domain.PaymentPlanDetail;
+import com.ruoyi.shebao.dto.DistributionRecordListReq;
 import com.ruoyi.shebao.dto.PaymentPlanDetailResp;
 import com.ruoyi.shebao.dto.PaymentPlanFailureListReq;
 import com.ruoyi.shebao.dto.PaymentPlanFailureListResp;
@@ -32,6 +33,15 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
     Page<ResidentPaymentDetailResp> selectResidentPaymentDetails(Page<ResidentPaymentDetailResp> page,
                                                                 @Param("subsidyPersonId") Long subsidyPersonId,
                                                                 @Param("mode") String mode);
+
+    /**
+     * 补贴发放记录（全局）：财务审核通过的支付计划明细
+     */
+    Page<ResidentPaymentDetailResp> selectDistributionRecordList(Page<ResidentPaymentDetailResp> page,
+                                                                 @Param("req") DistributionRecordListReq req);
+
+    /** 登记删除校验：该被补贴人是否仍有未删支付计划明细 */
+    int countUndeletedBySubsidyPersonId(@Param("subsidyPersonId") Long subsidyPersonId);
 
     List<PaymentPlanDetailResp> selectPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod,
                                                      @Param("subsidyType") String subsidyType,

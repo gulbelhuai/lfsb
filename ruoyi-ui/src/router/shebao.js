@@ -266,7 +266,7 @@ export default {
     // 6.3 发放明细
     {
       path: 'audit/detail',
-      component: () => import('@/views/shebao/audit/detail/index'),
+      component: () => import('@/views/shebao/distribution/record/index'),
       name: 'AuditDetail',
       meta: { title: '发放明细', icon: 'list' },
       hidden: false

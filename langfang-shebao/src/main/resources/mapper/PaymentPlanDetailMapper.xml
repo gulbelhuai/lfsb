@@ -235,6 +235,7 @@
         select d.id,
                d.plan_id as planId,
                p.batch_no as batchNo,
+               p.determination_type as determinationType,
                d.subsidy_person_id as subsidyPersonId,
                d.subsidy_type as subsidyType,
                d.street_name as streetName,
@@ -274,5 +275,81 @@
               </otherwise>
           </choose>
         order by d.id desc
+    </select>
+
+    <!-- 补贴发放记录（全局）：finance_approved + 派生 payStatus -->
+    <select id="selectDistributionRecordList" resultType="com.ruoyi.shebao.dto.ResidentPaymentDetailResp">
+        select d.id,
+               d.plan_id as planId,
+               p.batch_no as batchNo,
+               p.determination_type as determinationType,
+               d.subsidy_person_id as subsidyPersonId,
+               d.subsidy_type as subsidyType,
+               d.street_name as streetName,
+               d.village_name as villageName,
+               d.person_name as personName,
+               d.id_card_no as idCardNo,
+               date_format(d.business_period, '%Y-%m') as businessPeriod,
+               d.monthly_amount as monthlyAmount,
+               d.supplement_amount as supplementAmount,
+               date_format(d.supplement_start_month, '%Y-%m') as supplementStartMonth,
+               date_format(d.supplement_end_month, '%Y-%m') as supplementEndMonth,
+               d.distribution_amount as distributionAmount,
+               date_format(d.distribution_date, '%Y-%m-%d') as distributionDate,
+               d.grant_org as grantOrg,
+               d.account_name as accountName,
+               d.bank_account as bankAccount,
+               d.relation_to_insured as relationToInsured,
+               d.fail_reason as failReason,
+               p.distribution_status as planDistributionStatus,
+               d.distribution_result as distributionResult,
+               case
+                   when ifnull(p.distribution_status, '') &lt;&gt; 'completed' then 'distributing'
+                   when d.distribution_result = 'failed' then 'failed'
+                   else 'paid'
+               end as payStatus
+        from shebao_payment_plan_detail d
+                 inner join shebao_payment_plan p on p.id = d.plan_id and p.del_flag = '0'
+        where d.del_flag = '0'
+          and p.finance_status = 'finance_approved'
+          <if test="req.businessPeriod != null and req.businessPeriod != ''">
+              and date_format(d.business_period, '%Y-%m') = #{req.businessPeriod}
+          </if>
+          <if test="req.determinationType != null and req.determinationType != ''">
+              and p.determination_type = #{req.determinationType}
+          </if>
+          <if test="req.subsidyType != null and req.subsidyType != ''">
+              and d.subsidy_type = #{req.subsidyType}
+          </if>
+          <if test="req.grantOrg != null and req.grantOrg != ''">
+              and d.grant_org = #{req.grantOrg}
+          </if>
+          <if test="req.idCardNo != null and req.idCardNo != ''">
+              and d.id_card_no like concat('%', #{req.idCardNo}, '%')
+          </if>
+          <if test="req.personName != null and req.personName != ''">
+              and d.person_name like concat('%', #{req.personName}, '%')
+          </if>
+          <if test="req.batchNo != null and req.batchNo != ''">
+              and p.batch_no like concat('%', #{req.batchNo}, '%')
+          </if>
+          <if test="req.payStatus != null and req.payStatus != ''">
+              and (
+                  case
+                      when ifnull(p.distribution_status, '') &lt;&gt; 'completed' then 'distributing'
+                      when d.distribution_result = 'failed' then 'failed'
+                      else 'paid'
+                  end
+              ) = #{req.payStatus}
+          </if>
+        order by d.id desc
+    </select>
+
+    <select id="countUndeletedBySubsidyPersonId" resultType="int">
+        select count(*)
+        from shebao_payment_plan_detail d
+                 inner join shebao_payment_plan p on p.id = d.plan_id and p.del_flag = '0'
+        where d.del_flag = '0'
+          and d.subsidy_person_id = #{subsidyPersonId}
     </select>
 </mapper>

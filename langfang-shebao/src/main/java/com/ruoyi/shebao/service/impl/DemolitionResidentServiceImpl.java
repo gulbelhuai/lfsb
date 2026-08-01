@@ -11,7 +11,7 @@ import com.ruoyi.shebao.dto.DemolitionResidentListReq;
 import com.ruoyi.shebao.dto.DemolitionResidentListResp;
 import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.mapper.DemolitionResidentMapper;
-import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
+import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.service.DemolitionResidentService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.support.SubsidyPersonRegistrationHelper;
@@ -42,7 +42,7 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
     private SubsidyPersonService subsidyPersonService;
 
     @Autowired
-    private SubsidyDistributionMapper subsidyDistributionMapper;
+    private PaymentPlanDetailMapper paymentPlanDetailMapper;
 
     @Autowired
     private SubsidyPersonRegistrationHelper subsidyPersonRegistrationHelper;
@@ -138,10 +138,11 @@ public class DemolitionResidentServiceImpl extends ServiceImpl<DemolitionResiden
     {
         for (Long id : ids)
         {
-            int count = subsidyDistributionMapper.checkUndeletedDistributions("3", id);
-            if (count > 0)
+            DemolitionResident existing = demolitionResidentMapper.selectById(id);
+            if (existing != null && existing.getSubsidyPersonId() != null
+                    && paymentPlanDetailMapper.countUndeletedBySubsidyPersonId(existing.getSubsidyPersonId()) > 0)
             {
-                throw new ServiceException("该拆迁居民存在未删除的补贴发放记录，无法删除");
+                throw new ServiceException("该拆迁居民存在未删除的支付计划发放明细，无法删除");
             }
 
             DemolitionResident demolitionResident = new DemolitionResident();

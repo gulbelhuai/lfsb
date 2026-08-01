@@ -12,7 +12,7 @@ import com.ruoyi.shebao.dto.VillageOfficialListReq;
 import com.ruoyi.shebao.dto.VillageOfficialListResp;
 import com.ruoyi.shebao.dto.VillageOfficialFormDto;
 import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
-import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
+import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialPositionMapper;
 import com.ruoyi.shebao.service.SubsidyCalculationService;
@@ -52,7 +52,7 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     private SubsidyPersonService subsidyPersonService;
 
     @Autowired
-    private SubsidyDistributionMapper subsidyDistributionMapper;
+    private PaymentPlanDetailMapper paymentPlanDetailMapper;
 
     @Autowired
     private VillageCommitteeService villageCommitteeService;
@@ -213,10 +213,11 @@ public class VillageOfficialServiceImpl extends ServiceImpl<VillageOfficialMappe
     {
         for (Long id : ids)
         {
-            // 检查是否有未删除的发放记录
-            int count = subsidyDistributionMapper.checkUndeletedDistributions("4", id);
-            if (count > 0) {
-                throw new ServiceException("该村干部存在未删除的补贴发放记录，无法删除");
+            VillageOfficial existing = villageOfficialMapper.selectById(id);
+            if (existing != null && existing.getSubsidyPersonId() != null
+                    && paymentPlanDetailMapper.countUndeletedBySubsidyPersonId(existing.getSubsidyPersonId()) > 0)
+            {
+                throw new ServiceException("该村干部存在未删除的支付计划发放明细，无法删除");
             }
 
             // 逻辑删除村干部信息

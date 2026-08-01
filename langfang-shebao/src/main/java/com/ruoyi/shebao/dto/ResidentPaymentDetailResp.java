@@ -14,6 +14,8 @@ public class ResidentPaymentDetailResp
     private Long planId;
     /** 支付计划批次号 */
     private String batchNo;
+    /** 发放类型 normal/second */
+    private String determinationType;
     private Long subsidyPersonId;
     private String subsidyType;
     private String streetName;

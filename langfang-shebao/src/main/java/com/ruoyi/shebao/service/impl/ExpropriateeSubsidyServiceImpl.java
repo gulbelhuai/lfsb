@@ -12,7 +12,7 @@ import com.ruoyi.shebao.dto.ExpropriateeSubsidyListReq;
 import com.ruoyi.shebao.dto.ExpropriateeSubsidyListResp;
 import com.ruoyi.shebao.constant.SubsidyApprovalStatus;
 import com.ruoyi.shebao.mapper.ExpropriateeSubsidyMapper;
-import com.ruoyi.shebao.mapper.SubsidyDistributionMapper;
+import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.service.ExpropriateeSubsidyService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
 import com.ruoyi.shebao.service.VillageCommitteeService;
@@ -46,7 +46,7 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
     private SubsidyPersonService subsidyPersonService;
 
     @Resource
-    private SubsidyDistributionMapper subsidyDistributionMapper;
+    private PaymentPlanDetailMapper paymentPlanDetailMapper;
 
     @Resource
     private VillageCommitteeService villageCommitteeService;
@@ -156,10 +156,11 @@ public class ExpropriateeSubsidyServiceImpl extends ServiceImpl<ExpropriateeSubs
     {
         for (Long id : ids)
         {
-            int count = subsidyDistributionMapper.checkUndeletedDistributions("2", id);
-            if (count > 0)
+            ExpropriateeSubsidy existing = expropriateeSubsidyMapper.selectById(id);
+            if (existing != null && existing.getSubsidyPersonId() != null
+                    && paymentPlanDetailMapper.countUndeletedBySubsidyPersonId(existing.getSubsidyPersonId()) > 0)
             {
-                throw new ServiceException("该被征地参保补贴存在未删除的补贴发放记录，无法删除");
+                throw new ServiceException("该被征地参保补贴存在未删除的支付计划发放明细，无法删除");
             }
 
             ExpropriateeSubsidy entity = new ExpropriateeSubsidy();
