@@ -38,7 +38,12 @@ public interface ResidentQueryService
     ResidentBasicInfo getResidentBasicInfo(Long subsidyPersonId);
 
     /**
-     * 获取居民发放记录
+     * 获取居民预发放记录（支付计划明细，未财务通过）
+     */
+    AjaxResult getResidentPreDistributionList(Long subsidyPersonId, Integer pageNum, Integer pageSize);
+
+    /**
+     * 获取居民发放记录（支付计划明细，已财务通过）
      * 
      * @param subsidyPersonId 居民ID
      * @param pageNum 页码

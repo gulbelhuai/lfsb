@@ -14,14 +14,23 @@ export function getResidentDetailInfo(keyword, subsidyPersonId) {
   return request({
     url: '/shebao/residentQuery/getResidentDetailInfo',
     method: 'get',
-    params: { 
+    params: {
       keyword,
-      subsidyPersonId 
+      subsidyPersonId
     }
   })
 }
 
-// 获取居民发放记录
+// 获取居民预发放记录（支付计划明细，未财务通过）
+export function getResidentPreDistributionList(queryParams) {
+  return request({
+    url: '/shebao/residentQuery/getResidentPreDistributionList',
+    method: 'get',
+    params: queryParams
+  })
+}
+
+// 获取居民发放记录（支付计划明细，已财务通过）
 export function getResidentDistributionList(queryParams) {
   return request({
     url: '/shebao/residentQuery/getResidentDistributionList',

@@ -45,7 +45,18 @@ public class ResidentQueryController extends BaseController
     }
 
     /**
-     * 获取居民发放记录
+     * 获取居民预发放记录（支付计划明细，未财务通过）
+     */
+    @GetMapping("/getResidentPreDistributionList")
+    public AjaxResult getResidentPreDistributionList(@RequestParam Long subsidyPersonId,
+                                                     @RequestParam(defaultValue = "1") Integer pageNum,
+                                                     @RequestParam(defaultValue = "10") Integer pageSize)
+    {
+        return residentQueryService.getResidentPreDistributionList(subsidyPersonId, pageNum, pageSize);
+    }
+
+    /**
+     * 获取居民发放记录（支付计划明细，已财务通过）
      */
     @GetMapping("/getResidentDistributionList")
     public AjaxResult getResidentDistributionList(@RequestParam Long subsidyPersonId,

@@ -6,6 +6,7 @@ import com.ruoyi.shebao.domain.PaymentPlanDetail;
 import com.ruoyi.shebao.dto.PaymentPlanDetailResp;
 import com.ruoyi.shebao.dto.PaymentPlanFailureListReq;
 import com.ruoyi.shebao.dto.PaymentPlanFailureListResp;
+import com.ruoyi.shebao.dto.ResidentPaymentDetailResp;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -23,6 +24,14 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
 
     /** 导出：按计划查询全部明细 */
     List<PaymentPlanDetailResp> selectListByPlanId(@Param("planId") Long planId);
+
+    /**
+     * 居民查询：按人查支付明细
+     * @param mode pre=未财务通过；paid=已财务通过
+     */
+    Page<ResidentPaymentDetailResp> selectResidentPaymentDetails(Page<ResidentPaymentDetailResp> page,
+                                                                @Param("subsidyPersonId") Long subsidyPersonId,
+                                                                @Param("mode") String mode);
 
     List<PaymentPlanDetailResp> selectPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod,
                                                      @Param("subsidyType") String subsidyType,

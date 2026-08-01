@@ -273,6 +273,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setPlanId(persistedPlanId);
             row.setDeterminationId(item.getDeterminationId());
             row.setDeterminationItemId(item.getDeterminationItemId());
+            row.setSubsidyPersonId(item.getSubsidyPersonId());
             row.setSubsidyType(item.getSubsidyType());
             row.setStreetName(item.getStreetName());
             row.setVillageName(item.getVillageName());
@@ -466,8 +467,22 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         if (rows > 0)
         {
             markSupplementsPaid(planId);
+            stampDistributionDate(planId);
         }
         return rows;
+    }
+
+    /** 财务通过：写入明细发放日期（当日） */
+    private void stampDistributionDate(Long planId)
+    {
+        LocalDate today = LocalDate.now();
+        paymentPlanDetailMapper.update(null, new LambdaUpdateWrapper<PaymentPlanDetail>()
+                .eq(PaymentPlanDetail::getPlanId, planId)
+                .eq(PaymentPlanDetail::getDelFlag, "0")
+                .isNull(PaymentPlanDetail::getDistributionDate)
+                .set(PaymentPlanDetail::getDistributionDate, today)
+                .set(PaymentPlanDetail::getUpdateBy, SecurityUtils.getUsername())
+                .set(PaymentPlanDetail::getUpdateTime, new Date()));
     }
 
     @Override

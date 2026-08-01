@@ -4,17 +4,17 @@
 
     <insert id="batchInsert">
         insert into shebao_payment_plan_detail
-        (plan_id, determination_id, determination_item_id, subsidy_type, street_name, village_name,
+        (plan_id, determination_id, determination_item_id, subsidy_person_id, subsidy_type, street_name, village_name,
          person_name, id_card_no, business_period, payment_month, monthly_amount, supplement_amount,
          supplement_start_month, supplement_end_month, supplement_source, supplement_source_id,
-         distribution_amount, grant_org,
+         distribution_amount, distribution_date, grant_org,
          account_name, bank_account, relation_to_insured, del_flag, create_by, create_time, update_by, update_time, remark)
         values
         <foreach collection="list" item="item" separator=",">
-            (#{item.planId}, #{item.determinationId}, #{item.determinationItemId}, #{item.subsidyType}, #{item.streetName}, #{item.villageName},
+            (#{item.planId}, #{item.determinationId}, #{item.determinationItemId}, #{item.subsidyPersonId}, #{item.subsidyType}, #{item.streetName}, #{item.villageName},
              #{item.personName}, #{item.idCardNo}, #{item.businessPeriod}, #{item.paymentMonth}, #{item.monthlyAmount}, #{item.supplementAmount},
              #{item.supplementStartMonth}, #{item.supplementEndMonth}, #{item.supplementSource}, #{item.supplementSourceId},
-             #{item.distributionAmount}, #{item.grantOrg},
+             #{item.distributionAmount}, #{item.distributionDate}, #{item.grantOrg},
              #{item.accountName}, #{item.bankAccount}, #{item.relationToInsured}, #{item.delFlag}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.remark})
         </foreach>
     </insert>
@@ -44,6 +44,7 @@
                d.plan_id,
                d.determination_id,
                d.determination_item_id,
+               d.subsidy_person_id,
                d.subsidy_type,
                d.street_name,
                d.village_name,
@@ -58,6 +59,7 @@
                d.supplement_source,
                d.supplement_source_id,
                d.distribution_amount,
+               date_format(d.distribution_date, '%Y-%m-%d') as distribution_date,
                d.grant_org,
                d.account_name,
                d.bank_account,
@@ -96,6 +98,7 @@
                null as plan_id,
                bd.id as determination_id,
                bdi.id as determination_item_id,
+               bd.subsidy_person_id as subsidy_person_id,
                bdi.subsidy_type,
                sso.street_name,
                svc.village_name,
@@ -110,6 +113,7 @@
                null as supplement_source,
                null as supplement_source_id,
                ifnull(bdi.subsidy_standard, 0) as distribution_amount,
+               null as distribution_date,
                bd.grant_org,
                bd.account_name,
                bd.bank_account,
@@ -224,5 +228,51 @@
           and bd.approval_status != ''
           and bd.approval_status != 'approved'
           and bdi.subsidy_type = #{subsidyType}
+    </select>
+
+    <!-- 居民查询：预发放(pre) / 发放记录(paid)，按 subsidy_person_id -->
+    <select id="selectResidentPaymentDetails" resultType="com.ruoyi.shebao.dto.ResidentPaymentDetailResp">
+        select d.id,
+               d.plan_id as planId,
+               p.batch_no as batchNo,
+               d.subsidy_person_id as subsidyPersonId,
+               d.subsidy_type as subsidyType,
+               d.street_name as streetName,
+               d.village_name as villageName,
+               d.person_name as personName,
+               d.id_card_no as idCardNo,
+               date_format(d.business_period, '%Y-%m') as businessPeriod,
+               d.monthly_amount as monthlyAmount,
+               d.supplement_amount as supplementAmount,
+               date_format(d.supplement_start_month, '%Y-%m') as supplementStartMonth,
+               date_format(d.supplement_end_month, '%Y-%m') as supplementEndMonth,
+               d.distribution_amount as distributionAmount,
+               date_format(d.distribution_date, '%Y-%m-%d') as distributionDate,
+               d.grant_org as grantOrg,
+               d.account_name as accountName,
+               d.bank_account as bankAccount,
+               d.relation_to_insured as relationToInsured,
+               d.fail_reason as failReason,
+               p.distribution_status as planDistributionStatus,
+               d.distribution_result as distributionResult,
+               case
+                   when #{mode} = 'pre' then null
+                   when ifnull(p.distribution_status, '') &lt;&gt; 'completed' then 'distributing'
+                   when d.distribution_result = 'failed' then 'failed'
+                   else 'paid'
+               end as payStatus
+        from shebao_payment_plan_detail d
+                 inner join shebao_payment_plan p on p.id = d.plan_id and p.del_flag = '0'
+        where d.del_flag = '0'
+          and d.subsidy_person_id = #{subsidyPersonId}
+          <choose>
+              <when test="mode == 'pre'">
+                  and (p.finance_status is null or p.finance_status = '' or p.finance_status &lt;&gt; 'finance_approved')
+              </when>
+              <otherwise>
+                  and p.finance_status = 'finance_approved'
+              </otherwise>
+          </choose>
+        order by d.id desc
     </select>
 </mapper>

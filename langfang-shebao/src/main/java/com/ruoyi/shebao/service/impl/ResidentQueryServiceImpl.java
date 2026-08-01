@@ -38,7 +38,7 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
     private VillageOfficialMapper villageOfficialMapper;
 
     @Autowired
-    private SubsidyDistributionMapper subsidyDistributionMapper;
+    private PaymentPlanDetailMapper paymentPlanDetailMapper;
 
     @Autowired
     private StreetOfficeMapper streetOfficeMapper;
@@ -238,19 +238,22 @@ public class ResidentQueryServiceImpl implements ResidentQueryService
     }
 
     /**
-     * 获取居民发放记录
+     * 获取居民预发放记录（支付计划明细，未财务通过）
+     */
+    @Override
+    public AjaxResult getResidentPreDistributionList(Long subsidyPersonId, Integer pageNum, Integer pageSize)
+    {
+        Page<ResidentPaymentDetailResp> page = new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 10 : pageSize);
+        return AjaxResult.success(paymentPlanDetailMapper.selectResidentPaymentDetails(page, subsidyPersonId, "pre"));
+    }
+
+    /**
+     * 获取居民发放记录（支付计划明细，已财务通过）
      */
     @Override
     public AjaxResult getResidentDistributionList(Long subsidyPersonId, Integer pageNum, Integer pageSize)
     {
-        SubsidyDistributionListReq req = new SubsidyDistributionListReq();
-        req.setSubsidyPersonId(subsidyPersonId);
-        req.setPageNum(pageNum);
-        req.setPageSize(pageSize);
-        
-        Page<SubsidyDistributionListResp> page = new Page<>(pageNum, pageSize);
-        Page<SubsidyDistributionListResp> result = subsidyDistributionMapper.selectSubsidyDistributionList(page, req);
-        
-        return AjaxResult.success(result);
+        Page<ResidentPaymentDetailResp> page = new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 10 : pageSize);
+        return AjaxResult.success(paymentPlanDetailMapper.selectResidentPaymentDetails(page, subsidyPersonId, "paid"));
     }
 }

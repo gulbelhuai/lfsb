@@ -28,6 +28,9 @@ public class PaymentPlanDetail extends BaseEntity
 
     private Long determinationItemId;
 
+    /** 被补贴人ID（快照关联，居民查询用） */
+    private Long subsidyPersonId;
+
     private String subsidyType;
 
     private String streetName;
@@ -64,6 +67,10 @@ public class PaymentPlanDetail extends BaseEntity
     private Long supplementSourceId;
 
     private BigDecimal distributionAmount;
+
+    /** 发放日期（财务通过日） */
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate distributionDate;
 
     private String grantOrg;
 

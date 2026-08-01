@@ -165,35 +165,93 @@
         </div>
       </el-card>
 
+      <!-- 预发放记录 -->
+      <el-card class="box-card" style="margin-bottom: 20px;">
+        <div slot="header" class="clearfix">
+          <span>预发放记录</span>
+        </div>
+        <el-table v-loading="preLoading" :data="preDistributionList" border size="small">
+          <el-table-column type="index" label="序号" width="55" align="center" />
+          <el-table-column label="支付计划批次" prop="batchNo" width="130" show-overflow-tooltip />
+          <el-table-column label="补贴类型" prop="subsidyType" width="110" align="center">
+            <template slot-scope="scope">{{ subsidyTypeLabel(scope.row.subsidyType) }}</template>
+          </el-table-column>
+          <el-table-column label="街道" prop="streetName" width="100" show-overflow-tooltip />
+          <el-table-column label="村委会" prop="villageName" width="100" show-overflow-tooltip />
+          <el-table-column label="姓名" prop="personName" width="90" />
+          <el-table-column label="身份证号" prop="idCardNo" width="170" />
+          <el-table-column label="业务期" prop="businessPeriod" width="90" align="center" />
+          <el-table-column label="补发起始" prop="supplementStartMonth" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.supplementStartMonth || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="补发终止" prop="supplementEndMonth" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.supplementEndMonth || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="发放金额" prop="distributionAmount" width="100" align="center">
+            <template slot-scope="scope">{{ formatAmount(scope.row.distributionAmount) }}</template>
+          </el-table-column>
+          <el-table-column label="发放机构" prop="grantOrg" width="110">
+            <template slot-scope="scope">{{ grantOrgLabel(scope.row.grantOrg) }}</template>
+          </el-table-column>
+          <el-table-column label="开户名" prop="accountName" width="90" />
+          <el-table-column label="银行账号" prop="bankAccount" width="160" show-overflow-tooltip />
+          <el-table-column label="与参保人关系" prop="relationToInsured" width="110" />
+        </el-table>
+        <pagination
+          v-show="preDistributionTotal > 0"
+          :total="preDistributionTotal"
+          :page.sync="preQueryParams.pageNum"
+          :limit.sync="preQueryParams.pageSize"
+          @pagination="getPreDistributionList"
+        />
+        <div v-if="!preLoading && preDistributionTotal === 0" class="empty-tip">暂无预发放记录</div>
+      </el-card>
+
       <!-- 补贴发放记录 -->
       <el-card class="box-card">
         <div slot="header" class="clearfix">
           <span>补贴发放记录</span>
         </div>
         <el-table v-loading="loading" :data="distributionList" border size="small">
-          <el-table-column type="index" label="序号" width="60" align="center" />
-          <el-table-column label="补贴类型" prop="subsidyType" width="120" align="center">
+          <el-table-column type="index" label="序号" width="55" align="center" />
+          <el-table-column label="支付计划批次" prop="batchNo" width="130" show-overflow-tooltip />
+          <el-table-column label="补贴类型" prop="subsidyType" width="110" align="center">
+            <template slot-scope="scope">{{ subsidyTypeLabel(scope.row.subsidyType) }}</template>
+          </el-table-column>
+          <el-table-column label="街道" prop="streetName" width="100" show-overflow-tooltip />
+          <el-table-column label="村委会" prop="villageName" width="100" show-overflow-tooltip />
+          <el-table-column label="姓名" prop="personName" width="90" />
+          <el-table-column label="身份证号" prop="idCardNo" width="170" />
+          <el-table-column label="业务期" prop="businessPeriod" width="90" align="center" />
+          <el-table-column label="补发起始" prop="supplementStartMonth" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.supplementStartMonth || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="补发终止" prop="supplementEndMonth" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.supplementEndMonth || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="发放金额" prop="distributionAmount" width="100" align="center">
+            <template slot-scope="scope">{{ formatAmount(scope.row.distributionAmount) }}</template>
+          </el-table-column>
+          <el-table-column label="发放日期" prop="distributionDate" width="110" align="center">
+            <template slot-scope="scope">{{ scope.row.distributionDate || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="发放状态" prop="payStatus" width="100" align="center">
             <template slot-scope="scope">
-              {{ getSubsidyTypeName(scope.row.subsidyType) }}
+              <el-tag v-if="scope.row.payStatus === 'distributing'" type="warning" size="small">发放中</el-tag>
+              <el-tag v-else-if="scope.row.payStatus === 'paid'" type="success" size="small">已发放</el-tag>
+              <el-tag v-else-if="scope.row.payStatus === 'failed'" type="danger" size="small">发放失败</el-tag>
+              <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="发放金额" prop="distributionAmount" width="120" align="center">
-            <template slot-scope="scope">
-              {{ scope.row.distributionAmount ? scope.row.distributionAmount.toFixed(2) : '0.00' }}
-            </template>
+          <el-table-column label="失败原因" prop="failReason" min-width="120" show-overflow-tooltip>
+            <template slot-scope="scope">{{ scope.row.failReason || '-' }}</template>
           </el-table-column>
-          <el-table-column label="发放日期" prop="distributionDate" width="120" align="center" />
-          <el-table-column label="发放状态" prop="distributionStatus" width="100" align="center">
-            <template slot-scope="scope">
-              <el-tag v-if="scope.row.distributionStatus === '1'" type="warning" size="small">待审核</el-tag>
-              <el-tag v-else-if="scope.row.distributionStatus === '2'" type="primary" size="small">待发放</el-tag>
-              <el-tag v-else-if="scope.row.distributionStatus === '3'" type="danger" size="small">已拒绝</el-tag>
-              <el-tag v-else-if="scope.row.distributionStatus === '4'" type="success" size="small">已发放</el-tag>
-              <el-tag v-else type="info" size="small">未知</el-tag>
-            </template>
+          <el-table-column label="发放机构" prop="grantOrg" width="110">
+            <template slot-scope="scope">{{ grantOrgLabel(scope.row.grantOrg) }}</template>
           </el-table-column>
-          <el-table-column label="提交时间" prop="createTime" width="160" align="center" />
-          <el-table-column label="审核说明" prop="reviewRemark" align="left" show-overflow-tooltip />
+          <el-table-column label="开户名" prop="accountName" width="90" />
+          <el-table-column label="银行账号" prop="bankAccount" width="160" show-overflow-tooltip />
+          <el-table-column label="与参保人关系" prop="relationToInsured" width="110" />
         </el-table>
         
         <pagination
@@ -203,6 +261,7 @@
           :limit.sync="distributionQueryParams.pageSize"
           @pagination="getDistributionList"
         />
+        <div v-if="!loading && distributionTotal === 0" class="empty-tip">暂无发放记录</div>
       </el-card>
     </div>
 
@@ -215,14 +274,18 @@
 </template>
 
 <script>
-import { searchResidents, getResidentDetailInfo, getResidentDistributionList } from "@/api/shebao/residentQuery"
+import { searchResidents, getResidentDetailInfo, getResidentPreDistributionList, getResidentDistributionList } from "@/api/shebao/residentQuery"
+import { selectDictLabel } from '@/utils/ruoyi'
+import { paymentPlanSubsidyTypeLabel } from '@/views/shebao/payment/plan/planUiShared'
 
 export default {
   name: "ResidentQuery",
+  dicts: ['shebao_grant_org'],
   data() {
     return {
       // 遮罩层
       loading: false,
+      preLoading: false,
       // 搜索关键词
       searchKeyword: '',
       // 搜索历史记录
@@ -235,6 +298,13 @@ export default {
         expropriateeSubsidies: [],
         demolitionResidents: [],
         villageOfficials: []
+      },
+      preDistributionList: [],
+      preDistributionTotal: 0,
+      preQueryParams: {
+        pageNum: 1,
+        pageSize: 10,
+        subsidyPersonId: null
       },
       // 发放记录列表
       distributionList: [],
@@ -307,16 +377,32 @@ export default {
           subsidyPersonId: this.residentInfo.id
         })
         
-        // 重置发放记录分页参数
+        this.preQueryParams.pageNum = 1
+        this.preQueryParams.subsidyPersonId = this.residentInfo.id
         this.distributionQueryParams.pageNum = 1
         this.distributionQueryParams.subsidyPersonId = this.residentInfo.id
         
-        // 查询发放记录
+        this.getPreDistributionList()
         this.getDistributionList()
       }).catch(() => {
         this.loading = false
       }).finally(() => {
         this.loading = false
+      })
+    },
+    getPreDistributionList() {
+      if (!this.preQueryParams.subsidyPersonId) {
+        return
+      }
+      this.preLoading = true
+      getResidentPreDistributionList(this.preQueryParams).then(response => {
+        this.preDistributionList = response.data.records || []
+        this.preDistributionTotal = response.data.total || 0
+      }).catch(() => {
+        this.preDistributionList = []
+        this.preDistributionTotal = 0
+      }).finally(() => {
+        this.preLoading = false
       })
     },
     /** 查询发放记录列表 */
@@ -335,16 +421,16 @@ export default {
         this.loading = false
       })
     },
-    /** 获取补贴类型名称 */
-    getSubsidyTypeName(subsidyType) {
-      const typeMap = {
-        '1': '失地居民补贴',
-        '2': '被征地居民补贴',
-        '3': '拆迁居民补贴',
-        '4': '村干部补贴',
-        '5': '教龄补助'
-      }
-      return typeMap[subsidyType] || '未知'
+    formatAmount(val) {
+      if (val == null || val === '') return '0.00'
+      const n = Number(val)
+      return Number.isNaN(n) ? '0.00' : n.toFixed(2)
+    },
+    subsidyTypeLabel(type) {
+      return paymentPlanSubsidyTypeLabel(type)
+    },
+    grantOrgLabel(val) {
+      return selectDictLabel(this.dict.type.shebao_grant_org || [], val) || val || '-'
     },
     /** 加载搜索历史 */
     loadSearchHistory() {
@@ -413,5 +499,12 @@ export default {
 .autocomplete-item .id-card {
   font-size: 13px;
   color: #909399;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #909399;
+  padding: 12px 0 4px;
+  font-size: 13px;
 }
 </style>
