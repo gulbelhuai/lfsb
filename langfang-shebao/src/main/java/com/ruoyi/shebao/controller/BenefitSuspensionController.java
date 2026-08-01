@@ -5,6 +5,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.annotation.BlockIfCurrentMonthPaymentPlan;
 import com.ruoyi.shebao.dto.BenefitSuspensionCreateReq;
 import com.ruoyi.shebao.dto.BenefitSuspensionListReq;
 import com.ruoyi.shebao.service.BenefitSuspensionService;
@@ -60,6 +61,7 @@ public class BenefitSuspensionController extends BaseController
     /**
      * 新增待遇暂停记录
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:management:suspension:add')")
     @Log(title = "待遇暂停", businessType = BusinessType.INSERT)
     @PostMapping("/pause")

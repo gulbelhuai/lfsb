@@ -14,6 +14,7 @@ import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
 import com.ruoyi.shebao.dto.BenefitDeterminationPrepareResp;
 import com.ruoyi.shebao.dto.BenefitDeterminationSaveDraftReq;
+import com.ruoyi.shebao.annotation.BlockIfCurrentMonthPaymentPlan;
 import com.ruoyi.shebao.service.IBenefitDeterminationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -82,6 +83,7 @@ public class BenefitDeterminationController extends BaseController
     /**
      * 保存草稿（新增/修改）
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasAnyPermi('shebao:benefit:determination:add,shebao:benefit:determination:edit')")
     @Log(title = "待遇核定", businessType = BusinessType.INSERT)
     @PostMapping("/draft")
@@ -94,6 +96,7 @@ public class BenefitDeterminationController extends BaseController
     /**
      * 新增待遇核定
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:add')")
     @Log(title = "待遇核定", businessType = BusinessType.INSERT)
     @PostMapping
@@ -105,6 +108,7 @@ public class BenefitDeterminationController extends BaseController
     /**
      * 修改待遇核定
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:edit')")
     @Log(title = "待遇核定", businessType = BusinessType.UPDATE)
     @PutMapping
@@ -116,6 +120,7 @@ public class BenefitDeterminationController extends BaseController
     /**
      * 删除待遇核定
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:remove')")
     @Log(title = "待遇核定", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
@@ -127,6 +132,7 @@ public class BenefitDeterminationController extends BaseController
     /**
      * 提交审核
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:submit')")
     @Log(title = "待遇核定", businessType = BusinessType.UPDATE)
     @PostMapping("/submit/{id}")
@@ -149,6 +155,7 @@ public class BenefitDeterminationController extends BaseController
     /**
      * 批量导入待遇核定
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:determination:import')")
     @Log(title = "待遇核定导入", businessType = BusinessType.IMPORT)
     @PostMapping("/batch")

@@ -5,6 +5,7 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.annotation.BlockIfCurrentMonthPaymentPlan;
 import com.ruoyi.shebao.dto.LandLossResidentListReq;
 import com.ruoyi.shebao.dto.LandLossResidentListResp;
 import com.ruoyi.shebao.service.LandLossResidentService;
@@ -46,6 +47,7 @@ public class BenefitCertificationController extends BaseController
     /**
      * 提交认证
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:management:certification:submit')")
     @Log(title = "待遇认证", businessType = BusinessType.INSERT)
     @PostMapping("/submit/{id}")
@@ -60,6 +62,7 @@ public class BenefitCertificationController extends BaseController
     /**
      * 批量认证
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:management:certification:batch')")
     @Log(title = "批量待遇认证", businessType = BusinessType.UPDATE)
     @PostMapping("/batchSubmit")

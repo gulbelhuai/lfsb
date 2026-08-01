@@ -24,6 +24,12 @@
             <artifactId>ruoyi-system</artifactId>
         </dependency>
 
+        <!-- 业务切面（当月支付计划锁等） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- JUnit 5 + Mockito 用于单元测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

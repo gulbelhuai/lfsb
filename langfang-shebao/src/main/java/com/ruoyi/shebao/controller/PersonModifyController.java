@@ -5,6 +5,7 @@ import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.annotation.BlockIfCurrentMonthPaymentPlan;
 import com.ruoyi.shebao.dto.PersonKeyInfoModifyFormDto;
 import com.ruoyi.shebao.dto.PersonKeyInfoModifyListReq;
 import com.ruoyi.shebao.dto.PersonKeyInfoModifyListResp;
@@ -61,6 +62,7 @@ public class PersonModifyController extends BaseController {
     /**
      * 新增/保存草稿（经办人）
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:add')")
     @Log(title = "人员信息变更", businessType = BusinessType.INSERT)
     @PostMapping
@@ -72,6 +74,7 @@ public class PersonModifyController extends BaseController {
     /**
      * 修改草稿（经办人）
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:edit')")
     @Log(title = "人员信息变更", businessType = BusinessType.UPDATE)
     @PutMapping
@@ -83,6 +86,7 @@ public class PersonModifyController extends BaseController {
     /**
      * 提交：草稿 -> 待复核（经办人）
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:submit')")
     @Log(title = "人员信息变更提交", businessType = BusinessType.UPDATE)
     @PostMapping("/submit/{id}")
@@ -93,6 +97,7 @@ public class PersonModifyController extends BaseController {
     /**
      * 复核：basic 通过即已通过；key 通过 -> 待审批；不通过 -> 已驳回
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:review')")
     @Log(title = "人员信息变更复核", businessType = BusinessType.UPDATE)
     @PostMapping("/review/{id}")
@@ -103,6 +108,7 @@ public class PersonModifyController extends BaseController {
     /**
      * 审批（仅关键信息）：待审批 -> 已通过；驳回 -> 已驳回
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:approve')")
     @Log(title = "人员信息变更审批", businessType = BusinessType.UPDATE)
     @PostMapping("/approve/{id}")
@@ -113,6 +119,7 @@ public class PersonModifyController extends BaseController {
     /**
      * 驳回（兼容旧前端）
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:modify:reject')")
     @Log(title = "人员信息变更驳回", businessType = BusinessType.UPDATE)
     @PostMapping("/reject/{id}")

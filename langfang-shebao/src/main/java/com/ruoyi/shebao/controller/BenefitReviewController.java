@@ -6,6 +6,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.shebao.annotation.BlockIfCurrentMonthPaymentPlan;
 import com.ruoyi.shebao.dto.BenefitReviewBatchReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListReq;
 import com.ruoyi.shebao.dto.BenefitDeterminationListResp;
@@ -49,6 +50,7 @@ public class BenefitReviewController extends BaseController
     /**
      * 复核通过
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:review:approve')")
     @Log(title = "待遇核定复核", businessType = BusinessType.UPDATE)
     @PostMapping("/approve/{id}")
@@ -60,6 +62,7 @@ public class BenefitReviewController extends BaseController
     /**
      * 复核驳回
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:review:reject')")
     @Log(title = "待遇核定复核", businessType = BusinessType.UPDATE)
     @PostMapping("/reject/{id}")
@@ -71,6 +74,7 @@ public class BenefitReviewController extends BaseController
     /**
      * 批量复核通过
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:benefit:review:approve')")
     @Log(title = "待遇核定批量复核", businessType = BusinessType.UPDATE)
     @PostMapping("/batchApprove")

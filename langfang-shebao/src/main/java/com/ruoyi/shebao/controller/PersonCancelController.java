@@ -6,6 +6,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.shebao.annotation.BlockIfCurrentMonthPaymentPlan;
 import com.ruoyi.shebao.dto.PersonCancelFormDto;
 import com.ruoyi.shebao.dto.PersonCancelListReq;
 import com.ruoyi.shebao.dto.PersonCancelListResp;
@@ -58,6 +59,7 @@ public class PersonCancelController extends BaseController
     /**
      * 新增人员注销登记
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:cancel:add')")
     @Log(title = "人员注销登记", businessType = BusinessType.INSERT)
     @PostMapping
@@ -69,6 +71,7 @@ public class PersonCancelController extends BaseController
     /**
      * 修改人员注销登记
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:cancel:edit')")
     @Log(title = "人员注销登记", businessType = BusinessType.UPDATE)
     @PutMapping
@@ -80,6 +83,7 @@ public class PersonCancelController extends BaseController
     /**
      * 复核（通过/不通过）
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:cancel:review')")
     @Log(title = "人员注销登记复核", businessType = BusinessType.UPDATE)
     @PostMapping("/review/{id}")
@@ -91,6 +95,7 @@ public class PersonCancelController extends BaseController
     /**
      * 删除人员注销登记
      */
+    @BlockIfCurrentMonthPaymentPlan
     @PreAuthorize("@ss.hasPermi('shebao:person:cancel:remove')")
     @Log(title = "人员注销登记", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
