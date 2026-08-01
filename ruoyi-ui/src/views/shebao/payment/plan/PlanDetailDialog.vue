@@ -26,8 +26,11 @@
           <el-table-column label="姓名" prop="personName" width="100" />
           <el-table-column label="身份证号" prop="idCardNo" width="180" />
           <el-table-column label="业务期" prop="businessPeriod" width="100" />
-          <el-table-column label="补发起止" min-width="140">
-            <template slot-scope="scope">{{ supplementPeriodText(scope.row) }}</template>
+          <el-table-column label="补发起始" prop="supplementStartMonth" width="100">
+            <template slot-scope="scope">{{ scope.row.supplementStartMonth || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="补发终止" prop="supplementEndMonth" width="100">
+            <template slot-scope="scope">{{ scope.row.supplementEndMonth || '-' }}</template>
           </el-table-column>
           <el-table-column label="发放金额" prop="distributionAmount" width="100" />
           <el-table-column label="发放机构" prop="grantOrg" width="120">
@@ -145,15 +148,6 @@ export default {
       if (val === 'success') return '成功'
       if (val === 'failed') return '失败'
       return '—'
-    },
-    supplementPeriodText(row) {
-      if (!row) return '-'
-      const start = row.supplementStartMonth
-      const end = row.supplementEndMonth
-      const amount = Number(row.supplementAmount || 0)
-      if ((!start && !end) || amount <= 0) return '-'
-      if (start && end) return `${start} ~ ${end}`
-      return start || end || '-'
     },
     onClose() {
       this.$emit('update:visible', false)
