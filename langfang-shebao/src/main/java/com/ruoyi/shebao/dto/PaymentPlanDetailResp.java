@@ -18,6 +18,18 @@ public class PaymentPlanDetailResp
     private String idCardNo;
     private String businessPeriod;
     private String paymentMonth;
+    /** 当月金额 */
+    private BigDecimal monthlyAmount;
+    /** 补发金额 */
+    private BigDecimal supplementAmount;
+    /** 补发所属期起始 yyyy-MM */
+    private String supplementStartMonth;
+    /** 补发所属期终止 yyyy-MM */
+    private String supplementEndMonth;
+    /** 补发来源 determination/resume */
+    private String supplementSource;
+    private Long supplementSourceId;
+    /** 发放金额（当月+补发） */
     private BigDecimal distributionAmount;
     private String grantOrg;
     private String accountName;

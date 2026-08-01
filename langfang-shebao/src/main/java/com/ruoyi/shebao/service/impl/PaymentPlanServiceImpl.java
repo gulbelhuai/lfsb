@@ -7,11 +7,17 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.shebao.domain.BenefitDetermination;
+import com.ruoyi.shebao.domain.BenefitDeterminationItem;
+import com.ruoyi.shebao.domain.BenefitResumeItem;
 import com.ruoyi.shebao.domain.PaymentPlan;
 import com.ruoyi.shebao.domain.PaymentPlanAudit;
 import com.ruoyi.shebao.domain.PaymentPlanDetail;
 import com.ruoyi.shebao.domain.PaymentPlanSummary;
 import com.ruoyi.shebao.dto.*;
+import com.ruoyi.shebao.mapper.BenefitDeterminationItemMapper;
+import com.ruoyi.shebao.mapper.BenefitDeterminationMapper;
+import com.ruoyi.shebao.mapper.BenefitResumeItemMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanAuditMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanMapper;
@@ -26,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,6 +52,15 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private static final String STATUS_FINANCE_REJECTED = "finance_rejected";
     private static final Set<String> SUBMIT_ALLOWED = Set.of(
             STATUS_DRAFT, STATUS_REVIEW_REJECTED, STATUS_APPROVE_REJECTED, STATUS_FINANCE_REJECTED);
+    /** 允许保存/重算换绑（含待复核） */
+    private static final Set<String> SAVE_ALLOWED = Set.of(
+            STATUS_DRAFT, STATUS_PENDING_REVIEW, STATUS_REVIEW_REJECTED, STATUS_APPROVE_REJECTED, STATUS_FINANCE_REJECTED);
+
+    private static final String SUPPLEMENT_UNPAID = "0";
+    private static final String SUPPLEMENT_INCLUDED = "1";
+    private static final String SUPPLEMENT_PAID = "2";
+    private static final String SUPPLEMENT_SRC_DETERMINATION = "determination";
+    private static final String SUPPLEMENT_SRC_RESUME = "resume";
 
     private static final String AUDIT_STAGE_SUBSIDY = "subsidy";
     private static final String AUDIT_STAGE_FINANCE = "finance";
@@ -75,6 +92,12 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private PaymentPlanAuditMapper paymentPlanAuditMapper;
     @Autowired
     private IFinanceAccountService financeAccountService;
+    @Autowired
+    private BenefitDeterminationMapper benefitDeterminationMapper;
+    @Autowired
+    private BenefitDeterminationItemMapper benefitDeterminationItemMapper;
+    @Autowired
+    private BenefitResumeItemMapper benefitResumeItemMapper;
 
     @Override
     public Page<PaymentPlanListResp> selectPaymentPlanList(PaymentPlanListReq req)
@@ -103,6 +126,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         LocalDate businessPeriod = parseBusinessPeriod(req.getBusinessPeriod());
         List<PaymentPlanDetailResp> details = paymentPlanDetailMapper.selectPreviewDetails(
                 businessPeriod, req.getSubsidyType(), req.getExcludePlanId());
+        attachSupplementCandidates(details);
         resp.setDetailList(details);
         fillSummaryAndTotal(resp, details);
         return resp;
@@ -150,10 +174,16 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         String username = SecurityUtils.getUsername();
         String targetStatus = normalizeTargetStatus(req.getTargetStatus());
 
+        if (!TYPE_NORMAL.equals(req.getDeterminationType()))
+        {
+            throw new ServiceException("二次发放暂未实现");
+        }
+
         PaymentPlan plan = req.getPlanId() == null ? null : paymentPlanMapper.selectById(req.getPlanId());
         String previousStatus = null;
         if (plan == null)
         {
+            assertNoDuplicateActivePlan(req.getDeterminationType(), period, req.getSubsidyType(), null);
             plan = new PaymentPlan();
             plan.setDeterminationType(req.getDeterminationType());
             plan.setBusinessPeriod(period);
@@ -166,9 +196,13 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         else
         {
             previousStatus = plan.getApprovalStatus();
-            if (!SUBMIT_ALLOWED.contains(previousStatus))
+            if (!SAVE_ALLOWED.contains(previousStatus))
             {
-                throw new ServiceException("当前状态不允许保存或提交");
+                throw new ServiceException("当前状态不允许保存或重算");
+            }
+            if (FINANCE_APPROVED.equals(plan.getFinanceStatus()))
+            {
+                throw new ServiceException("财务已通过，不允许重算");
             }
             if (!Objects.equals(plan.getBusinessPeriod(), period)
                     || !Objects.equals(plan.getDeterminationType(), req.getDeterminationType())
@@ -176,17 +210,15 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             {
                 throw new ServiceException("仅支持在原业务期、补贴类型和核定方式下重算保存");
             }
+            assertNoDuplicateActivePlan(req.getDeterminationType(), period, req.getSubsidyType(), plan.getId());
+            // 重算换绑：先释放本计划已纳入的补发
+            releaseIncludedSupplements(plan.getId());
         }
 
         PaymentPlanPreviewReq previewReq = new PaymentPlanPreviewReq();
         BeanUtils.copyProperties(req, previewReq);
-        // 重算时排除本计划已有明细，避免防重条件把本计划自身挡掉
         previewReq.setExcludePlanId(plan.getId());
         PaymentPlanPreviewResp preview = preview(previewReq);
-        if (!TYPE_NORMAL.equals(req.getDeterminationType()))
-        {
-            throw new ServiceException("二次发放暂未实现");
-        }
         if (preview.getDetailList().isEmpty())
         {
             throw new ServiceException("没有可保存的支付计划数据");
@@ -247,8 +279,14 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setPersonName(item.getPersonName());
             row.setIdCardNo(item.getIdCardNo());
             row.setBusinessPeriod(period);
-            row.setPaymentMonth(item.getPaymentMonth());
-            row.setDistributionAmount(item.getDistributionAmount());
+            row.setPaymentMonth(null);
+            row.setMonthlyAmount(nz(item.getMonthlyAmount()));
+            row.setSupplementAmount(nz(item.getSupplementAmount()));
+            row.setSupplementStartMonth(parseYearMonthDay(item.getSupplementStartMonth()));
+            row.setSupplementEndMonth(parseYearMonthDay(item.getSupplementEndMonth()));
+            row.setSupplementSource(item.getSupplementSource());
+            row.setSupplementSourceId(item.getSupplementSourceId());
+            row.setDistributionAmount(nz(item.getDistributionAmount()));
             row.setGrantOrg(item.getGrantOrg());
             row.setAccountName(item.getAccountName());
             row.setBankAccount(item.getBankAccount());
@@ -264,6 +302,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         {
             paymentPlanDetailMapper.batchInsert(detailRows);
         }
+        claimSupplementsAfterInsert(persistedPlanId);
 
         if (!Objects.equals(previousStatus, targetStatus))
         {
@@ -319,6 +358,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         {
             throw new ServiceException("当前状态不可撤销，仅草稿/驳回/待复核(未进财务)可撤销");
         }
+        releaseIncludedSupplements(planId);
         paymentPlanDetailMapper.deleteByPlanId(planId);
         paymentPlanSummaryMapper.deleteByPlanId(planId);
         paymentPlanAuditMapper.deleteByPlanId(planId);
@@ -406,7 +446,12 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     @Transactional(rollbackFor = Exception.class)
     public int financeApprovePass(Long planId, PaymentPlanFinanceStatusChangeReq req)
     {
-        return changeFinanceStatus(planId, FINANCE_PENDING_APPROVE, FINANCE_APPROVED, req, false);
+        int rows = changeFinanceStatus(planId, FINANCE_PENDING_APPROVE, FINANCE_APPROVED, req, false);
+        if (rows > 0)
+        {
+            markSupplementsPaid(planId);
+        }
+        return rows;
     }
 
     @Override
@@ -801,5 +846,498 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             throw new ServiceException("该业务期与类型下批次序号已超过999");
         }
         return prefix8 + String.format("%03d", next);
+    }
+
+    private void assertNoDuplicateActivePlan(String determinationType, LocalDate businessPeriod,
+                                             String subsidyType, Long excludePlanId)
+    {
+        int count = paymentPlanMapper.countActivePlan(determinationType, businessPeriod, subsidyType, excludePlanId);
+        if (count > 0)
+        {
+            throw new ServiceException("该业务期下该补贴类型已存在支付计划，不可重复生成");
+        }
+    }
+
+    /**
+     * 预览/落库共用：按人+补贴类型选取一笔未发补发（核定优先 → 起始最早 → create_time/id）。
+     */
+    private void attachSupplementCandidates(List<PaymentPlanDetailResp> details)
+    {
+        if (details == null || details.isEmpty())
+        {
+            return;
+        }
+        for (PaymentPlanDetailResp detail : details)
+        {
+            BigDecimal monthly = nz(detail.getMonthlyAmount());
+            detail.setMonthlyAmount(monthly);
+            detail.setSupplementAmount(BigDecimal.ZERO);
+            detail.setSupplementStartMonth(null);
+            detail.setSupplementEndMonth(null);
+            detail.setSupplementSource(null);
+            detail.setSupplementSourceId(null);
+            detail.setDistributionAmount(monthly);
+        }
+
+        Set<String> idCards = details.stream()
+                .map(PaymentPlanDetailResp::getIdCardNo)
+                .filter(StringUtils::isNotEmpty)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (idCards.isEmpty())
+        {
+            return;
+        }
+        String subsidyType = details.get(0).getSubsidyType();
+        if (StringUtils.isEmpty(subsidyType))
+        {
+            return;
+        }
+
+        Set<Long> planDeterminationIds = details.stream()
+                .map(PaymentPlanDetailResp::getDeterminationId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> personIdToCard = new HashMap<>();
+        if (!planDeterminationIds.isEmpty())
+        {
+            List<BenefitDetermination> planDets = benefitDeterminationMapper.selectBatchIds(planDeterminationIds);
+            Map<Long, String> detIdToDetailCard = details.stream()
+                    .filter(d -> d.getDeterminationId() != null && StringUtils.isNotEmpty(d.getIdCardNo()))
+                    .collect(Collectors.toMap(PaymentPlanDetailResp::getDeterminationId,
+                            PaymentPlanDetailResp::getIdCardNo, (a, b) -> a));
+            for (BenefitDetermination det : planDets)
+            {
+                if (det.getSubsidyPersonId() == null)
+                {
+                    continue;
+                }
+                String card = firstNonBlank(det.getIdCardNo(), detIdToDetailCard.get(det.getId()));
+                if (StringUtils.isNotEmpty(card))
+                {
+                    personIdToCard.put(det.getSubsidyPersonId(), card);
+                }
+            }
+        }
+
+        LambdaQueryWrapper<BenefitDetermination> detQw = new LambdaQueryWrapper<BenefitDetermination>()
+                .eq(BenefitDetermination::getApprovalStatus, STATUS_APPROVED)
+                .eq(BenefitDetermination::getDelFlag, "0");
+        if (personIdToCard.isEmpty())
+        {
+            detQw.in(BenefitDetermination::getIdCardNo, idCards);
+        }
+        else
+        {
+            Set<Long> personIds = personIdToCard.keySet();
+            detQw.and(w -> w.in(BenefitDetermination::getIdCardNo, idCards)
+                    .or()
+                    .in(BenefitDetermination::getSubsidyPersonId, personIds));
+        }
+        List<BenefitDetermination> determinations = benefitDeterminationMapper.selectList(detQw);
+        if (determinations.isEmpty())
+        {
+            return;
+        }
+
+        Map<Long, String> determinationIdToCard = new HashMap<>();
+        for (BenefitDetermination det : determinations)
+        {
+            String card = firstNonBlank(det.getIdCardNo(),
+                    det.getSubsidyPersonId() == null ? null : personIdToCard.get(det.getSubsidyPersonId()));
+            if (StringUtils.isNotEmpty(card) && idCards.contains(card))
+            {
+                determinationIdToCard.put(det.getId(), card);
+            }
+        }
+        if (determinationIdToCard.isEmpty())
+        {
+            return;
+        }
+
+        List<BenefitDeterminationItem> relatedItems = benefitDeterminationItemMapper.selectList(
+                new LambdaQueryWrapper<BenefitDeterminationItem>()
+                        .in(BenefitDeterminationItem::getDeterminationId, determinationIdToCard.keySet())
+                        .eq(BenefitDeterminationItem::getSubsidyType, subsidyType)
+                        .eq(BenefitDeterminationItem::getDelFlag, "0"));
+        if (relatedItems.isEmpty())
+        {
+            return;
+        }
+
+        Map<String, List<SupplementCandidate>> candidatesByCard = new HashMap<>();
+        for (BenefitDeterminationItem item : relatedItems)
+        {
+            String card = determinationIdToCard.get(item.getDeterminationId());
+            if (StringUtils.isEmpty(card))
+            {
+                continue;
+            }
+            if (isUnpaidSupplementStatus(item.getSupplementPayStatus())
+                    && item.getBenefitAmount() != null
+                    && item.getBenefitAmount().compareTo(BigDecimal.ZERO) > 0)
+            {
+                YearMonth start = determinationSupplementStart(item);
+                YearMonth end = determinationSupplementEnd(item, start);
+                candidatesByCard.computeIfAbsent(card, k -> new ArrayList<>()).add(new SupplementCandidate(
+                        SUPPLEMENT_SRC_DETERMINATION,
+                        item.getId(),
+                        item.getBenefitAmount(),
+                        start,
+                        end,
+                        item.getCreateTime()));
+            }
+        }
+
+        Set<Long> relatedItemIds = relatedItems.stream().map(BenefitDeterminationItem::getId).collect(Collectors.toSet());
+        Map<Long, String> itemIdToCard = relatedItems.stream()
+                .filter(i -> determinationIdToCard.containsKey(i.getDeterminationId()))
+                .collect(Collectors.toMap(BenefitDeterminationItem::getId,
+                        i -> determinationIdToCard.get(i.getDeterminationId()), (a, b) -> a));
+        if (!relatedItemIds.isEmpty())
+        {
+            List<BenefitResumeItem> resumeItems = benefitResumeItemMapper.selectList(
+                    new LambdaQueryWrapper<BenefitResumeItem>()
+                            .in(BenefitResumeItem::getDeterminationItemId, relatedItemIds)
+                            .eq(BenefitResumeItem::getSubsidyType, subsidyType)
+                            .eq(BenefitResumeItem::getDelFlag, "0")
+                            .gt(BenefitResumeItem::getSupplementAmount, BigDecimal.ZERO));
+            for (BenefitResumeItem item : resumeItems)
+            {
+                if (!isUnpaidSupplementStatus(item.getSupplementPayStatus()))
+                {
+                    continue;
+                }
+                String card = itemIdToCard.get(item.getDeterminationItemId());
+                if (StringUtils.isEmpty(card))
+                {
+                    continue;
+                }
+                candidatesByCard.computeIfAbsent(card, k -> new ArrayList<>()).add(new SupplementCandidate(
+                        SUPPLEMENT_SRC_RESUME,
+                        item.getId(),
+                        item.getSupplementAmount(),
+                        toYearMonth(item.getSupplementStartMonth()),
+                        toYearMonth(item.getSupplementEndMonth()),
+                        item.getCreateTime()));
+            }
+        }
+
+        for (List<SupplementCandidate> list : candidatesByCard.values())
+        {
+            list.sort(PaymentPlanServiceImpl::compareSupplementCandidates);
+        }
+
+        Set<String> usedKeys = new HashSet<>();
+        for (PaymentPlanDetailResp detail : details)
+        {
+            if (StringUtils.isEmpty(detail.getIdCardNo()))
+            {
+                continue;
+            }
+            List<SupplementCandidate> list = candidatesByCard.get(detail.getIdCardNo());
+            if (list == null || list.isEmpty())
+            {
+                continue;
+            }
+            SupplementCandidate chosen = null;
+            for (SupplementCandidate c : list)
+            {
+                String key = c.source + ":" + c.sourceId;
+                if (!usedKeys.contains(key))
+                {
+                    chosen = c;
+                    usedKeys.add(key);
+                    break;
+                }
+            }
+            if (chosen == null)
+            {
+                continue;
+            }
+            BigDecimal monthly = nz(detail.getMonthlyAmount());
+            BigDecimal supplement = nz(chosen.amount);
+            detail.setSupplementAmount(supplement);
+            detail.setSupplementStartMonth(formatYearMonth(chosen.startMonth));
+            detail.setSupplementEndMonth(formatYearMonth(chosen.endMonth));
+            detail.setSupplementSource(chosen.source);
+            detail.setSupplementSourceId(chosen.sourceId);
+            detail.setDistributionAmount(monthly.add(supplement));
+        }
+    }
+
+    private void claimSupplementsAfterInsert(Long planId)
+    {
+        List<PaymentPlanDetail> details = paymentPlanDetailMapper.selectList(
+                new LambdaQueryWrapper<PaymentPlanDetail>()
+                        .eq(PaymentPlanDetail::getPlanId, planId)
+                        .eq(PaymentPlanDetail::getDelFlag, "0"));
+        boolean anyDropped = false;
+        Date now = new Date();
+        String username = SecurityUtils.getUsername();
+        for (PaymentPlanDetail detail : details)
+        {
+            if (detail.getSupplementSourceId() == null || StringUtils.isEmpty(detail.getSupplementSource()))
+            {
+                continue;
+            }
+            boolean claimed = false;
+            if (SUPPLEMENT_SRC_DETERMINATION.equals(detail.getSupplementSource()))
+            {
+                claimed = benefitDeterminationItemMapper.update(null, new LambdaUpdateWrapper<BenefitDeterminationItem>()
+                        .eq(BenefitDeterminationItem::getId, detail.getSupplementSourceId())
+                        .and(w -> w.eq(BenefitDeterminationItem::getSupplementPayStatus, SUPPLEMENT_UNPAID)
+                                .or()
+                                .isNull(BenefitDeterminationItem::getSupplementPayStatus))
+                        .set(BenefitDeterminationItem::getSupplementPayStatus, SUPPLEMENT_INCLUDED)
+                        .set(BenefitDeterminationItem::getSupplementPlanId, planId)
+                        .set(BenefitDeterminationItem::getSupplementDetailId, detail.getId())
+                        .set(BenefitDeterminationItem::getUpdateBy, username)
+                        .set(BenefitDeterminationItem::getUpdateTime, LocalDateTime.now())) > 0;
+            }
+            else if (SUPPLEMENT_SRC_RESUME.equals(detail.getSupplementSource()))
+            {
+                claimed = benefitResumeItemMapper.update(null, new LambdaUpdateWrapper<BenefitResumeItem>()
+                        .eq(BenefitResumeItem::getId, detail.getSupplementSourceId())
+                        .and(w -> w.eq(BenefitResumeItem::getSupplementPayStatus, SUPPLEMENT_UNPAID)
+                                .or()
+                                .isNull(BenefitResumeItem::getSupplementPayStatus))
+                        .set(BenefitResumeItem::getSupplementPayStatus, SUPPLEMENT_INCLUDED)
+                        .set(BenefitResumeItem::getSupplementPlanId, planId)
+                        .set(BenefitResumeItem::getSupplementDetailId, detail.getId())
+                        .set(BenefitResumeItem::getUpdateBy, username)
+                        .set(BenefitResumeItem::getUpdateTime, LocalDateTime.now())) > 0;
+            }
+            if (!claimed)
+            {
+                anyDropped = true;
+                paymentPlanDetailMapper.update(null, new LambdaUpdateWrapper<PaymentPlanDetail>()
+                        .eq(PaymentPlanDetail::getId, detail.getId())
+                        .set(PaymentPlanDetail::getSupplementAmount, BigDecimal.ZERO)
+                        .set(PaymentPlanDetail::getSupplementStartMonth, null)
+                        .set(PaymentPlanDetail::getSupplementEndMonth, null)
+                        .set(PaymentPlanDetail::getSupplementSource, null)
+                        .set(PaymentPlanDetail::getSupplementSourceId, null)
+                        .set(PaymentPlanDetail::getDistributionAmount, nz(detail.getMonthlyAmount()))
+                        .set(PaymentPlanDetail::getUpdateBy, username)
+                        .set(PaymentPlanDetail::getUpdateTime, now));
+            }
+        }
+        if (anyDropped)
+        {
+            refreshPlanAggregates(planId, username, now);
+        }
+    }
+
+    private void releaseIncludedSupplements(Long planId)
+    {
+        if (planId == null)
+        {
+            return;
+        }
+        String username = SecurityUtils.getUsername();
+        LocalDateTime now = LocalDateTime.now();
+        benefitDeterminationItemMapper.update(null, new LambdaUpdateWrapper<BenefitDeterminationItem>()
+                .eq(BenefitDeterminationItem::getSupplementPlanId, planId)
+                .eq(BenefitDeterminationItem::getSupplementPayStatus, SUPPLEMENT_INCLUDED)
+                .set(BenefitDeterminationItem::getSupplementPayStatus, SUPPLEMENT_UNPAID)
+                .set(BenefitDeterminationItem::getSupplementPlanId, null)
+                .set(BenefitDeterminationItem::getSupplementDetailId, null)
+                .set(BenefitDeterminationItem::getUpdateBy, username)
+                .set(BenefitDeterminationItem::getUpdateTime, now));
+        benefitResumeItemMapper.update(null, new LambdaUpdateWrapper<BenefitResumeItem>()
+                .eq(BenefitResumeItem::getSupplementPlanId, planId)
+                .eq(BenefitResumeItem::getSupplementPayStatus, SUPPLEMENT_INCLUDED)
+                .set(BenefitResumeItem::getSupplementPayStatus, SUPPLEMENT_UNPAID)
+                .set(BenefitResumeItem::getSupplementPlanId, null)
+                .set(BenefitResumeItem::getSupplementDetailId, null)
+                .set(BenefitResumeItem::getUpdateBy, username)
+                .set(BenefitResumeItem::getUpdateTime, now));
+    }
+
+    private void markSupplementsPaid(Long planId)
+    {
+        if (planId == null)
+        {
+            return;
+        }
+        String username = SecurityUtils.getUsername();
+        LocalDateTime now = LocalDateTime.now();
+        benefitDeterminationItemMapper.update(null, new LambdaUpdateWrapper<BenefitDeterminationItem>()
+                .eq(BenefitDeterminationItem::getSupplementPlanId, planId)
+                .eq(BenefitDeterminationItem::getSupplementPayStatus, SUPPLEMENT_INCLUDED)
+                .set(BenefitDeterminationItem::getSupplementPayStatus, SUPPLEMENT_PAID)
+                .set(BenefitDeterminationItem::getUpdateBy, username)
+                .set(BenefitDeterminationItem::getUpdateTime, now));
+        benefitResumeItemMapper.update(null, new LambdaUpdateWrapper<BenefitResumeItem>()
+                .eq(BenefitResumeItem::getSupplementPlanId, planId)
+                .eq(BenefitResumeItem::getSupplementPayStatus, SUPPLEMENT_INCLUDED)
+                .set(BenefitResumeItem::getSupplementPayStatus, SUPPLEMENT_PAID)
+                .set(BenefitResumeItem::getUpdateBy, username)
+                .set(BenefitResumeItem::getUpdateTime, now));
+    }
+
+    private void refreshPlanAggregates(Long planId, String username, Date now)
+    {
+        List<PaymentPlanDetail> details = paymentPlanDetailMapper.selectList(
+                new LambdaQueryWrapper<PaymentPlanDetail>()
+                        .eq(PaymentPlanDetail::getPlanId, planId)
+                        .eq(PaymentPlanDetail::getDelFlag, "0"));
+        BigDecimal totalAmount = details.stream()
+                .map(d -> nz(d.getDistributionAmount()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        PaymentPlan planUpd = new PaymentPlan();
+        planUpd.setId(planId);
+        planUpd.setTotalCount(details.size());
+        planUpd.setTotalAmount(totalAmount);
+        planUpd.setUpdateBy(username);
+        planUpd.setUpdateTime(now);
+        paymentPlanMapper.updateById(planUpd);
+
+        paymentPlanSummaryMapper.deleteByPlanId(planId);
+        Map<String, List<PaymentPlanDetail>> grouped = details.stream()
+                .collect(Collectors.groupingBy(d -> defaultValue(d.getSubsidyType()) + "||" + defaultValue(d.getGrantOrg())));
+        List<PaymentPlanSummary> summaryRows = new ArrayList<>();
+        for (List<PaymentPlanDetail> group : grouped.values())
+        {
+            PaymentPlanDetail first = group.get(0);
+            PaymentPlanSummary row = new PaymentPlanSummary();
+            row.setPlanId(planId);
+            row.setBusinessPeriod(first.getBusinessPeriod());
+            row.setSubsidyType(first.getSubsidyType());
+            row.setGrantOrg(first.getGrantOrg());
+            row.setTotalCount(group.size());
+            row.setTotalAmount(group.stream()
+                    .map(d -> nz(d.getDistributionAmount()))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+            row.setDelFlag("0");
+            row.setCreateBy(username);
+            row.setCreateTime(now);
+            row.setUpdateBy(username);
+            row.setUpdateTime(now);
+            summaryRows.add(row);
+        }
+        if (!summaryRows.isEmpty())
+        {
+            paymentPlanSummaryMapper.batchInsert(summaryRows);
+        }
+    }
+
+    private static boolean isUnpaidSupplementStatus(String status)
+    {
+        return status == null || status.isBlank() || SUPPLEMENT_UNPAID.equals(status);
+    }
+
+    private static YearMonth determinationSupplementStart(BenefitDeterminationItem item)
+    {
+        if (item.getBenefitStartYear() == null || item.getBenefitStartMonth() == null)
+        {
+            return null;
+        }
+        return YearMonth.of(item.getBenefitStartYear(), item.getBenefitStartMonth());
+    }
+
+    private static YearMonth determinationSupplementEnd(BenefitDeterminationItem item, YearMonth start)
+    {
+        if (start == null)
+        {
+            return null;
+        }
+        int months = item.getBenefitMonths() == null ? 0 : item.getBenefitMonths();
+        if (months <= 0)
+        {
+            return start;
+        }
+        return start.plusMonths(months - 1L);
+    }
+
+    private static YearMonth toYearMonth(Date date)
+    {
+        if (date == null)
+        {
+            return null;
+        }
+        if (date instanceof java.sql.Date)
+        {
+            return YearMonth.from(((java.sql.Date) date).toLocalDate());
+        }
+        return YearMonth.from(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+    }
+
+    private static String formatYearMonth(YearMonth ym)
+    {
+        return ym == null ? null : ym.toString();
+    }
+
+    private static LocalDate parseYearMonthDay(String yearMonth)
+    {
+        if (StringUtils.isEmpty(yearMonth))
+        {
+            return null;
+        }
+        return YearMonth.parse(yearMonth).atDay(1);
+    }
+
+    private static BigDecimal nz(BigDecimal value)
+    {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private static String firstNonBlank(String a, String b)
+    {
+        if (StringUtils.isNotEmpty(a))
+        {
+            return a;
+        }
+        return StringUtils.isNotEmpty(b) ? b : null;
+    }
+
+    private static final class SupplementCandidate
+    {
+        private final String source;
+        private final Long sourceId;
+        private final BigDecimal amount;
+        private final YearMonth startMonth;
+        private final YearMonth endMonth;
+        private final LocalDateTime createTime;
+
+        private SupplementCandidate(String source, Long sourceId, BigDecimal amount,
+                                    YearMonth startMonth, YearMonth endMonth,
+                                    LocalDateTime createTime)
+        {
+            this.source = source;
+            this.sourceId = sourceId;
+            this.amount = amount;
+            this.startMonth = startMonth;
+            this.endMonth = endMonth;
+            this.createTime = createTime;
+        }
+    }
+
+    private static int compareSupplementCandidates(SupplementCandidate a, SupplementCandidate b)
+    {
+        int bySource = Integer.compare(
+                SUPPLEMENT_SRC_DETERMINATION.equals(a.source) ? 0 : 1,
+                SUPPLEMENT_SRC_DETERMINATION.equals(b.source) ? 0 : 1);
+        if (bySource != 0)
+        {
+            return bySource;
+        }
+        YearMonth aStart = a.startMonth == null ? YearMonth.of(9999, 12) : a.startMonth;
+        YearMonth bStart = b.startMonth == null ? YearMonth.of(9999, 12) : b.startMonth;
+        int byStart = aStart.compareTo(bStart);
+        if (byStart != 0)
+        {
+            return byStart;
+        }
+        LocalDateTime aTime = a.createTime == null ? LocalDateTime.MAX : a.createTime;
+        LocalDateTime bTime = b.createTime == null ? LocalDateTime.MAX : b.createTime;
+        int byTime = aTime.compareTo(bTime);
+        if (byTime != 0)
+        {
+            return byTime;
+        }
+        long aId = a.sourceId == null ? Long.MAX_VALUE : a.sourceId;
+        long bId = b.sourceId == null ? Long.MAX_VALUE : b.sourceId;
+        return Long.compare(aId, bId);
     }
 }

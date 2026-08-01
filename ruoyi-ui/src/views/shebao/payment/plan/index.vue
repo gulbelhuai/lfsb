@@ -121,7 +121,9 @@
             <el-table-column label="姓名" prop="personName" width="100" />
             <el-table-column label="身份证号" prop="idCardNo" width="180" />
             <el-table-column label="业务期" prop="businessPeriod" width="100" />
-            <el-table-column label="发放月份" prop="paymentMonth" width="100" />
+            <el-table-column label="补发起止" min-width="140">
+              <template slot-scope="scope">{{ supplementPeriodText(scope.row) }}</template>
+            </el-table-column>
             <el-table-column label="发放金额" prop="distributionAmount" width="100" />
             <el-table-column label="发放机构" prop="grantOrg" width="120">
               <template slot-scope="scope">{{ grantOrgLabel(scope.row.grantOrg) }}</template>
@@ -168,7 +170,9 @@
             <el-table-column label="姓名" prop="personName" width="100" />
             <el-table-column label="身份证号" prop="idCardNo" width="180" />
             <el-table-column label="业务期" prop="businessPeriod" width="100" />
-            <el-table-column label="发放月份" prop="paymentMonth" width="100" />
+            <el-table-column label="补发起止" min-width="140">
+              <template slot-scope="scope">{{ supplementPeriodText(scope.row) }}</template>
+            </el-table-column>
             <el-table-column label="发放金额" prop="distributionAmount" width="100" />
             <el-table-column label="发放机构" prop="grantOrg" width="120">
               <template slot-scope="scope">{{ grantOrgLabel(scope.row.grantOrg) }}</template>
@@ -492,7 +496,21 @@ export default {
       return ['draft', 'review_rejected', 'approve_rejected', 'finance_rejected'].includes(status)
     },
     canEditStatus(status) {
-      return ['draft', 'review_rejected', 'approve_rejected', 'finance_rejected'].includes(status)
+      return ['draft', 'pending_review', 'review_rejected', 'approve_rejected', 'finance_rejected'].includes(status)
+    },
+    isFinanceApproved(plan) {
+      if (!plan) return false
+      const fs = plan.financeStatus || plan.finance_status
+      return fs === 'finance_approved'
+    },
+    supplementPeriodText(row) {
+      if (!row) return '-'
+      const start = row.supplementStartMonth
+      const end = row.supplementEndMonth
+      const amount = Number(row.supplementAmount || 0)
+      if ((!start && !end) || amount <= 0) return '-'
+      if (start && end) return `${start} ~ ${end}`
+      return start || end || '-'
     },
     canRevoke(row) {
       if (!row) return false
@@ -526,7 +544,9 @@ export default {
       return PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
     },
     canEditInDetail() {
-      return this.currentPlan && this.canEditStatus(this.currentPlan.approvalStatus)
+      return this.currentPlan
+        && this.canEditStatus(this.currentPlan.approvalStatus)
+        && !this.isFinanceApproved(this.currentPlan)
     },
     planDetailBatchNo() {
       if (!this.currentPlan) return '—'

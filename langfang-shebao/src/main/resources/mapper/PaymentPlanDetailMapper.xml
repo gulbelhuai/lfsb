@@ -5,12 +5,16 @@
     <insert id="batchInsert">
         insert into shebao_payment_plan_detail
         (plan_id, determination_id, determination_item_id, subsidy_type, street_name, village_name,
-         person_name, id_card_no, business_period, payment_month, distribution_amount, grant_org,
+         person_name, id_card_no, business_period, payment_month, monthly_amount, supplement_amount,
+         supplement_start_month, supplement_end_month, supplement_source, supplement_source_id,
+         distribution_amount, grant_org,
          account_name, bank_account, relation_to_insured, del_flag, create_by, create_time, update_by, update_time, remark)
         values
         <foreach collection="list" item="item" separator=",">
             (#{item.planId}, #{item.determinationId}, #{item.determinationItemId}, #{item.subsidyType}, #{item.streetName}, #{item.villageName},
-             #{item.personName}, #{item.idCardNo}, #{item.businessPeriod}, #{item.paymentMonth}, #{item.distributionAmount}, #{item.grantOrg},
+             #{item.personName}, #{item.idCardNo}, #{item.businessPeriod}, #{item.paymentMonth}, #{item.monthlyAmount}, #{item.supplementAmount},
+             #{item.supplementStartMonth}, #{item.supplementEndMonth}, #{item.supplementSource}, #{item.supplementSourceId},
+             #{item.distributionAmount}, #{item.grantOrg},
              #{item.accountName}, #{item.bankAccount}, #{item.relationToInsured}, #{item.delFlag}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.remark})
         </foreach>
     </insert>
@@ -31,6 +35,12 @@
                d.id_card_no,
                date_format(d.business_period, '%Y-%m') as business_period,
                d.payment_month,
+               d.monthly_amount,
+               d.supplement_amount,
+               date_format(d.supplement_start_month, '%Y-%m') as supplement_start_month,
+               date_format(d.supplement_end_month, '%Y-%m') as supplement_end_month,
+               d.supplement_source,
+               d.supplement_source_id,
                d.distribution_amount,
                d.grant_org,
                d.account_name,
@@ -80,9 +90,13 @@
                sp.name as person_name,
                coalesce(bd.id_card_no, sp.id_card_no) as id_card_no,
                date_format(#{businessPeriod}, '%Y-%m') as business_period,
-               case when bdi.benefit_start_year is not null and bdi.benefit_start_month is not null
-                    then concat(bdi.benefit_start_year, '-', lpad(bdi.benefit_start_month, 2, '0'))
-                    else null end as payment_month,
+               null as payment_month,
+               ifnull(bdi.subsidy_standard, 0) as monthly_amount,
+               0 as supplement_amount,
+               null as supplement_start_month,
+               null as supplement_end_month,
+               null as supplement_source,
+               null as supplement_source_id,
                ifnull(bdi.subsidy_standard, 0) as distribution_amount,
                bd.grant_org,
                bd.account_name,

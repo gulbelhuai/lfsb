@@ -43,6 +43,26 @@ public class PaymentPlanDetail extends BaseEntity
 
     private String paymentMonth;
 
+    /** 当月金额 */
+    private BigDecimal monthlyAmount;
+
+    /** 补发金额 */
+    private BigDecimal supplementAmount;
+
+    /** 补发所属期起始 */
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate supplementStartMonth;
+
+    /** 补发所属期终止 */
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate supplementEndMonth;
+
+    /** 补发来源(determination/resume) */
+    private String supplementSource;
+
+    /** 补发来源明细ID */
+    private Long supplementSourceId;
+
     private BigDecimal distributionAmount;
 
     private String grantOrg;

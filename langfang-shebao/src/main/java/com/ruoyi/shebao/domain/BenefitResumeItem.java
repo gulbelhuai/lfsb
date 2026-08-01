@@ -54,6 +54,15 @@ public class BenefitResumeItem extends BaseDomain
     /** 补发金额 */
     private BigDecimal supplementAmount;
 
+    /** 补发发放状态（0未补发 1已纳入支付 2已发放） */
+    private String supplementPayStatus;
+
+    /** 纳入的支付计划ID */
+    private Long supplementPlanId;
+
+    /** 纳入的支付计划明细ID */
+    private Long supplementDetailId;
+
     /** 补贴标准（快照） */
     private BigDecimal subsidyStandard;
 

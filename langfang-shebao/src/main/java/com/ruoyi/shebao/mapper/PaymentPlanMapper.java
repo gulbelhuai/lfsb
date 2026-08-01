@@ -19,4 +19,10 @@ public interface PaymentPlanMapper extends BaseMapper<PaymentPlan>
      * @param prefix8 前 8 位：yyyyMM + 01/02
      */
     int selectMaxBatchSeqSuffix(@Param("prefix8") String prefix8);
+
+    /** 统计同核定方式+业务期+补贴类型下未删除计划数（可排除自身） */
+    int countActivePlan(@Param("determinationType") String determinationType,
+                        @Param("businessPeriod") java.time.LocalDate businessPeriod,
+                        @Param("subsidyType") String subsidyType,
+                        @Param("excludePlanId") Long excludePlanId);
 }

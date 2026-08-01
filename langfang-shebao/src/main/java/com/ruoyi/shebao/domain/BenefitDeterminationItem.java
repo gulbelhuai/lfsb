@@ -44,6 +44,15 @@ public class BenefitDeterminationItem extends BaseDomain
     /** 补发金额 */
     private BigDecimal benefitAmount;
 
+    /** 补发发放状态（0未补发 1已纳入支付 2已发放） */
+    private String supplementPayStatus;
+
+    /** 纳入的支付计划ID */
+    private Long supplementPlanId;
+
+    /** 纳入的支付计划明细ID */
+    private Long supplementDetailId;
+
     /** 待遇状态（0正常 1暂停） */
     private String benefitStatus;
 

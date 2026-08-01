@@ -8,6 +8,9 @@ import com.ruoyi.shebao.dto.PaymentPlanFinanceStatusChangeReq;
 import com.ruoyi.shebao.dto.PaymentPlanGenerateReq;
 import com.ruoyi.shebao.dto.PaymentPlanPreviewReq;
 import com.ruoyi.shebao.dto.PaymentPlanPreviewResp;
+import com.ruoyi.shebao.mapper.BenefitDeterminationItemMapper;
+import com.ruoyi.shebao.mapper.BenefitDeterminationMapper;
+import com.ruoyi.shebao.mapper.BenefitResumeItemMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanAuditMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanDetailMapper;
 import com.ruoyi.shebao.mapper.PaymentPlanMapper;
@@ -50,6 +53,12 @@ class PaymentPlanServiceImplTest {
     private PaymentPlanDetailMapper paymentPlanDetailMapper;
     @Mock
     private PaymentPlanAuditMapper paymentPlanAuditMapper;
+    @Mock
+    private BenefitDeterminationMapper benefitDeterminationMapper;
+    @Mock
+    private BenefitDeterminationItemMapper benefitDeterminationItemMapper;
+    @Mock
+    private BenefitResumeItemMapper benefitResumeItemMapper;
 
     @InjectMocks
     private PaymentPlanServiceImpl paymentPlanService;
@@ -62,6 +71,12 @@ class PaymentPlanServiceImplTest {
             p.setId(100L);
             return 1;
         }).when(paymentPlanMapper).insert(any(PaymentPlan.class));
+        lenient().when(paymentPlanMapper.countActivePlan(any(), any(), any(), any())).thenReturn(0);
+        lenient().when(benefitDeterminationMapper.selectBatchIds(any())).thenReturn(Collections.emptyList());
+        lenient().when(benefitDeterminationMapper.selectList(any())).thenReturn(Collections.emptyList());
+        lenient().when(benefitDeterminationItemMapper.selectList(any())).thenReturn(Collections.emptyList());
+        lenient().when(benefitResumeItemMapper.selectList(any())).thenReturn(Collections.emptyList());
+        lenient().when(paymentPlanDetailMapper.selectList(any())).thenReturn(Collections.emptyList());
     }
 
     @AfterEach
@@ -95,11 +110,13 @@ class PaymentPlanServiceImplTest {
         PaymentPlanDetailResp d1 = new PaymentPlanDetailResp();
         d1.setSubsidyType("land_loss");
         d1.setGrantOrg("A");
+        d1.setMonthlyAmount(new BigDecimal("100"));
         d1.setDistributionAmount(new BigDecimal("100"));
 
         PaymentPlanDetailResp d2 = new PaymentPlanDetailResp();
         d2.setSubsidyType("land_loss");
         d2.setGrantOrg("A");
+        d2.setMonthlyAmount(new BigDecimal("50"));
         d2.setDistributionAmount(new BigDecimal("50"));
 
         when(paymentPlanDetailMapper.selectPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss", null))
@@ -131,6 +148,7 @@ class PaymentPlanServiceImplTest {
         PaymentPlanDetailResp d = new PaymentPlanDetailResp();
         d.setSubsidyType("demolition");
         d.setGrantOrg("X");
+        d.setMonthlyAmount(new BigDecimal("200"));
         d.setDistributionAmount(new BigDecimal("200"));
         d.setDeterminationId(1L);
         d.setDeterminationItemId(2L);

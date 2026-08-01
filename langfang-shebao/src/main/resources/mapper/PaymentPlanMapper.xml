@@ -61,4 +61,16 @@
           and length(p.batch_no) = 11
           and left(p.batch_no, 8) = #{prefix8}
     </select>
+
+    <select id="countActivePlan" resultType="int">
+        select count(*)
+        from shebao_payment_plan p
+        where p.del_flag = '0'
+          and p.determination_type = #{determinationType}
+          and p.business_period = #{businessPeriod}
+          and p.subsidy_type = #{subsidyType}
+        <if test="excludePlanId != null">
+          and p.id &lt;&gt; #{excludePlanId}
+        </if>
+    </select>
 </mapper>
