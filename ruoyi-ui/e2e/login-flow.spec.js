@@ -103,7 +103,7 @@ const roleCases = [
         menuItem('street', '街道办管理', 'shebao/streetOffice/index')
       ]),
       menuGroup('/shebao/person', '人员信息管理', [
-        menuItem('landloss', '失地居民登记', 'shebao/person/landloss/index')
+        menuItem('landloss', '失地居民登记', 'shebao/landLossResident/index')
       ]),
       menuGroup('/shebao/benefit', '待遇核定管理', [
         menuItem('determination', '待遇核定', 'shebao/benefit/determination/index')

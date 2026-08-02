@@ -280,44 +280,11 @@
         <el-button @click="upload.open = false">取 消</el-button>
       </div>
     </el-dialog>
-
-    <!-- 人员注销登记（死亡）对话框 -->
-    <el-dialog title="人员注销登记" :visible.sync="cancelOpen" width="600px" append-to-body>
-      <el-form ref="cancelForm" :model="cancelForm" :rules="cancelRules" label-width="120px">
-        <el-form-item label="身份证号" prop="idCardNo">
-          <el-input v-model="cancelForm.idCardNo" placeholder="请输入身份证号" maxlength="18" @blur="handleCancelIdCardBlur">
-            <el-button slot="append" icon="el-icon-search" @click="handleCancelIdCardBlur"></el-button>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="姓名">
-          <el-input v-model="cancelPersonPreview.name" disabled />
-        </el-form-item>
-        <el-form-item label="用户编号">
-          <el-input v-model="cancelPersonPreview.userCode" disabled />
-        </el-form-item>
-        <el-form-item label="死亡时间" prop="deathDate">
-          <el-date-picker
-            v-model="cancelForm.deathDate"
-            type="date"
-            placeholder="选择死亡时间"
-            value-format="yyyy-MM-dd"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="cancelForm.remark" type="textarea" placeholder="请输入备注（可选）" />
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="submitCancelForm">确 定</el-button>
-        <el-button @click="cancelOpen = false">取 消</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { listSubsidyPerson, getSubsidyPerson, delSubsidyPerson, addSubsidyPerson, updateSubsidyPerson, changeSubsidyPersonStatus, getSubsidyPersonByIdCardNo, cancelSubsidyPerson } from "@/api/shebao/subsidyPerson"
+import { listSubsidyPerson, getSubsidyPerson, delSubsidyPerson, addSubsidyPerson, updateSubsidyPerson, changeSubsidyPersonStatus } from "@/api/shebao/subsidyPerson"
 import { getToken } from "@/utils/auth"
 import { getStreetOfficeSelectList } from "@/api/shebao/streetOffice"
 import { getVillageCommitteeSelectList } from "@/api/shebao/villageCommittee"
@@ -436,27 +403,6 @@ export default {
         headers: { Authorization: "Bearer " + getToken() },
         // 上传的地址
         url: process.env.VUE_APP_BASE_API + "/shebao/subsidyPerson/importData"
-      },
-      // 注销登记弹窗
-      cancelOpen: false,
-      cancelForm: {
-        idCardNo: null,
-        deathDate: null,
-        remark: null
-      },
-      cancelPersonPreview: {
-        name: null,
-        userCode: null,
-        isAlive: null
-      },
-      cancelRules: {
-        idCardNo: [
-          { required: true, message: "身份证号不能为空", trigger: "blur" },
-          { pattern: /^[0-9]{17}[0-9Xx]$/, message: "请输入正确的18位身份证号", trigger: "blur" }
-        ],
-        deathDate: [
-          { required: true, message: "死亡时间不能为空", trigger: "change" }
-        ]
       }
     }
   },
@@ -609,50 +555,6 @@ export default {
     // 提交上传文件
     submitFileForm() {
       this.$refs.upload.submit()
-    },
-
-    /** 人员注销登记按钮 */
-    handleCancelRegistration() {
-      this.cancelOpen = true
-      this.cancelForm = { idCardNo: null, deathDate: null, remark: null }
-      this.cancelPersonPreview = { name: null, userCode: null, isAlive: null }
-      this.$nextTick(() => {
-        this.resetForm("cancelForm")
-      })
-    },
-
-    /** 注销登记：身份证号失焦/查询 */
-    handleCancelIdCardBlur() {
-      if (!this.cancelForm.idCardNo) return
-      // 注销登记需要查询所有人(包括已注销人员)以便验证和提示
-      getSubsidyPersonByIdCardNo(this.cancelForm.idCardNo, true).then(res => {
-        const p = res.data
-        if (!p) {
-          this.cancelPersonPreview = { name: null, userCode: null, isAlive: null }
-          this.$modal.msgWarning("未找到该身份证号对应的人员")
-          return
-        }
-        this.cancelPersonPreview = {
-          name: p.name,
-          userCode: p.userCode,
-          isAlive: p.isAlive
-        }
-        if (p.isAlive === '0') {
-          this.$message.warning("该人员已是死亡状态，如需更正请走信息修改流程")
-        }
-      })
-    },
-
-    /** 提交注销登记 */
-    submitCancelForm() {
-      this.$refs["cancelForm"].validate(valid => {
-        if (!valid) return
-        cancelSubsidyPerson(this.cancelForm).then(() => {
-          this.$modal.msgSuccess("注销登记成功")
-          this.cancelOpen = false
-          this.getList()
-        })
-      })
     },
 
     /** 身份证号输入处理 */

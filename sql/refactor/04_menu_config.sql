@@ -50,19 +50,19 @@ SET @person_menu_id = (SELECT menu_id FROM sys_menu WHERE menu_name = '人员信
 
 -- 失地居民登记
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-VALUES ('失地居民登记', @person_menu_id, 1, 'landloss', 'shebao/person/landloss/index', 1, 0, 'C', '0', '0', 'shebao:person:landloss:list', '#', 'admin', NOW(), '', NULL, '失地居民登记菜单');
+VALUES ('失地居民登记', @person_menu_id, 1, 'landloss', 'shebao/landLossResident/index', 1, 0, 'C', '0', '0', 'shebao:person:landloss:list', '#', 'admin', NOW(), '', NULL, '失地居民登记菜单');
 
 -- 被征地居民登记
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-VALUES ('被征地居民登记', @person_menu_id, 2, 'expropriatee', 'shebao/person/expropriatee/index', 1, 0, 'C', '0', '0', 'shebao:person:expropriatee:list', '#', 'admin', NOW(), '', NULL, '被征地居民登记菜单');
+VALUES ('被征地居民登记', @person_menu_id, 2, 'expropriatee', 'shebao/expropriateeSubsidy/index', 1, 0, 'C', '0', '0', 'shebao:person:expropriatee:list', '#', 'admin', NOW(), '', NULL, '被征地居民登记菜单');
 
 -- 拆迁居民登记
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-VALUES ('拆迁居民登记', @person_menu_id, 3, 'demolition', 'shebao/person/demolition/index', 1, 0, 'C', '0', '0', 'shebao:person:demolition:list', '#', 'admin', NOW(), '', NULL, '拆迁居民登记菜单');
+VALUES ('拆迁居民登记', @person_menu_id, 3, 'demolition', 'shebao/demolitionResident/index', 1, 0, 'C', '0', '0', 'shebao:person:demolition:list', '#', 'admin', NOW(), '', NULL, '拆迁居民登记菜单');
 
 -- 村干部登记
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-VALUES ('村干部登记', @person_menu_id, 4, 'official', 'shebao/person/official/index', 1, 0, 'C', '0', '0', 'shebao:person:official:list', '#', 'admin', NOW(), '', NULL, '村干部登记菜单');
+VALUES ('村干部登记', @person_menu_id, 4, 'official', 'shebao/villageOfficial/index', 1, 0, 'C', '0', '0', 'shebao:person:official:list', '#', 'admin', NOW(), '', NULL, '村干部登记菜单');
 
 -- 教龄补助登记
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)

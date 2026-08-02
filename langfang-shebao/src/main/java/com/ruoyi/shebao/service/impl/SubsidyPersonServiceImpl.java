@@ -8,7 +8,6 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.shebao.domain.SubsidyPerson;
 import com.ruoyi.shebao.domain.StreetOffice;
 import com.ruoyi.shebao.domain.VillageCommittee;
-import com.ruoyi.shebao.dto.SubsidyPersonCancelReq;
 import com.ruoyi.shebao.dto.SubsidyPersonListReq;
 import com.ruoyi.shebao.dto.SubsidyPersonListResp;
 import com.ruoyi.shebao.mapper.SubsidyPersonMapper;
@@ -466,27 +465,6 @@ public class SubsidyPersonServiceImpl extends ServiceImpl<SubsidyPersonMapper, S
                 .one();
     }
 
-    @Override
-    public int cancelByIdCardNo(SubsidyPersonCancelReq req)
-    {
-        Assert.notNull(req, "注销登记参数不能为空");
-        Assert.isTrue(StringUtils.isNotBlank(req.getIdCardNo()), "身份证号不能为空");
-        Assert.notNull(req.getDeathDate(), "死亡时间不能为空");
-
-        SubsidyPerson person = this.lambdaQuery()
-                .eq(SubsidyPerson::getIdCardNo, req.getIdCardNo())
-                .one();
-        Assert.notNull(person, "未找到该身份证号对应的人员");
-
-        SubsidyPerson update = new SubsidyPerson();
-        update.setId(person.getId());
-        update.setIsAlive("0");
-        update.setDeathDate(req.getDeathDate());
-        update.setRemark(req.getRemark());
-        update.setUpdateTime(LocalDateTime.now());
-        update.setUpdateBy(SecurityUtils.getUsername());
-        return this.updateById(update) ? 1 : 0;
-    }
     private void validateSubsidyPerson(SubsidyPerson subsidyPerson)
     {
         // 校验身份证号格式

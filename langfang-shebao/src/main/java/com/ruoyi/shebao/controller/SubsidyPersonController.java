@@ -7,7 +7,6 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.shebao.domain.SubsidyPerson;
-import com.ruoyi.shebao.dto.SubsidyPersonCancelReq;
 import com.ruoyi.shebao.dto.SubsidyPersonListReq;
 import com.ruoyi.shebao.dto.SubsidyPersonListResp;
 import com.ruoyi.shebao.service.SubsidyPersonService;
@@ -173,16 +172,5 @@ public class SubsidyPersonController extends BaseController
             subsidyPerson = subsidyPersonService.selectAliveSubsidyPersonByIdCardNo(idCardNo);
         }
         return AjaxResult.success(subsidyPerson);
-    }
-
-    /**
-     * 人员注销登记（标记死亡）
-     */
-    @PreAuthorize("@ss.hasPermi('shebao:subsidyPerson:cancel')")
-    @Log(title = "人员注销登记", businessType = BusinessType.UPDATE)
-    @PostMapping("/cancel")
-    public AjaxResult cancel(@RequestBody SubsidyPersonCancelReq req)
-    {
-        return toAjax(subsidyPersonService.cancelByIdCardNo(req));
     }
 }

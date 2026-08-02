@@ -3,7 +3,6 @@ package com.ruoyi.shebao.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ruoyi.shebao.domain.SubsidyPerson;
-import com.ruoyi.shebao.dto.SubsidyPersonCancelReq;
 import com.ruoyi.shebao.dto.SubsidyPersonListReq;
 import com.ruoyi.shebao.dto.SubsidyPersonListResp;
 
@@ -128,12 +127,4 @@ public interface SubsidyPersonService extends IService<SubsidyPerson>
      * @return 健在人员；若人员不存在或已注销则返回null
      */
     SubsidyPerson selectAliveSubsidyPersonById(Long id);
-
-    /**
-     * 人员注销登记（标记死亡）
-     *
-     * @param req 注销登记请求
-     * @return 结果
-     */
-    int cancelByIdCardNo(SubsidyPersonCancelReq req);
 }

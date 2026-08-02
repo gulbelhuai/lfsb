@@ -304,8 +304,42 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
                 .set(BenefitDetermination::getUpdateBy, SecurityUtils.getUsername())
                 .set(BenefitDetermination::getUpdateTime, new Date())
                 .update() ? 1 : 0;
+        if (rows > 0)
+        {
+            markPersonAsBenefiting(determination);
+        }
         return rows;
     }
+
+    /**
+     * 核定复核通过后：人员状态置为「享受」(1)。登记默认「未享受」(0)。
+     */
+    private void markPersonAsBenefiting(BenefitDetermination determination)
+    {
+        Long personId = determination.getSubsidyPersonId();
+        if (personId == null && StringUtils.isNotBlank(determination.getIdCardNo()))
+        {
+            SubsidyPerson byCard = subsidyPersonMapper.selectOne(new LambdaQueryWrapper<SubsidyPerson>()
+                    .eq(SubsidyPerson::getIdCardNo, determination.getIdCardNo())
+                    .eq(SubsidyPerson::getDelFlag, "0")
+                    .last("limit 1"));
+            if (byCard != null)
+            {
+                personId = byCard.getId();
+            }
+        }
+        if (personId == null)
+        {
+            return;
+        }
+        subsidyPersonMapper.update(null, new LambdaUpdateWrapper<SubsidyPerson>()
+                .eq(SubsidyPerson::getId, personId)
+                .eq(SubsidyPerson::getDelFlag, "0")
+                .set(SubsidyPerson::getPersonStatus, "1")
+                .set(SubsidyPerson::getUpdateBy, SecurityUtils.getUsername())
+                .set(SubsidyPerson::getUpdateTime, java.time.LocalDateTime.now()));
+    }
+
 
     /**
      * 复核驳回

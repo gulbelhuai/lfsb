@@ -15,23 +15,23 @@ export default {
       name: 'ShebaoPersonManage',
       meta: { title: '人员信息管理', icon: 'peoples' }
     },
-    // 1.1 失地居民登记
+    // 1.1 失地居民登记（独立模块）
     {
       path: 'person/landloss',
-      component: () => import('@/views/shebao/person/landloss/index'),
+      component: () => import('@/views/shebao/landLossResident/index'),
       name: 'LandLossRegistration',
       meta: { title: '失地居民登记', icon: 'form' },
       hidden: false
     },
-    // 1.2 被征地居民登记
+    // 1.2 被征地居民登记（独立模块）
     {
       path: 'person/expropriatee',
-      component: () => import('@/views/shebao/person/expropriatee/index'),
+      component: () => import('@/views/shebao/expropriateeSubsidy/index'),
       name: 'ExpropriateeRegistration',
       meta: { title: '被征地居民登记', icon: 'form' },
       hidden: false
     },
-    // 1.3 拆迁居民登记
+    // 1.3 拆迁居民登记（独立模块）
     {
       path: 'person/demolition',
       component: () => import('@/views/shebao/demolitionResident/index'),
@@ -39,7 +39,7 @@ export default {
       meta: { title: '拆迁居民登记', icon: 'form' },
       hidden: false
     },
-    // 1.4 村干部登记
+    // 1.4 村干部登记（独立模块）
     {
       path: 'person/official',
       component: () => import('@/views/shebao/villageOfficial/index'),

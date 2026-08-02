@@ -16,8 +16,8 @@
               <el-col :span="8" v-if="hasPermission('shebao:person:add')">
                 <el-card shadow="hover" class="quick-card" @click.native="handleQuickNav('/shebao/person/landloss')">
                   <i class="el-icon-user-solid quick-icon"></i>
-                  <div class="quick-title">人员登记</div>
-                  <div class="quick-desc">快速进行人员信息登记</div>
+                  <div class="quick-title">失地居民登记</div>
+                  <div class="quick-desc">进入失地居民独立登记（静态路由占位页快捷入口）</div>
                 </el-card>
               </el-col>
 

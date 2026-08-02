@@ -109,12 +109,3 @@ export function getSubsidyPersonByIdCardNo(idCardNo, includeCancel = false) {
     }
   })
 }
-
-// 人员注销登记（标记死亡）
-export function cancelSubsidyPerson(data) {
-  return request({
-    url: '/shebao/subsidyPerson/cancel',
-    method: 'post',
-    data: data
-  })
-}
