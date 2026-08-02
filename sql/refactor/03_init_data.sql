@@ -123,6 +123,38 @@ INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, status,
 (5, '其他', 'other', 'fail_reason', '0', 'admin', NOW(), '其他原因');
 
 -- ========================================
+-- 8.1 人员状态 / 参保状态 / 发放机构 / 注销原因 / 数字补贴类型
+-- （页面常用；原先仅存在于运行库或大 dump）
+-- ========================================
+DELETE FROM sys_dict_type WHERE dict_type IN (
+  'shebao_person_status', 'shebao_subsidy_status', 'shebao_grant_org', 'cancel_reason', 'subsidy_type'
+);
+INSERT INTO sys_dict_type (dict_name, dict_type, status, create_by, create_time, remark) VALUES
+('人员状态', 'shebao_person_status', '0', 'admin', NOW(), '是否享受待遇'),
+('参保状态', 'shebao_subsidy_status', '0', 'admin', NOW(), '在保/终止'),
+('发放机构', 'shebao_grant_org', '0', 'admin', NOW(), '待遇发放银行机构'),
+('注销原因', 'cancel_reason', '0', 'admin', NOW(), '人员注销登记原因'),
+('补贴类型(数字)', 'subsidy_type', '0', 'admin', NOW(), '部分页面仍用 1/2/3/4 编码');
+
+DELETE FROM sys_dict_data WHERE dict_type IN (
+  'shebao_person_status', 'shebao_subsidy_status', 'shebao_grant_org', 'cancel_reason', 'subsidy_type'
+);
+INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, status, create_by, create_time, remark) VALUES
+(0, '未享受', '0', 'shebao_person_status', '0', 'admin', NOW(), ''),
+(1, '享受', '1', 'shebao_person_status', '0', 'admin', NOW(), ''),
+(0, '在保', '0', 'shebao_subsidy_status', '0', 'admin', NOW(), ''),
+(1, '终止', '1', 'shebao_subsidy_status', '0', 'admin', NOW(), ''),
+(1, '中国银行', 'china_bank', 'shebao_grant_org', '0', 'admin', NOW(), ''),
+(2, '廊坊银行', 'langfang_bank', 'shebao_grant_org', '0', 'admin', NOW(), ''),
+(1, '死亡', 'dead', 'cancel_reason', '0', 'admin', NOW(), ''),
+(2, '户籍迁出', 'move_out', 'cancel_reason', '0', 'admin', NOW(), ''),
+(9, '其他', 'other', 'cancel_reason', '0', 'admin', NOW(), ''),
+(1, '失地居民补贴', '1', 'subsidy_type', '0', 'admin', NOW(), ''),
+(2, '被征地居民补贴', '2', 'subsidy_type', '0', 'admin', NOW(), ''),
+(3, '拆迁居民补贴', '3', 'subsidy_type', '0', 'admin', NOW(), ''),
+(4, '村干部补贴', '4', 'subsidy_type', '0', 'admin', NOW(), '');
+
+-- ========================================
 -- 9. 创建角色
 -- ========================================
 -- 删除已存在的角色（如果存在）

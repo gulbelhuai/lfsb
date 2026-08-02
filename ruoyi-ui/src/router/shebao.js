@@ -71,6 +71,14 @@ export default {
       meta: { title: '人员信息变更', icon: 'edit' },
       hidden: false
     },
+    // 1.8 人员注销登记（与动态菜单一致；线上主要靠后台菜单加载）
+    {
+      path: 'person/cancel',
+      component: () => import('@/views/shebao/person/cancel/index'),
+      name: 'PersonCancel',
+      meta: { title: '人员注销登记', icon: 'form' },
+      hidden: false
+    },
 
     // ==================== 2. 待遇核定管理 ====================
     {
