@@ -35,11 +35,10 @@ async function collectDatabaseSummary(conn) {
        FROM information_schema.tables
       WHERE table_schema = DATABASE()
         AND table_name IN (
-          'shebao_benefit_notice_batch',
-          'shebao_benefit_notice_detail',
           'shebao_benefit_attachment',
           'benefit_determination',
-          'shebao_subsidy_distribution'
+          'shebao_payment_plan',
+          'shebao_subsidy_person'
         )
       ORDER BY table_name`
   );

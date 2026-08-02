@@ -371,12 +371,12 @@ BODY=$(api_get "/shebao/audit/operlog/list?pageNum=1&pageSize=10")
 assert_code "GET /shebao/audit/operlog/list" "200" "$BODY"
 
 # ============================================================
-section "11. 补贴发放记录模块"
+section "11. 补贴发放记录（支付计划明细只读）"
 # ============================================================
 
 # 11.1 补贴发放记录列表
-BODY=$(api_get "/shebao/subsidyDistribution/list?pageNum=1&pageSize=10")
-assert_code "GET /shebao/subsidyDistribution/list" "200" "$BODY"
+BODY=$(api_get "/shebao/distribution/record/list?pageNum=1&pageSize=10")
+assert_code "GET /shebao/distribution/record/list" "200" "$BODY"
 
 # ============================================================
 section "12. 业务写入测试（CRUD）"

@@ -29,6 +29,7 @@
 
 ### 重要注意事项 (gotchas)
 
+- **数据库铁律**: 对远程/测试/本地库，Agent **永远只能 SELECT 等只读查询**；禁止执行任何 DDL/DML。需要改库时只编写 SQL 文件交用户执行。
 - **远程 MySQL 不可用**: `.env` 中配置的 `www.htmisoft.net:36522` 在 Cloud VM 环境下因 IP 白名单限制无法连接，必须使用本地 MySQL。
 - **MySQL skip-name-resolve**: 本地 MySQL 需配置 `skip-name-resolve`（已写入 `/etc/mysql/mysql.conf.d/skip-name-resolve.cnf`），否则 `127.0.0.1` 连接会超时。同时需确保 `root@127.0.0.1` 用户存在且使用 `mysql_native_password` 认证。
 - **LOG_PATH / PROFILE_PATH**: `.env` 中这两个变量指向 Windows 路径，Linux 下必须覆盖为有效路径（如 `/tmp/langfang-shebao/logs`），否则 logback 无法创建日志文件导致启动失败。

@@ -50,19 +50,20 @@ INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, status,
 (3, '三次发放', 'third', 'batch_type', '0', 'admin', NOW(), '三次发放批次');
 
 -- ========================================
--- 4. 数据字典 - 暂停原因
+-- 4. 数据字典 - 暂停原因（与现网一致：pause_reason）
+-- value: dead / unauthentic / prison / missing / other
 -- ========================================
-DELETE FROM sys_dict_type WHERE dict_type = 'suspension_reason';
+DELETE FROM sys_dict_type WHERE dict_type IN ('pause_reason', 'suspension_reason');
 INSERT INTO sys_dict_type (dict_id, dict_name, dict_type, status, create_by, create_time, remark) VALUES
-(203, '暂停原因', 'suspension_reason', '0', 'admin', NOW(), '待遇暂停原因');
+(213, '待遇暂停原因', 'pause_reason', '0', 'admin', NOW(), '待遇暂停原因（页面/业务表 pause_reason）');
 
-DELETE FROM sys_dict_data WHERE dict_type = 'suspension_reason';
+DELETE FROM sys_dict_data WHERE dict_type IN ('pause_reason', 'suspension_reason');
 INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, status, create_by, create_time, remark) VALUES
-(1, '死亡', 'death', 'suspension_reason', '0', 'admin', NOW(), '待遇人死亡'),
-(2, '未认证', 'uncertified', 'suspension_reason', '0', 'admin', NOW(), '未完成年度认证'),
-(3, '服刑', 'imprisonment', 'suspension_reason', '0', 'admin', NOW(), '正在服刑'),
-(4, '失踪', 'missing', 'suspension_reason', '0', 'admin', NOW(), '人员失踪'),
-(5, '其他', 'other', 'suspension_reason', '0', 'admin', NOW(), '其他原因');
+(1, '死亡', 'dead', 'pause_reason', '0', 'admin', NOW(), '待遇人死亡'),
+(2, '未认证', 'unauthentic', 'pause_reason', '0', 'admin', NOW(), '未完成年度认证'),
+(3, '服刑', 'prison', 'pause_reason', '0', 'admin', NOW(), '正在服刑'),
+(4, '失踪', 'missing', 'pause_reason', '0', 'admin', NOW(), '人员失踪'),
+(5, '其他', 'other', 'pause_reason', '0', 'admin', NOW(), '其他原因');
 
 -- ========================================
 -- 5. 数据字典 - 认证状态

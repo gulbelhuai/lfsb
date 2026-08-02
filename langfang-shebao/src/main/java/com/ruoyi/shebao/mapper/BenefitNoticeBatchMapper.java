@@ -1,8 +1,6 @@
 package com.ruoyi.shebao.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ruoyi.shebao.domain.BenefitNoticeBatch;
 import com.ruoyi.shebao.dto.BenefitNoticeBatchListReq;
 import com.ruoyi.shebao.dto.BenefitNoticeBatchResp;
 import com.ruoyi.shebao.dto.BenefitNoticeExportRow;
@@ -11,8 +9,11 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
+/**
+ * 预到龄通知：即时查询人员，不落批次表。
+ */
 @Mapper
-public interface BenefitNoticeBatchMapper extends BaseMapper<BenefitNoticeBatch>
+public interface BenefitNoticeBatchMapper
 {
     Page<BenefitNoticeBatchResp> selectPage(Page<BenefitNoticeBatchResp> page, @Param("req") BenefitNoticeBatchListReq req);
 

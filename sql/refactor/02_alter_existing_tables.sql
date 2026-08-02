@@ -21,13 +21,14 @@ ALTER TABLE shebao_subsidy_distribution
   ADD INDEX idx_batch_type (batch_type);
 
 -- 2. 修改 shebao_subsidy_person 表，添加认证和暂停相关字段
+-- 暂停原因以待遇暂停主表 shebao_benefit_suspension.pause_reason（字典 pause_reason）为准，
+-- 人员表不再冗余 suspension_reason 列。
 ALTER TABLE shebao_subsidy_person
   ADD COLUMN certification_status VARCHAR(20) DEFAULT 'uncertified' COMMENT '认证状态(uncertified/april/october)' AFTER id_card_no,
   ADD COLUMN last_certification_date DATE COMMENT '最后认证日期' AFTER certification_status,
   ADD COLUMN suspension_status CHAR(1) DEFAULT '0' COMMENT '暂停状态(0正常1暂停)' AFTER last_certification_date,
   ADD COLUMN suspension_start_date DATE COMMENT '暂停开始日期' AFTER suspension_status,
-  ADD COLUMN suspension_reason VARCHAR(50) COMMENT '暂停原因(death/uncertified/imprisonment/missing/other)' AFTER suspension_start_date,
-  ADD COLUMN suspension_end_date DATE COMMENT '暂停结束日期' AFTER suspension_reason,
+  ADD COLUMN suspension_end_date DATE COMMENT '暂停结束日期' AFTER suspension_start_date,
   ADD COLUMN suspension_remark VARCHAR(500) COMMENT '暂停备注' AFTER suspension_end_date,
   ADD INDEX idx_certification_status (certification_status),
   ADD INDEX idx_suspension_status (suspension_status);

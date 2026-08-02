@@ -21,7 +21,6 @@
 ## 相关脚本
 
 - `../准备预到龄发放通知测试环境.js`
-- `../验证预到龄通知闭环.js`
 - `../回查预到龄通知结果.js`
 - `../run-benefit-notice-local-regression.js`
 
