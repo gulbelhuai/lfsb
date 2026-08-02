@@ -105,7 +105,7 @@
                sp.name as person_name,
                coalesce(bd.id_card_no, sp.id_card_no) as id_card_no,
                date_format(#{businessPeriod}, '%Y-%m') as business_period,
-               null as payment_month,
+               date_format(#{businessPeriod}, '%Y-%m') as payment_month,
                ifnull(bdi.subsidy_standard, 0) as monthly_amount,
                0 as supplement_amount,
                null as supplement_start_month,

@@ -113,13 +113,25 @@ SET @management_menu_id = (SELECT menu_id FROM sys_menu WHERE menu_name = '待�
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
 VALUES ('发放信息修改', @management_menu_id, 1, 'modify', 'shebao/management/modify/index', 1, 0, 'C', '0', '0', 'shebao:benefit:modify:list', '#', 'admin', NOW(), '', NULL, '发放信息修改菜单');
 
--- 待遇暂停恢复
+-- 待遇暂停（perms 与 BenefitSuspensionController / 前端一致）
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-VALUES ('待遇暂停恢复', @management_menu_id, 2, 'suspension', 'shebao/management/suspension/index', 1, 0, 'C', '0', '0', 'shebao:benefit:suspension:list', '#', 'admin', NOW(), '', NULL, '待遇暂停恢复菜单');
+VALUES ('待遇暂停', @management_menu_id, 2, 'suspension', 'shebao/management/suspension/index', 1, 0, 'C', '0', '0', 'shebao:management:suspension:list', '#', 'admin', NOW(), '', NULL, '待遇暂停菜单');
+SET @suspension_menu_id = (SELECT menu_id FROM sys_menu WHERE menu_name = '待遇暂停' AND parent_id = @management_menu_id LIMIT 1);
+INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+VALUES ('待遇暂停添加', @suspension_menu_id, 1, '#', '', 1, 0, 'F', '0', '0', 'shebao:management:suspension:add', '#', 'admin', NOW(), '', NULL, ''),
+       ('待遇暂停详情', @suspension_menu_id, 2, '#', '', 1, 0, 'F', '0', '0', 'shebao:management:suspension:query', '#', 'admin', NOW(), '', NULL, '');
+
+-- 待遇恢复（perms 与 BenefitResumeController / 前端一致）
+INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+VALUES ('待遇恢复', @management_menu_id, 3, 'resume', 'shebao/management/resume/index', 1, 0, 'C', '0', '0', 'shebao:management:resume:list', '#', 'admin', NOW(), '', NULL, '待遇恢复菜单');
+SET @resume_menu_id = (SELECT menu_id FROM sys_menu WHERE menu_name = '待遇恢复' AND parent_id = @management_menu_id LIMIT 1);
+INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+VALUES ('待遇恢复添加', @resume_menu_id, 1, '#', '', 1, 0, 'F', '0', '0', 'shebao:management:resume:add', '#', 'admin', NOW(), '', NULL, ''),
+       ('待遇恢复详情', @resume_menu_id, 2, '#', '', 1, 0, 'F', '0', '0', 'shebao:management:resume:query', '#', 'admin', NOW(), '', NULL, '');
 
 -- 待遇认证
 INSERT INTO sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-VALUES ('待遇认证', @management_menu_id, 3, 'certification', 'shebao/management/certification/index', 1, 0, 'C', '0', '0', 'shebao:benefit:certification:list', '#', 'admin', NOW(), '', NULL, '待遇认证菜单');
+VALUES ('待遇认证', @management_menu_id, 4, 'certification', 'shebao/management/certification/index', 1, 0, 'C', '0', '0', 'shebao:benefit:certification:list', '#', 'admin', NOW(), '', NULL, '待遇认证菜单');
 
 -- ==================== 支付结算 子菜单 ====================
 

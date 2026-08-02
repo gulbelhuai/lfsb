@@ -280,7 +280,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setPersonName(item.getPersonName());
             row.setIdCardNo(item.getIdCardNo());
             row.setBusinessPeriod(period);
-            row.setPaymentMonth(null);
+            row.setPaymentMonth(String.format("%04d-%02d", period.getYear(), period.getMonthValue()));
             row.setMonthlyAmount(nz(item.getMonthlyAmount()));
             row.setSupplementAmount(nz(item.getSupplementAmount()));
             row.setSupplementStartMonth(parseYearMonthDay(item.getSupplementStartMonth()));
