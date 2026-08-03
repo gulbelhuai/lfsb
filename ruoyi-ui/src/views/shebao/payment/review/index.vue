@@ -47,7 +47,7 @@
     <plan-detail-dialog
       :visible.sync="detailOpen"
       :current-plan="currentPlan"
-      :grant-org-options="dict.type.shebao_grant_org || []"
+      :grant-org-options="grantOrgOptions"
       :subsidy-type-formatter="subsidyTypeLabel"
       :status-formatter="statusLabel"
       :fetch-summary="fetchSummary"
@@ -62,18 +62,19 @@
 
 <script>
 import { listPaymentPlan, getPaymentPlanSummary, getPaymentPlanDetail, getPaymentPlanAudit, changePaymentPlanStatus } from '@/api/shebao/payment'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import { paymentPlanStatusLabel, promptPlanAction, paymentPlanSubsidyTypeLabel, paymentPlanGrantOrgLabels, PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS } from '../plan/planUiShared'
 import PlanDetailDialog from '../plan/PlanDetailDialog'
 
 export default {
   name: 'PaymentReview',
   components: { PlanDetailDialog },
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       loading: false,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       queryParams: { pageNum: 1, pageSize: 10, businessPeriod: null, subsidyType: null, approvalStatus: 'pending_review' },
       detailOpen: false,
       currentPlan: null,
@@ -92,8 +93,16 @@ export default {
       ]
     }
   },
-  created() { this.getList() },
+  created() {
+    this.loadGrantOrgOptions()
+    this.getList()
+  },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     getList() {
       this.loading = true
       listPaymentPlan(this.queryParams).then(res => {
@@ -146,7 +155,7 @@ export default {
       return paymentPlanSubsidyTypeLabel(val)
     },
     grantOrgLabels(val) {
-      return paymentPlanGrantOrgLabels(val, this.dict.type.shebao_grant_org)
+      return paymentPlanGrantOrgLabels(val, this.grantOrgOptions)
     },
     statusLabel(v) {
       return paymentPlanStatusLabel(v)

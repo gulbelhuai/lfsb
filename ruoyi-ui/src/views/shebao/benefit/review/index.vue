@@ -127,13 +127,13 @@
 
 <script>
 import { batchApproveBenefitReview, getBenefitDetermination, listBenefitReview, reviewBenefitPass, reviewBenefitReject } from '@/api/shebao/benefit'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import { selectDictLabel } from '@/utils/ruoyi'
 import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
 import ImagePreview from '@/components/ImagePreview'
 
 export default {
   name: 'BenefitReview',
-  dicts: ['shebao_grant_org'],
   components: { ApprovalStatus, ImagePreview },
   data() {
     return {
@@ -141,6 +141,7 @@ export default {
       loading: false,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       ids: [],
       multiple: true,
       detailOpen: false,
@@ -156,11 +157,17 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     grantOrgLabel(val) {
-      return selectDictLabel(this.dict.type.shebao_grant_org || [], val)
+      return selectDictLabel(this.grantOrgOptions, val)
     },
     getSubsidyTypeLabel(subsidyType) {
       return {

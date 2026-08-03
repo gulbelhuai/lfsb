@@ -22,6 +22,7 @@ import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
 import com.ruoyi.shebao.service.FinanceBenefitRecoveryService;
 import com.ruoyi.shebao.service.PersonCancelService;
 import com.ruoyi.shebao.service.SubsidyPersonService;
+import com.ruoyi.shebao.util.OpeningBankUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -125,8 +126,7 @@ public class HistoricalImportCommonSupport
         ctx.hasBenefitBlock = hasBenefitDeterminationData(row);
         if (ctx.hasBenefitBlock)
         {
-            ctx.grantOrg = HistoricalImportDictSupport.requireDictByLabelOrValue(
-                    "shebao_grant_org", row.getGrantOrg(), "发放机构");
+            ctx.grantOrg = OpeningBankUtils.requireCodeByLabelOrValue(row.getGrantOrg(), "发放机构");
             ctx.accountName = HistoricalImportDictSupport.requireNotBlank(row.getAccountName(), "开户名");
             ctx.relationToInsured = HistoricalImportDictSupport.requireNotBlank(row.getRelationToInsured(), "与参保人关系");
             ctx.bankAccount = HistoricalImportDictSupport.requireNotBlank(row.getBankAccount(), "银行账号");

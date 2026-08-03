@@ -225,13 +225,14 @@ import {
   changePaymentPlanStatus,
   revokePaymentPlan
 } from '@/api/shebao/payment'
-import { selectDictLabel } from '@/utils/ruoyi'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import {
   paymentPlanStatusLabel,
   promptPlanAction,
   paymentPlanAuditOperationLabel,
   paymentPlanAuditStageLabelFromRow,
   paymentPlanSubsidyTypeLabel,
+  paymentPlanGrantOrgLabels,
   PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
 } from './planUiShared'
 
@@ -244,12 +245,12 @@ function defaultBusinessPeriod() {
 
 export default {
   name: 'PaymentPlan',
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       loading: true,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       previewLoading: false,
       saveLoading: false,
       submitLoading: false,
@@ -290,9 +291,15 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     getList() {
       this.loading = true
       listPaymentPlan(this.queryParams).then(response => {
@@ -543,7 +550,7 @@ export default {
       return paymentPlanSubsidyTypeLabel(val)
     },
     grantOrgLabel(val) {
-      return selectDictLabel(this.dict.type.shebao_grant_org || [], val) || val || '-'
+      return paymentPlanGrantOrgLabels(val, this.grantOrgOptions)
     }
   },
   computed: {

@@ -53,7 +53,7 @@ public class DistributionRecordExportResp
     @Excel(name = "失败原因", sort = 14)
     private String failReason;
 
-    @Excel(name = "发放机构", sort = 15, dictType = "shebao_grant_org")
+    @Excel(name = "发放机构", sort = 15, handler = com.ruoyi.shebao.util.OpeningBankExcelHandler.class)
     private String grantOrg;
 
     @Excel(name = "开户名", sort = 16)

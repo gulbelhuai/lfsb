@@ -22,7 +22,7 @@ public class BenefitDeterminationSaveDraftReq
     @NotBlank
     private String idCardNo;
 
-    /** 发放机构（字典：shebao_grant_org） */
+    /** 发放机构（开户行 code） */
     private String grantOrg;
 
     /** 开户名 */

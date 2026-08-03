@@ -14,7 +14,7 @@ import com.ruoyi.shebao.dto.PaymentPlanBankFailureRow;
 import com.ruoyi.shebao.dto.PaymentPlanListReq;
 import com.ruoyi.shebao.dto.PaymentPlanListResp;
 import com.ruoyi.shebao.service.PaymentPlanService;
-import com.ruoyi.shebao.service.impl.PaymentPlanServiceImpl;
+import com.ruoyi.shebao.util.OpeningBankUtils;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -43,7 +42,7 @@ public class FinanceBankController extends BaseController
     @Autowired
     private PaymentPlanService paymentPlanService;
 
-    /** 廊坊银行代发模板表头 */
+    /** 统一廊坊银行代发模板表头 */
     private static final String[] LF_HEADERS = {
             "报盘日期", "本行单位账号", "报盘批号", "收款协议号", "付款协议号", "发生额方向",
             "单位名称", "单位地址", "业务类型号", "业务种类", "金额", "接收行行号",
@@ -74,41 +73,19 @@ public class FinanceBankController extends BaseController
         return rsp;
     }
 
-    /** 该批次涉及的代发银行列表 */
-    @PreAuthorize("@ss.hasPermi('shebao:finance:bank:export')")
-    @GetMapping("/{id}/banks")
-    public AjaxResult banks(@PathVariable("id") Long id)
-    {
-        return AjaxResult.success(paymentPlanService.selectAvailableBanks(id));
-    }
-
-    /** 导出某代发银行的代发文件 */
+    /** 导出银行代发文件（本批次全部明细，统一廊坊模板） */
     @PreAuthorize("@ss.hasPermi('shebao:finance:bank:export')")
     @GetMapping("/{id}/export")
-    public ResponseEntity<byte[]> export(@PathVariable("id") Long id, @RequestParam("bank") String bank) throws Exception
+    public ResponseEntity<byte[]> export(@PathVariable("id") Long id) throws Exception
     {
         PaymentPlan plan = paymentPlanService.getBankPlan(id);
-        List<PaymentPlanDetail> details = paymentPlanService.selectDetailsForBank(id, bank);
+        List<PaymentPlanDetail> details = paymentPlanService.selectBankExportDetails(id);
         if (details.isEmpty())
         {
-            throw new ServiceException("该批次没有该发放机构的明细数据");
+            throw new ServiceException("该批次没有可导出的明细数据");
         }
-        byte[] content;
-        String fileName;
-        if (PaymentPlanServiceImpl.BANK_LANGFANG.equals(bank))
-        {
-            content = buildLangfangXls(details);
-            fileName = "廊坊银行代发_" + safe(plan.getBatchNo()) + ".xls";
-        }
-        else if (PaymentPlanServiceImpl.BANK_BOC.equals(bank))
-        {
-            content = buildBocCsv(details);
-            fileName = "中国银行代发_" + safe(plan.getBatchNo()) + ".csv";
-        }
-        else
-        {
-            throw new ServiceException("不支持的代发银行");
-        }
+        byte[] content = buildLangfangXls(details);
+        String fileName = "银行代发_" + safe(plan.getBatchNo()) + ".xls";
         String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded)
@@ -170,13 +147,10 @@ public class FinanceBankController extends BaseController
         try (HSSFWorkbook wb = new HSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream())
         {
             Sheet sheet = wb.createSheet("发放明细");
-            // 标题行（按补贴类型生成，与原模板格式一致）
             String subsidyShort = subsidyShort(details.get(0).getSubsidyType());
             Row titleRow = sheet.createRow(0);
             titleRow.createCell(0).setCellValue("廊坊开发区" + subsidyShort + "补贴发放明细表");
-            // 空行
             sheet.createRow(1);
-            // 表头
             Row header = sheet.createRow(2);
             for (int i = 0; i < LF_HEADERS.length; i++)
             {
@@ -198,11 +172,11 @@ public class FinanceBankController extends BaseController
                 row.createCell(9).setCellValue("09001");                             // 业务种类
                 row.createCell(10).setCellValue(amountText(d.getDistributionAmount())); // 金额
                 row.createCell(11).setCellValue("");                                 // 接收行行号
-                row.createCell(12).setCellValue("");                                 // 对方开户行行号
+                row.createCell(12).setCellValue(safe(OpeningBankUtils.getBankNo(d.getGrantOrg()))); // 对方开户行行号
                 row.createCell(13).setCellValue(safe(d.getBankAccount()));           // 对方账号
                 row.createCell(14).setCellValue(safe(d.getIdCardNo()));              // 证件号码
                 row.createCell(15).setCellValue(safe(d.getAccountName()));           // 对方户名
-                row.createCell(16).setCellValue("");                                 // 对方地址
+                row.createCell(16).setCellValue(safe(OpeningBankUtils.getFullName(d.getGrantOrg()))); // 对方地址←开户行全称
                 row.createCell(17).setCellValue(langfangNote(d));                    // 附言
                 row.createCell(18).setCellValue("");                                 // 回执期限
             }
@@ -229,41 +203,6 @@ public class FinanceBankController extends BaseController
         }
     }
 
-    private byte[] buildBocCsv(List<PaymentPlanDetail> details)
-    {
-        StringBuilder sb = new StringBuilder();
-        // 表头信息行（保持原模板格式）
-        sb.append("\"业务类型:\t\",\"C1-人民币/外币行内代付\t\",\"转出账号:\t\",\"9031360018534008\t\",\"币种:\t\",\"CNY-人民币\t\",\"业务摘要:\t\",\"EE-补贴\t\",,\n");
-        sb.append(",,,,,,,,,\n");
-        // 列头
-        sb.append("序号,转入账号,转入名称,金额,转入行省行,证件类型,证件号码,备注,定期储蓄类别,错误标识\n");
-        int seq = 1;
-        for (PaymentPlanDetail d : details)
-        {
-            sb.append(seq++).append(',')
-              .append(csv(d.getBankAccount())).append(',')
-              .append(csv(d.getAccountName())).append(',')
-              .append(csv(amountText(d.getDistributionAmount()))).append(',')
-              .append("13-河北").append(',')
-              .append("01-身份证").append(',')
-              .append(csv(d.getIdCardNo())).append(',')
-              .append(csv(bocNote(d))).append(',')
-              .append(',')
-              .append('\n');
-        }
-        // 中国银行代发常用 GBK 编码
-        Charset gbk;
-        try
-        {
-            gbk = Charset.forName("GBK");
-        }
-        catch (Exception e)
-        {
-            gbk = StandardCharsets.UTF_8;
-        }
-        return sb.toString().getBytes(gbk);
-    }
-
     private String langfangNote(PaymentPlanDetail d)
     {
         StringBuilder sb = new StringBuilder();
@@ -275,11 +214,6 @@ public class FinanceBankController extends BaseController
         }
         sb.append(subsidyShort(d.getSubsidyType()));
         return sb.toString();
-    }
-
-    private String bocNote(PaymentPlanDetail d)
-    {
-        return safe(d.getVillageName()) + subsidyShort(d.getSubsidyType()) + "参保补贴";
     }
 
     private String subsidyShort(String subsidyType)
@@ -337,19 +271,6 @@ public class FinanceBankController extends BaseController
             return "0";
         }
         return amount.stripTrailingZeros().toPlainString();
-    }
-
-    private String csv(String value)
-    {
-        if (value == null)
-        {
-            return "";
-        }
-        if (value.contains(",") || value.contains("\"") || value.contains("\n"))
-        {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
     }
 
     private String safe(String value)

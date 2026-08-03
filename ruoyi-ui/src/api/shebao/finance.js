@@ -66,20 +66,11 @@ export function listBankBatch(query) {
   })
 }
 
-/** 银行发放：该批次涉及的代发银行(langfang/boc) */
-export function getBankExports(id) {
-  return request({
-    url: `/shebao/finance/bank/${id}/banks`,
-    method: 'get'
-  })
-}
-
-/** 银行发放：导出某代发银行的代发文件 */
-export function exportBankFile(id, bank) {
+/** 银行发放：导出代发文件（本批次全部明细） */
+export function exportBankFile(id) {
   return request({
     url: `/shebao/finance/bank/${id}/export`,
     method: 'get',
-    params: { bank },
     responseType: 'blob'
   })
 }

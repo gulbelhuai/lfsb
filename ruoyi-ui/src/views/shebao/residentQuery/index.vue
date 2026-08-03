@@ -275,17 +275,18 @@
 
 <script>
 import { searchResidents, getResidentDetailInfo, getResidentPreDistributionList, getResidentDistributionList } from "@/api/shebao/residentQuery"
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import { selectDictLabel } from '@/utils/ruoyi'
 import { paymentPlanSubsidyTypeLabel } from '@/views/shebao/payment/plan/planUiShared'
 
 export default {
   name: "ResidentQuery",
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       // 遮罩层
       loading: false,
       preLoading: false,
+      grantOrgOptions: [],
       // 搜索关键词
       searchKeyword: '',
       // 搜索历史记录
@@ -327,9 +328,15 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.loadSearchHistory()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     /** 异步搜索居民 */
     querySearchAsync(queryString, cb) {
       if (queryString.trim().length < 1) {
@@ -430,7 +437,7 @@ export default {
       return paymentPlanSubsidyTypeLabel(type)
     },
     grantOrgLabel(val) {
-      return selectDictLabel(this.dict.type.shebao_grant_org || [], val) || val || '-'
+      return selectDictLabel(this.grantOrgOptions, val) || val || '-'
     },
     /** 加载搜索历史 */
     loadSearchHistory() {

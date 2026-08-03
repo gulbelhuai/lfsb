@@ -42,7 +42,7 @@
       <el-table-column label="银行账号" prop="bankAccount" width="180" show-overflow-tooltip />
       <el-table-column label="发放机构" prop="grantOrg" width="120">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.shebao_grant_org" :value="scope.row.grantOrg" />
+          <dict-tag :options="grantOrgOptions" :value="scope.row.grantOrg" />
         </template>
       </el-table-column>
       <el-table-column label="街道" prop="streetName" width="100" show-overflow-tooltip />
@@ -56,16 +56,17 @@
 
 <script>
 import { listFailureRecords } from '@/api/shebao/finance'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import { paymentPlanSubsidyTypeLabel, PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS } from '../../payment/plan/planUiShared'
 
 export default {
   name: 'FinanceFailure',
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       loading: false,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -83,9 +84,15 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     getList() {
       this.loading = true
       listFailureRecords(this.queryParams).then(response => {

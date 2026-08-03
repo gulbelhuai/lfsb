@@ -30,7 +30,7 @@
       <el-form-item label="发放机构" prop="grantOrg">
         <el-select v-model="queryParams.grantOrg" placeholder="全部" clearable style="width: 140px">
           <el-option
-            v-for="dict in dict.type.shebao_grant_org"
+            v-for="dict in grantOrgOptions"
             :key="dict.value"
             :label="dict.label"
             :value="dict.value"
@@ -111,7 +111,7 @@
         <template slot-scope="scope">{{ scope.row.failReason || '-' }}</template>
       </el-table-column>
       <el-table-column label="发放机构" prop="grantOrg" width="110">
-        <template slot-scope="scope">{{ paymentPlanGrantOrgLabels(scope.row.grantOrg, dict.type.shebao_grant_org) }}</template>
+        <template slot-scope="scope">{{ paymentPlanGrantOrgLabels(scope.row.grantOrg, grantOrgOptions) }}</template>
       </el-table-column>
       <el-table-column label="开户名" prop="accountName" width="90" />
       <el-table-column label="银行账号" prop="bankAccount" width="160" show-overflow-tooltip />
@@ -130,6 +130,7 @@
 
 <script>
 import { listDistributionRecord } from '@/api/shebao/distributionRecord'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import {
   PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS,
   paymentPlanSubsidyTypeLabel,
@@ -138,13 +139,13 @@ import {
 
 export default {
   name: 'DistributionRecord',
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       loading: false,
       showSearch: true,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       subsidyTypeOptions: PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS,
       queryParams: {
         pageNum: 1,
@@ -161,9 +162,15 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     paymentPlanSubsidyTypeLabel,
     paymentPlanGrantOrgLabels,
     determinationTypeLabel(type) {

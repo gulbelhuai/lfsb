@@ -46,11 +46,8 @@ public interface PaymentPlanService
     /** 银行发放：加载批次（校验存在） */
     PaymentPlan getBankPlan(Long planId);
 
-    /** 银行发放：返回该批次涉及的代发银行(langfang/boc) */
-    List<String> selectAvailableBanks(Long planId);
-
-    /** 银行发放：返回某代发银行对应的明细 */
-    List<PaymentPlanDetail> selectDetailsForBank(Long planId, String bank);
+    /** 银行发放：本批次全部明细（统一廊坊模板导出） */
+    List<PaymentPlanDetail> selectBankExportDetails(Long planId);
 
     /** 银行发放：提交银行（待发放 → 已提交银行） */
     int submitToBank(Long planId);

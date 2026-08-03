@@ -38,7 +38,7 @@ public class PaymentPlanDetailExportResp
     @Excel(name = "发放金额", sort = 9, scale = 2)
     private BigDecimal distributionAmount;
 
-    @Excel(name = "发放机构", sort = 10, dictType = "shebao_grant_org")
+    @Excel(name = "发放机构", sort = 10, handler = com.ruoyi.shebao.util.OpeningBankExcelHandler.class)
     private String grantOrg;
 
     @Excel(name = "开户名", sort = 11)

@@ -63,7 +63,7 @@
             <el-col :span="12">
               <el-form-item label="发放机构" prop="grantOrg">
                 <el-select v-model="modifyForm.grantOrg" style="width: 100%" placeholder="请选择">
-                  <el-option v-for="d in dict.type.shebao_grant_org" :key="d.value" :label="d.label" :value="d.value" />
+                  <el-option v-for="d in grantOrgOptions" :key="d.value" :label="d.label" :value="d.value" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -100,17 +100,18 @@
 
 <script>
 import { getBenefitDetermination, listBenefitDetermination, updateBenefitDetermination } from '@/api/shebao/benefit'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import { selectDictLabel } from '@/utils/ruoyi'
 
 export default {
   name: 'BenefitModify',
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       loading: false,
       submitLoading: false,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       modifyOpen: false,
       detailData: {},
       modifyForm: {},
@@ -130,9 +131,15 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     getList() {
       this.loading = true
       listBenefitDetermination(this.queryParams).then(response => {
@@ -191,7 +198,7 @@ export default {
       })
     },
     grantOrgLabel(val) {
-      return selectDictLabel(this.dict.type.shebao_grant_org || [], val) || '-'
+      return selectDictLabel(this.grantOrgOptions, val) || '-'
     },
     approvalStatusLabel(status) {
       return {

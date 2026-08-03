@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ruoyi.common.config.RuoYiConfig;
 import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileUploadUtils;
@@ -41,6 +40,7 @@ import com.ruoyi.shebao.mapper.StreetOfficeMapper;
 import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
 import com.ruoyi.shebao.mapper.VillageOfficialMapper;
 import com.ruoyi.shebao.service.IBenefitDeterminationService;
+import com.ruoyi.shebao.util.OpeningBankUtils;
 import com.ruoyi.shebao.util.ZipPreviewUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import lombok.RequiredArgsConstructor;
@@ -388,7 +388,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             dto.setName(person.getName());
             dto.setIdCardNo(person.getIdCardNo());
             dto.setUserCode(person.getUserCode());
-            dto.setBankName(DictUtils.getDictLabel("shebao_grant_org", determination.getGrantOrg()));
+            dto.setBankName(OpeningBankUtils.getShortNameOrCode(determination.getGrantOrg()));
             return List.of(dto);
         }
         return items.stream().map(it -> {
@@ -399,7 +399,7 @@ public class BenefitDeterminationServiceImpl extends ServiceImpl<BenefitDetermin
             dto.setSubsidyType(it.getSubsidyType());
             dto.setEligibleMonth(yearMonthToDate(determination.getEligibleYear(), determination.getEligibleMonth()));
             dto.setBenefitStartMonth(yearMonthToDate(it.getBenefitStartYear(), it.getBenefitStartMonth()));
-            dto.setBankName(DictUtils.getDictLabel("shebao_grant_org", determination.getGrantOrg()));
+            dto.setBankName(OpeningBankUtils.getShortNameOrCode(determination.getGrantOrg()));
             dto.setBankAccount(determination.getBankAccount());
             dto.setSubsidyStandard(it.getSubsidyStandard());
             dto.setBenefitMonths(it.getBenefitMonths());

@@ -13,6 +13,7 @@ import com.ruoyi.shebao.dto.historicalimport.DemolitionHistoricalImportDto;
 import com.ruoyi.shebao.dto.historicalimport.LandLossHistoricalImportDto;
 import com.ruoyi.shebao.mapper.StreetOfficeMapper;
 import com.ruoyi.shebao.mapper.VillageCommitteeMapper;
+import com.ruoyi.shebao.util.OpeningBankUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -236,7 +237,7 @@ public class HistoricalImportTemplateExporter
         columns.add(new DictColumn("人员状态", dictLabels("shebao_person_status")));
         columns.add(new DictColumn("注销原因", dictLabels("cancel_reason")));
         columns.add(new DictColumn("是否村合作经济组织成员", List.of("是", "否")));
-        columns.add(new DictColumn("发放机构", dictLabels("shebao_grant_org")));
+        columns.add(new DictColumn("发放机构", OpeningBankUtils.activeShortNames()));
         columns.add(new DictColumn("暂停原因", dictLabels("pause_reason")));
         columns.add(new DictColumn("所属街道办", loadStreetOfficeNames()));
         columns.add(new DictColumn("所属村委会", loadVillageCommitteeNames()));

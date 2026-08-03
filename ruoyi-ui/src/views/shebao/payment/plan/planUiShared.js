@@ -52,17 +52,17 @@ export function paymentPlanFinanceStatusLabel(status) {
 }
 
 /**
- * 列表发放机构展示：汇总多机构时用顿号拼接字典标签
+ * 列表发放机构展示：汇总多机构时用顿号拼接开户行简称
  * @param {string} value 单个编码，或逗号/顿号分隔的多编码
- * @param {Array} dictOptions dict.type.shebao_grant_org
+ * @param {Array} options { value, label } 开户行下拉
  */
-export function paymentPlanGrantOrgLabels(value, dictOptions) {
+export function paymentPlanGrantOrgLabels(value, options) {
   if (value === null || value === undefined || value === '') return '—'
   const codes = String(value).split(/[,、]/).map(s => s.trim()).filter(Boolean)
   if (!codes.length) return '—'
-  const options = dictOptions || []
+  const opts = options || []
   return codes.map(code => {
-    const hit = options.find(o => o.value === code || String(o.value) === String(code))
+    const hit = opts.find(o => o.value === code || String(o.value) === String(code))
     return (hit && hit.label) || code
   }).join('、')
 }

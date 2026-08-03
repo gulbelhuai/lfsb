@@ -40,7 +40,7 @@ public class BenefitDetermination extends BaseEntity
     private Integer eligibleMonth;
 
     /**
-     * 发放机构（字典：shebao_grant_org）
+     * 发放机构（开户行 code）
      */
     private String grantOrg;
 

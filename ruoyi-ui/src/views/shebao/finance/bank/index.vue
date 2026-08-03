@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <el-alert title="银行发放说明" type="info" :closable="false" class="mb20">
-      <div>导出对应银行代发文件->已提交银行->导入失败数据->确认无误后标记「已完成」。</div>
+      <div>导出银行代发文件（本批次全部明细）→ 已提交银行 → 导入失败数据 → 确认无误后标记「已完成」。</div>
     </el-alert>
 
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">
@@ -51,19 +51,11 @@
         <template slot-scope="scope">
           <el-button type="text" size="mini" @click="openDetail(scope.row)">详情</el-button>
           <el-button
-            v-if="hasBank(scope.row, 'langfang')"
             type="text"
             size="mini"
             v-hasPermi="['shebao:finance:bank:export']"
-            @click="handleExport(scope.row, 'langfang')"
-          >廊坊银行导出</el-button>
-          <el-button
-            v-if="hasBank(scope.row, 'boc')"
-            type="text"
-            size="mini"
-            v-hasPermi="['shebao:finance:bank:export']"
-            @click="handleExport(scope.row, 'boc')"
-          >中国银行导出</el-button>
+            @click="handleExport(scope.row)"
+          >银行导出</el-button>
           <el-button
             v-if="distOf(scope.row) === 'pending'"
             type="text"
@@ -94,7 +86,7 @@
     <plan-detail-dialog
       :visible.sync="detailOpen"
       :current-plan="currentPlan"
-      :grant-org-options="dict.type.shebao_grant_org || []"
+      :grant-org-options="grantOrgOptions"
       :subsidy-type-formatter="subsidyTypeLabel"
       :status-formatter="distributionStatusLabel"
       status-field="distributionStatus"
@@ -134,13 +126,13 @@
 <script>
 import {
   listBankBatch,
-  getBankExports,
   exportBankFile,
   submitBankDistribution,
   completeBankDistribution,
   downloadFailTemplate
 } from '@/api/shebao/finance'
 import { getPaymentPlanSummary, getPaymentPlanDetail, getPaymentPlanAudit } from '@/api/shebao/payment'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import {
   paymentPlanSubsidyTypeLabel,
   paymentPlanDistributionStatusLabel,
@@ -159,12 +151,12 @@ function currentMonth() {
 export default {
   name: 'FinanceBank',
   components: { PlanDetailDialog },
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       loading: false,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       detailOpen: false,
       currentPlan: null,
       importOpen: false,
@@ -189,26 +181,22 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     getList() {
       this.loading = true
       listBankBatch(this.queryParams).then(res => {
-        const rows = res.rows || []
-        rows.forEach(r => { this.$set(r, 'banks', []) })
-        this.dataList = rows
+        this.dataList = res.rows || []
         this.total = res.total || 0
-        this.loadBanks(rows)
       }).finally(() => {
         this.loading = false
-      })
-    },
-    loadBanks(rows) {
-      rows.forEach(row => {
-        getBankExports(row.id).then(res => {
-          this.$set(row, 'banks', res.data || [])
-        }).catch(() => {})
       })
     },
     handleQuery() {
@@ -229,9 +217,6 @@ export default {
     distOf(row) {
       return row.distributionStatus || 'pending'
     },
-    hasBank(row, bank) {
-      return Array.isArray(row.banks) && row.banks.includes(bank)
-    },
     openDetail(row) {
       this.currentPlan = { ...row }
       this.detailOpen = true
@@ -245,17 +230,13 @@ export default {
     fetchAudit(planId) {
       return getPaymentPlanAudit(planId).then(res => res.data || [])
     },
-    handleExport(row, bank) {
-      exportBankFile(row.id, bank).then(data => {
-        const isCsv = bank === 'boc'
-        const mime = isCsv ? 'text/csv;charset=utf-8' : 'application/vnd.ms-excel'
-        const ext = isCsv ? 'csv' : 'xls'
-        const prefix = bank === 'langfang' ? '廊坊银行代发' : '中国银行代发'
-        const blob = new Blob([data], { type: mime })
+    handleExport(row) {
+      exportBankFile(row.id).then(data => {
+        const blob = new Blob([data], { type: 'application/vnd.ms-excel' })
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `${prefix}_${row.batchNo || row.id}.${ext}`
+        link.download = `银行代发_${row.batchNo || row.id}.xls`
         link.click()
         window.URL.revokeObjectURL(url)
       })

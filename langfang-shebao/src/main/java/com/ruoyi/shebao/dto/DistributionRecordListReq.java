@@ -20,7 +20,7 @@ public class DistributionRecordListReq extends PageReq
     /** 补贴类型 */
     private String subsidyType;
 
-    /** 发放机构（字典 shebao_grant_org） */
+    /** 发放机构（开户行 code） */
     private String grantOrg;
 
     /** 身份证号 */

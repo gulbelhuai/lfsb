@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.shebao.domain.BenefitDetermination;
@@ -77,10 +76,6 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private static final String DIST_COMPLETED = "completed";
     /** 发放结果 */
     private static final String DIST_RESULT_FAILED = "failed";
-    /** 银行标识 */
-    public static final String BANK_LANGFANG = "langfang";
-    public static final String BANK_BOC = "boc";
-    private static final String GRANT_ORG_DICT = "shebao_grant_org";
 
     @Autowired
     private PaymentPlanMapper paymentPlanMapper;
@@ -504,34 +499,9 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     }
 
     @Override
-    public List<String> selectAvailableBanks(Long planId)
+    public List<PaymentPlanDetail> selectBankExportDetails(Long planId)
     {
-        List<PaymentPlanDetail> details = loadBankDetails(planId);
-        Set<String> banks = new LinkedHashSet<>();
-        for (PaymentPlanDetail d : details)
-        {
-            String bank = classifyBank(d.getGrantOrg());
-            if (bank != null)
-            {
-                banks.add(bank);
-            }
-        }
-        return new ArrayList<>(banks);
-    }
-
-    @Override
-    public List<PaymentPlanDetail> selectDetailsForBank(Long planId, String bank)
-    {
-        List<PaymentPlanDetail> details = loadBankDetails(planId);
-        List<PaymentPlanDetail> result = new ArrayList<>();
-        for (PaymentPlanDetail d : details)
-        {
-            if (Objects.equals(bank, classifyBank(d.getGrantOrg())))
-            {
-                result.add(d);
-            }
-        }
-        return result;
+        return loadBankDetails(planId);
     }
 
     @Override
@@ -614,36 +584,6 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
                 .eq(PaymentPlanDetail::getPlanId, planId)
                 .eq(PaymentPlanDetail::getDelFlag, "0")
                 .orderByAsc(PaymentPlanDetail::getId));
-    }
-
-    /** 根据发放机构编码判断属于哪家代发银行（编码优先，字典标签兜底） */
-    private String classifyBank(String grantOrgCode)
-    {
-        if (StringUtils.isEmpty(grantOrgCode))
-        {
-            return null;
-        }
-        // 字典编码：langfang_bank=廊坊银行, china_bank=中国银行
-        if ("langfang_bank".equalsIgnoreCase(grantOrgCode))
-        {
-            return BANK_LANGFANG;
-        }
-        if ("china_bank".equalsIgnoreCase(grantOrgCode))
-        {
-            return BANK_BOC;
-        }
-        // 兜底：按字典标签文本判断
-        String label = DictUtils.getDictLabel(GRANT_ORG_DICT, grantOrgCode);
-        String text = (label == null ? "" : label) + "|" + grantOrgCode;
-        if (text.contains("廊坊"))
-        {
-            return BANK_LANGFANG;
-        }
-        if (text.contains("中国银行") || text.toLowerCase(Locale.ROOT).contains("boc"))
-        {
-            return BANK_BOC;
-        }
-        return null;
     }
 
     private int changeFinanceStatus(Long planId, String expectedCurrent, String target,

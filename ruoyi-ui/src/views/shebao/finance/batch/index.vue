@@ -106,7 +106,7 @@
     <plan-detail-dialog
       :visible.sync="detailOpen"
       :current-plan="currentPlan"
-      :grant-org-options="dict.type.shebao_grant_org || []"
+      :grant-org-options="grantOrgOptions"
       :subsidy-type-formatter="subsidyTypeLabel"
       :status-formatter="financeStatusLabelForAudit"
       status-field="financeStatus"
@@ -142,6 +142,7 @@ import {
   PAYMENT_PLAN_SUBSIDY_TYPE_OPTIONS
 } from '../../payment/plan/planUiShared'
 import PlanDetailDialog from '../../payment/plan/PlanDetailDialog'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 
 function currentMonth() {
   const d = new Date()
@@ -171,12 +172,12 @@ const ACTION_NEXT_STATUS = {
 export default {
   name: 'FinanceBatch',
   components: { PlanDetailDialog },
-  dicts: ['shebao_grant_org'],
   data() {
     return {
       loading: false,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       detailOpen: false,
       currentPlan: null,
       loadingActionKey: '',
@@ -211,9 +212,15 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     getList() {
       this.loading = true
       listFinanceBatch(this.queryParams).then(res => {
@@ -292,7 +299,7 @@ export default {
       return paymentPlanSubsidyTypeLabel(val)
     },
     grantOrgLabels(val) {
-      return paymentPlanGrantOrgLabels(val, this.dict.type.shebao_grant_org)
+      return paymentPlanGrantOrgLabels(val, this.grantOrgOptions)
     }
   }
 }

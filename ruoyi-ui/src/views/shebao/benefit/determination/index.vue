@@ -125,7 +125,7 @@
             <el-col :span="12">
               <el-form-item label="发放机构" prop="grantOrg">
                 <el-select v-model="form.grantOrg" style="width: 100%" placeholder="请选择">
-                  <el-option v-for="d in dict.type.shebao_grant_org" :key="d.value" :label="d.label" :value="d.value" />
+                  <el-option v-for="d in grantOrgOptions" :key="d.value" :label="d.label" :value="d.value" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -257,13 +257,14 @@
 
 <script>
 import { getBenefitDetermination, listBenefitDetermination, prepareBenefitDetermination, saveBenefitDeterminationDraft, submitBenefitDetermination, uploadBenefitAttachment } from '@/api/shebao/benefit'
+import { listOpeningBankSelect } from '@/api/shebao/openingBank'
 import { selectDictLabel } from '@/utils/ruoyi'
 import ApprovalStatus from '@/components/Shebao/ApprovalStatus'
 import ImagePreview from '@/components/ImagePreview'
 
 export default {
   name: 'BenefitDetermination',
-  dicts: ['subsidy_type', 'shebao_grant_org'],
+  dicts: ['subsidy_type'],
   components: { ApprovalStatus, ImagePreview },
   data() {
     return {
@@ -273,6 +274,7 @@ export default {
       showSearch: true,
       total: 0,
       dataList: [],
+      grantOrgOptions: [],
       title: '待遇核定录入',
       open: false,
       detailOpen: false,
@@ -309,9 +311,15 @@ export default {
     }
   },
   created() {
+    this.loadGrantOrgOptions()
     this.getList()
   },
   methods: {
+    loadGrantOrgOptions() {
+      listOpeningBankSelect().then(res => {
+        this.grantOrgOptions = res.data || []
+      }).catch(() => { this.grantOrgOptions = [] })
+    },
     getList() {
       this.loading = true
       listBenefitDetermination(this.queryParams).then(response => {
@@ -518,7 +526,7 @@ export default {
       return `${row.eligibleYear}-${String(row.eligibleMonth).padStart(2, '0')}`
     },
     grantOrgLabel(val) {
-      return selectDictLabel(this.dict.type.shebao_grant_org || [], val)
+      return selectDictLabel(this.grantOrgOptions, val)
     },
     getSubsidyTypeLabel(subsidyType) {
       return {
