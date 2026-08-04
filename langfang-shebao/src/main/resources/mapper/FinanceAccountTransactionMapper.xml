@@ -23,6 +23,27 @@
         <if test="req.transactionTimeEnd != null">
             and t.transaction_time &lt;= #{req.transactionTimeEnd}
         </if>
+        <if test="req.transactionType != null and req.transactionType != ''">
+            and t.transaction_type = #{req.transactionType}
+        </if>
         order by t.transaction_time desc, t.id desc
+    </select>
+
+    <select id="sumTransactionAmount" resultType="java.math.BigDecimal">
+        select ifnull(sum(t.amount), 0)
+        from finance_account_transaction t
+        where t.del_flag = '0'
+        <if test="req.accountId != null">
+            and t.account_id = #{req.accountId}
+        </if>
+        <if test="req.transactionTimeStart != null">
+            and t.transaction_time &gt;= #{req.transactionTimeStart}
+        </if>
+        <if test="req.transactionTimeEnd != null">
+            and t.transaction_time &lt;= #{req.transactionTimeEnd}
+        </if>
+        <if test="req.transactionType != null and req.transactionType != ''">
+            and t.transaction_type = #{req.transactionType}
+        </if>
     </select>
 </mapper>

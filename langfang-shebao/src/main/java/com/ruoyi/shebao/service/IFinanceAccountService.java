@@ -21,18 +21,24 @@ public interface IFinanceAccountService extends IService<FinanceAccount>
     /** 账户明细列表 */
     Page<FinanceAccountTransactionListResp> selectTransactionList(FinanceAccountTransactionListReq req);
 
+    /** 账户明细金额汇总（当前筛选条件全量，不分页） */
+    BigDecimal sumTransactionAmount(FinanceAccountTransactionListReq req);
+
     /** 财政拨款：增加账户余额并记明细 */
     int fiscalAllocation(Long accountId, FinanceAccountFiscalAllocationReq req);
 
     /**
-     * 补贴发放扣款：按补贴类型扣减账户余额（原生SQL原子扣减）并记支出明细
+     * 银行发放完成结算：先按应发合计扣款记「发放」，再按失败合计入账记「退回」（失败为0则不写退回）
      *
-     * @param subsidyType 补贴类型
-     * @param businessId  补贴发放记录ID（如支付计划ID）
-     * @param batchNo     批次号
-     * @param amount      扣款金额（正数）
+     * @param subsidyType       补贴类型
+     * @param businessId        支付计划ID
+     * @param batchNo           批次号
+     * @param businessPeriodYm  业务期 yyyy-MM
+     * @param totalAmount       本批次全部明细应发合计（正数）
+     * @param failedAmount      本批次失败明细合计（正数，可为0）
      */
-    void deductForSubsidyDistribution(String subsidyType, Long businessId, String batchNo, BigDecimal amount);
+    void settleSubsidyDistribution(String subsidyType, Long businessId, String batchNo,
+                                   String businessPeriodYm, BigDecimal totalAmount, BigDecimal failedAmount);
 
     /**
      * 待遇追回入账：按补贴类型增加账户余额并记收入明细

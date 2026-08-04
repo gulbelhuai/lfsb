@@ -38,11 +38,11 @@ public class FinanceAccountController extends BaseController
     }
 
     /**
-     * 账户明细列表
+     * 账户明细列表（含当前筛选条件下金额汇总 amountSum）
      */
     @PreAuthorize("@ss.hasPermi('shebao:finance:account:list')")
     @GetMapping("/transaction/list")
-    public TableDataInfo transactionList(FinanceAccountTransactionListReq req)
+    public AjaxResult transactionList(FinanceAccountTransactionListReq req)
     {
         if (req.getPageNum() == null)
         {
@@ -53,11 +53,12 @@ public class FinanceAccountController extends BaseController
             req.setPageSize(10);
         }
         Page<FinanceAccountTransactionListResp> page = financeAccountService.selectTransactionList(req);
-        TableDataInfo rsp = new TableDataInfo();
-        rsp.setCode(200);
-        rsp.setRows(page.getRecords());
-        rsp.setTotal(page.getTotal());
-        return rsp;
+        BigDecimal amountSum = financeAccountService.sumTransactionAmount(req);
+        AjaxResult ajax = AjaxResult.success();
+        ajax.put("rows", page.getRecords());
+        ajax.put("total", page.getTotal());
+        ajax.put("amountSum", amountSum);
+        return ajax;
     }
 
     /**

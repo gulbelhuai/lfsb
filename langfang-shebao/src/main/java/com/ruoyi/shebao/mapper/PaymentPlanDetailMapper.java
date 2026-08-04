@@ -55,8 +55,14 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
     /** 将未失败的明细标记为发放成功 */
     int markRemainingSuccess(@Param("planId") Long planId);
 
+    /** 汇总批次全部明细金额（应发） */
+    BigDecimal sumAllAmountByPlanId(@Param("planId") Long planId);
+
     /** 汇总批次发放成功明细金额 */
     BigDecimal sumSuccessAmountByPlanId(@Param("planId") Long planId);
+
+    /** 汇总批次发放失败明细金额 */
+    BigDecimal sumFailedAmountByPlanId(@Param("planId") Long planId);
 
     /** 银行发放失败明细列表 */
     Page<PaymentPlanFailureListResp> selectFailureList(Page<PaymentPlanFailureListResp> page,

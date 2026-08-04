@@ -17,6 +17,9 @@ public class FinanceAccountTransactionListReq extends PageReq
     /** 账户ID */
     private Long accountId;
 
+    /** 交易类型：fiscal_allocation / subsidy_distribution / benefit_recovery */
+    private String transactionType;
+
     /** 交易日期起 yyyy-MM-dd */
     private String transactionDateStart;
 

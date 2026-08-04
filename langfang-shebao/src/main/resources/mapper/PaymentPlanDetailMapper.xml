@@ -85,12 +85,27 @@
           and ifnull(distribution_result, '') &lt;&gt; 'failed'
     </update>
 
+    <select id="sumAllAmountByPlanId" resultType="java.math.BigDecimal">
+        select ifnull(sum(d.distribution_amount), 0)
+        from shebao_payment_plan_detail d
+        where d.plan_id = #{planId}
+          and d.del_flag = '0'
+    </select>
+
     <select id="sumSuccessAmountByPlanId" resultType="java.math.BigDecimal">
         select ifnull(sum(d.distribution_amount), 0)
         from shebao_payment_plan_detail d
         where d.plan_id = #{planId}
           and d.del_flag = '0'
           and d.distribution_result = 'success'
+    </select>
+
+    <select id="sumFailedAmountByPlanId" resultType="java.math.BigDecimal">
+        select ifnull(sum(d.distribution_amount), 0)
+        from shebao_payment_plan_detail d
+        where d.plan_id = #{planId}
+          and d.del_flag = '0'
+          and d.distribution_result = 'failed'
     </select>
 
     <select id="selectPreviewDetails" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">

@@ -561,14 +561,25 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             throw new ServiceException("仅已提交银行的批次可标记已完成");
         }
         paymentPlanDetailMapper.markRemainingSuccess(planId);
-        BigDecimal successAmount = paymentPlanDetailMapper.sumSuccessAmountByPlanId(planId);
-        if (successAmount == null)
+        BigDecimal totalAmount = paymentPlanDetailMapper.sumAllAmountByPlanId(planId);
+        BigDecimal failedAmount = paymentPlanDetailMapper.sumFailedAmountByPlanId(planId);
+        if (totalAmount == null)
         {
-            successAmount = BigDecimal.ZERO;
+            totalAmount = BigDecimal.ZERO;
         }
-        if (successAmount.compareTo(BigDecimal.ZERO) > 0)
+        if (failedAmount == null)
         {
-            financeAccountService.deductForSubsidyDistribution(plan.getSubsidyType(), planId, plan.getBatchNo(), successAmount);
+            failedAmount = BigDecimal.ZERO;
+        }
+        if (totalAmount.compareTo(BigDecimal.ZERO) > 0)
+        {
+            String periodYm = "";
+            if (plan.getBusinessPeriod() != null)
+            {
+                periodYm = plan.getBusinessPeriod().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            }
+            financeAccountService.settleSubsidyDistribution(
+                    plan.getSubsidyType(), planId, plan.getBatchNo(), periodYm, totalAmount, failedAmount);
         }
         PaymentPlan upd = new PaymentPlan();
         upd.setId(planId);

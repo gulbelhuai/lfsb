@@ -36,6 +36,16 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="交易类型">
+          <el-select v-model="queryParams.transactionType" clearable placeholder="全部" style="width: 140px">
+            <el-option
+              v-for="item in transactionTypeOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="交易日期">
           <el-date-picker
             v-model="dateRange"
@@ -52,6 +62,8 @@
           <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
+
+      <div class="amount-summary">金额汇总（元）：{{ formatSignedAmount(amountSum) }}</div>
 
       <el-table v-loading="loading" :data="detailList" border>
         <el-table-column type="index" label="序号" width="60" />
@@ -75,7 +87,7 @@
           <template slot-scope="scope">{{ formatMoney(scope.row.balance) }}</template>
         </el-table-column>
         <el-table-column label="交易时间" prop="transactionTime" width="170" />
-        <el-table-column label="备注" prop="remark" min-width="140" show-overflow-tooltip />
+        <el-table-column label="备注" prop="remark" min-width="160" show-overflow-tooltip />
       </el-table>
 
       <pagination
@@ -121,6 +133,12 @@ import {
 } from '@/api/shebao/finance'
 import { paymentPlanSubsidyTypeLabel } from '../../payment/plan/planUiShared'
 
+const TRANSACTION_TYPE_OPTIONS = [
+  { value: 'fiscal_allocation', label: '财政拨款' },
+  { value: 'subsidy_distribution', label: '补贴发放' },
+  { value: 'benefit_recovery', label: '待遇追回' }
+]
+
 export default {
   name: 'FinanceAccount',
   data() {
@@ -140,9 +158,11 @@ export default {
       overviewLoading: false,
       loading: false,
       detailTotal: 0,
+      amountSum: 0,
       accountList: [],
       detailList: [],
       dateRange: [],
+      transactionTypeOptions: TRANSACTION_TYPE_OPTIONS,
       allocateOpen: false,
       allocateLoading: false,
       allocateForm: {
@@ -159,6 +179,7 @@ export default {
         pageNum: 1,
         pageSize: 10,
         accountId: null,
+        transactionType: null,
         transactionDateStart: null,
         transactionDateEnd: null
       }
@@ -188,6 +209,7 @@ export default {
       listFinanceAccountTransactions(this.queryParams).then(res => {
         this.detailList = res.rows || []
         this.detailTotal = res.total || 0
+        this.amountSum = res.amountSum == null ? 0 : res.amountSum
       }).finally(() => {
         this.loading = false
       })
@@ -202,6 +224,7 @@ export default {
         pageNum: 1,
         pageSize: 10,
         accountId: null,
+        transactionType: null,
         transactionDateStart: null,
         transactionDateEnd: null
       }
@@ -238,21 +261,14 @@ export default {
         })
       })
     },
-    subsidyTypeLabel(type) {
-      return paymentPlanSubsidyTypeLabel(type)
-    },
     accountDisplayName(type) {
       const label = paymentPlanSubsidyTypeLabel(type)
       if (!label || label === '—') return '账户'
       return label + '账户'
     },
     transactionTypeLabel(type) {
-      const map = {
-        fiscal_allocation: '财政拨款',
-        subsidy_distribution: '补贴发放',
-        benefit_recovery: '待遇追回'
-      }
-      return map[type] || type || '—'
+      const hit = this.transactionTypeOptions.find(o => o.value === type)
+      return (hit && hit.label) || type || '—'
     },
     transactionTagType(type) {
       if (type === 'fiscal_allocation') return 'success'
@@ -307,6 +323,14 @@ export default {
   font-weight: bold;
   color: #409EFF;
   margin-bottom: 10px;
+}
+.amount-summary {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  color: #303133;
+  font-size: 14px;
+  border-radius: 4px;
 }
 .amount-in {
   color: #67C23A;

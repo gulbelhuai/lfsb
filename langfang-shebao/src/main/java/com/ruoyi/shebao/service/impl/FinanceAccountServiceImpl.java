@@ -50,6 +50,13 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
     }
 
     @Override
+    public BigDecimal sumTransactionAmount(FinanceAccountTransactionListReq req)
+    {
+        BigDecimal sum = financeAccountTransactionMapper.sumTransactionAmount(req);
+        return sum == null ? BigDecimal.ZERO : sum;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public int fiscalAllocation(Long accountId, FinanceAccountFiscalAllocationReq req)
     {
@@ -73,7 +80,7 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
 
         FinanceAccountTransaction txn = new FinanceAccountTransaction();
         txn.setAccountId(accountId);
-        txn.setAccountName(buildAccountDisplayName(account.getAccountType()));
+        txn.setAccountName(account.getAccountName());
         txn.setBatchNo(null);
         txn.setBusinessId(null);
         txn.setTransactionType(TX_FISCAL_ALLOCATION);
@@ -98,11 +105,18 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deductForSubsidyDistribution(String subsidyType, Long businessId, String batchNo, BigDecimal amount)
+    public void settleSubsidyDistribution(String subsidyType, Long businessId, String batchNo,
+                                          String businessPeriodYm, BigDecimal totalAmount, BigDecimal failedAmount)
     {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0)
+        BigDecimal total = totalAmount == null ? BigDecimal.ZERO : totalAmount;
+        BigDecimal failed = failedAmount == null ? BigDecimal.ZERO : failedAmount;
+        if (total.compareTo(BigDecimal.ZERO) <= 0)
         {
             return;
+        }
+        if (failed.compareTo(BigDecimal.ZERO) < 0 || failed.compareTo(total) > 0)
+        {
+            throw new ServiceException("失败金额不合法，无法完成发放结算");
         }
         if (StringUtils.isEmpty(subsidyType))
         {
@@ -116,30 +130,29 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         BigDecimal before = account.getBalance() == null ? BigDecimal.ZERO : account.getBalance();
         LocalDateTime now = LocalDateTime.now();
         String username = SecurityUtils.getUsername();
+        String period = StringUtils.isEmpty(businessPeriodYm) ? "" : businessPeriodYm.trim();
+        String typeLabel = subsidyTypeShortLabel(subsidyType);
 
-        int rows = baseMapper.deductBalance(account.getId(), amount, username, now);
-        if (rows == 0)
+        int deductRows = baseMapper.deductBalance(account.getId(), total, username, now);
+        if (deductRows == 0)
         {
             throw new ServiceException("账户余额不足，无法完成发放扣款");
         }
+        BigDecimal afterPay = before.subtract(total);
+        insertDistributionTxn(account, businessId, batchNo, total.negate(), afterPay, now, username,
+                typeLabel + period + "发放");
 
-        BigDecimal after = before.subtract(amount);
-        FinanceAccountTransaction txn = new FinanceAccountTransaction();
-        txn.setAccountId(account.getId());
-        txn.setAccountName(buildAccountDisplayName(account.getAccountType()));
-        txn.setBatchNo(batchNo);
-        txn.setBusinessId(businessId);
-        txn.setTransactionType(TX_SUBSIDY_DISTRIBUTION);
-        txn.setAmount(amount.negate());
-        txn.setBalance(after);
-        txn.setTransactionTime(now);
-        txn.setRemark("银行发放完成扣款");
-        txn.setDelFlag("0");
-        txn.setCreateBy(username);
-        txn.setCreateTime(now);
-        txn.setUpdateBy(username);
-        txn.setUpdateTime(now);
-        financeAccountTransactionMapper.insert(txn);
+        if (failed.compareTo(BigDecimal.ZERO) > 0)
+        {
+            int creditRows = baseMapper.addBalance(account.getId(), failed, username, now);
+            if (creditRows == 0)
+            {
+                throw new ServiceException("财务账户不可用，无法完成失败退回入账");
+            }
+            BigDecimal afterRefund = afterPay.add(failed);
+            insertDistributionTxn(account, businessId, batchNo, failed, afterRefund, now, username,
+                    typeLabel + period + "发放失败退回");
+        }
     }
 
     @Override
@@ -172,7 +185,7 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         BigDecimal after = before.add(amount);
         FinanceAccountTransaction txn = new FinanceAccountTransaction();
         txn.setAccountId(account.getId());
-        txn.setAccountName(buildAccountDisplayName(account.getAccountType()));
+        txn.setAccountName(account.getAccountName());
         txn.setBatchNo(null);
         txn.setBusinessId(recoveryId);
         txn.setTransactionType(TX_BENEFIT_RECOVERY);
@@ -189,20 +202,43 @@ public class FinanceAccountServiceImpl extends ServiceImpl<FinanceAccountMapper,
         return txn.getId();
     }
 
-    private String buildAccountDisplayName(String subsidyType)
+    private void insertDistributionTxn(FinanceAccount account, Long businessId, String batchNo,
+                                       BigDecimal amount, BigDecimal balanceAfter, LocalDateTime now,
+                                       String username, String remark)
+    {
+        FinanceAccountTransaction txn = new FinanceAccountTransaction();
+        txn.setAccountId(account.getId());
+        txn.setAccountName(account.getAccountName());
+        txn.setBatchNo(batchNo);
+        txn.setBusinessId(businessId);
+        txn.setTransactionType(TX_SUBSIDY_DISTRIBUTION);
+        txn.setAmount(amount);
+        txn.setBalance(balanceAfter);
+        txn.setTransactionTime(now);
+        txn.setRemark(remark);
+        txn.setDelFlag("0");
+        txn.setCreateBy(username);
+        txn.setCreateTime(now);
+        txn.setUpdateBy(username);
+        txn.setUpdateTime(now);
+        financeAccountTransactionMapper.insert(txn);
+    }
+
+    /** 备注用补贴类型简称（不含「账户」） */
+    static String subsidyTypeShortLabel(String subsidyType)
     {
         if (subsidyType == null || subsidyType.isBlank())
         {
-            return "账户";
+            return "";
         }
-        String label = switch (subsidyType)
+        return switch (subsidyType)
         {
             case "land_loss", "land_loss_resident" -> "失地补贴";
             case "expropriatee", "expropriatee_subsidy" -> "被征地补贴";
             case "demolition", "demolition_resident" -> "拆迁补贴";
             case "village_official" -> "村干部补贴";
+            case "teacher", "teacher_subsidy" -> "教师补贴";
             default -> subsidyType;
         };
-        return label + "账户";
     }
 }
