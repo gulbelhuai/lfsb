@@ -23,7 +23,8 @@ public interface PaymentPlanService
     List<PaymentPlanSummaryResp> selectSummaryByPlanId(Long planId);
     List<PaymentPlanAuditResp> selectAuditByPlanId(Long planId);
 
-    Page<PaymentPlanDetailResp> selectDetailByPlanId(Long planId, Integer pageNum, Integer pageSize);
+    Page<PaymentPlanDetailResp> selectDetailByPlanId(Long planId, Integer pageNum, Integer pageSize,
+                                                     String personName, String idCardNo);
 
     /** 导出：查询计划全部明细（字段与详情-明细表一致） */
     List<PaymentPlanDetailExportResp> selectDetailExportByPlanId(Long planId);

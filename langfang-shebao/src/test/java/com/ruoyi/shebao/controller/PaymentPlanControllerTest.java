@@ -68,9 +68,9 @@ class PaymentPlanControllerTest {
     void detail_shouldReturnTableData() {
         PaymentPlanController controller = new PaymentPlanController();
         ReflectionTestUtils.setField(controller, "paymentPlanService", paymentPlanService);
-        when(paymentPlanService.selectDetailByPlanId(1L, 1, 10)).thenReturn(new Page<>());
+        when(paymentPlanService.selectDetailByPlanId(1L, 1, 10, null, null)).thenReturn(new Page<>());
 
-        TableDataInfo result = controller.getDetail(1L, 1, 10);
+        TableDataInfo result = controller.getDetail(1L, 1, 10, null, null);
 
         assertEquals(200, result.getCode());
     }

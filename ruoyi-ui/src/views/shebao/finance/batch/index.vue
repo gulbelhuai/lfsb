@@ -52,7 +52,7 @@
       <el-table-column label="财务状态" prop="financeStatus" width="100">
         <template slot-scope="scope">{{ financeStatusLabel(scope.row) }}</template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="200">
+      <el-table-column label="操作" align="center" width="260" fixed="right">
         <template slot-scope="scope">
           <el-button type="text" size="mini" @click="openDetail(scope.row)">详情</el-button>
           <el-button
@@ -97,6 +97,12 @@
             size="mini"
             @click="doAction(scope.row, 'approveReject')"
           >审批驳回</el-button>
+          <el-button
+            v-hasPermi="['shebao:finance:batch:export']"
+            type="text"
+            size="mini"
+            @click="handleExportDetail(scope.row)"
+          >导出</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -110,6 +116,7 @@
       :subsidy-type-formatter="subsidyTypeLabel"
       :status-formatter="financeStatusLabelForAudit"
       status-field="financeStatus"
+      :enable-detail-filter="true"
       :fetch-summary="fetchSummary"
       :fetch-detail="fetchDetail"
       :fetch-audit="fetchAudit"
@@ -250,11 +257,23 @@ export default {
       this.currentPlan = { ...row }
       this.detailOpen = true
     },
+    handleExportDetail(row) {
+      if (!row || !row.id) return
+      const batchNo = row.batchNo || row.batch_no || row.id
+      this.download(
+        `shebao/finance/batch/${row.id}/detail/export`,
+        {},
+        `支付计划明细_${batchNo}.xlsx`
+      )
+    },
     fetchSummary(planId) {
       return getPaymentPlanSummary(planId).then(res => res.data || [])
     },
-    fetchDetail(planId) {
-      return getPaymentPlanDetail(planId, { pageNum: 1, pageSize: 1000 }).then(res => res.rows || [])
+    fetchDetail(planId, query) {
+      return getPaymentPlanDetail(planId, query || { pageNum: 1, pageSize: 10 }).then(res => ({
+        rows: res.rows || [],
+        total: res.total || 0
+      }))
     },
     fetchAudit(planId) {
       return getPaymentPlanAudit(planId).then(res => res.data || [])

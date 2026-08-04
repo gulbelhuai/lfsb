@@ -68,9 +68,11 @@ public class PaymentPlanController extends BaseController
     @GetMapping(value = "/{id}/detail")
     public TableDataInfo getDetail(@PathVariable("id") Long id,
                                    @RequestParam(required = false) Integer pageNum,
-                                   @RequestParam(required = false) Integer pageSize)
+                                   @RequestParam(required = false) Integer pageSize,
+                                   @RequestParam(required = false) String personName,
+                                   @RequestParam(required = false) String idCardNo)
     {
-        Page<PaymentPlanDetailResp> page = paymentPlanService.selectDetailByPlanId(id, pageNum, pageSize);
+        Page<PaymentPlanDetailResp> page = paymentPlanService.selectDetailByPlanId(id, pageNum, pageSize, personName, idCardNo);
         TableDataInfo rsp = new TableDataInfo();
         rsp.setCode(200);
         rsp.setRows(page.getRecords());

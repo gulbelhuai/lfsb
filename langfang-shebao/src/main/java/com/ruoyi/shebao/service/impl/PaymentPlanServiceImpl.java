@@ -374,10 +374,11 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     }
 
     @Override
-    public Page<PaymentPlanDetailResp> selectDetailByPlanId(Long planId, Integer pageNum, Integer pageSize)
+    public Page<PaymentPlanDetailResp> selectDetailByPlanId(Long planId, Integer pageNum, Integer pageSize,
+                                                            String personName, String idCardNo)
     {
         Page<PaymentPlanDetailResp> page = new Page<>(pageNum == null ? 1 : pageNum, pageSize == null ? 10 : pageSize);
-        return paymentPlanDetailMapper.selectByPlanId(page, planId);
+        return paymentPlanDetailMapper.selectByPlanId(page, planId, personName, idCardNo);
     }
 
     @Override

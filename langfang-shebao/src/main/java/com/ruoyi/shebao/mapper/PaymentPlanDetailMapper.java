@@ -21,7 +21,10 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
     int batchInsert(@Param("list") List<PaymentPlanDetail> list);
     int deleteByPlanId(@Param("planId") Long planId);
 
-    Page<PaymentPlanDetailResp> selectByPlanId(Page<PaymentPlanDetailResp> page, @Param("planId") Long planId);
+    Page<PaymentPlanDetailResp> selectByPlanId(Page<PaymentPlanDetailResp> page,
+                                              @Param("planId") Long planId,
+                                              @Param("personName") String personName,
+                                              @Param("idCardNo") String idCardNo);
 
     /** 导出：按计划查询全部明细 */
     List<PaymentPlanDetailResp> selectListByPlanId(@Param("planId") Long planId);

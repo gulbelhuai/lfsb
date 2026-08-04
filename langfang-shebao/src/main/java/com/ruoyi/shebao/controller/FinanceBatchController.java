@@ -6,13 +6,19 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.shebao.domain.PaymentPlan;
+import com.ruoyi.shebao.dto.PaymentPlanDetailExportResp;
 import com.ruoyi.shebao.dto.PaymentPlanFinanceStatusChangeReq;
 import com.ruoyi.shebao.dto.PaymentPlanListReq;
 import com.ruoyi.shebao.dto.PaymentPlanListResp;
 import com.ruoyi.shebao.service.PaymentPlanService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 财务批次管理（基于支付计划）
@@ -44,6 +50,25 @@ public class FinanceBatchController extends BaseController
         rsp.setRows(page.getRecords());
         rsp.setTotal(page.getTotal());
         return rsp;
+    }
+
+    /**
+     * 导出批次全部明细（列与详情-明细表一致）
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:export')")
+    @Log(title = "财务批次-明细导出", businessType = BusinessType.EXPORT)
+    @PostMapping("/{id}/detail/export")
+    public void exportDetail(HttpServletResponse response, @PathVariable("id") Long id)
+    {
+        PaymentPlan plan = paymentPlanService.getBankPlan(id);
+        List<PaymentPlanDetailExportResp> list = paymentPlanService.selectDetailExportByPlanId(id);
+        ExcelUtil<PaymentPlanDetailExportResp> util = new ExcelUtil<>(PaymentPlanDetailExportResp.class);
+        String sheetName = "支付计划明细";
+        if (plan != null && plan.getBatchNo() != null && !plan.getBatchNo().isBlank())
+        {
+            sheetName = "支付计划明细_" + plan.getBatchNo();
+        }
+        util.exportExcel(response, list, sheetName);
     }
 
     @PreAuthorize("@ss.hasPermi('shebao:finance:batch:financePass')")

@@ -28,6 +28,12 @@
         from shebao_payment_plan_detail d
         where d.plan_id = #{planId}
           and d.del_flag = '0'
+        <if test="personName != null and personName != ''">
+            and d.person_name like concat('%', #{personName}, '%')
+        </if>
+        <if test="idCardNo != null and idCardNo != ''">
+            and d.id_card_no like concat('%', #{idCardNo}, '%')
+        </if>
         order by d.id asc
     </select>
 

@@ -16,6 +16,36 @@
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="明细表" name="detail">
+        <el-form
+          v-if="enableDetailFilter"
+          :model="detailQuery"
+          size="small"
+          :inline="true"
+          class="detail-query-form"
+        >
+          <el-form-item label="姓名">
+            <el-input
+              v-model="detailQuery.personName"
+              clearable
+              placeholder="模糊查询"
+              style="width: 140px"
+              @keyup.enter.native="handleDetailQuery"
+            />
+          </el-form-item>
+          <el-form-item label="身份证号">
+            <el-input
+              v-model="detailQuery.idCardNo"
+              clearable
+              placeholder="模糊查询"
+              style="width: 200px"
+              @keyup.enter.native="handleDetailQuery"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="el-icon-search" size="mini" @click="handleDetailQuery">搜索</el-button>
+            <el-button icon="el-icon-refresh" size="mini" @click="resetDetailQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
         <el-table v-loading="detailLoading" :data="detailList" border height="360">
           <el-table-column type="index" label="序号" width="60" />
           <el-table-column label="补贴类型" prop="subsidyType" width="120">
@@ -44,6 +74,14 @@
           </el-table-column>
           <el-table-column v-if="showDistributionResult" label="失败原因" prop="failReason" min-width="140" show-overflow-tooltip />
         </el-table>
+        <pagination
+          v-if="enableDetailFilter"
+          v-show="detailTotal > 0"
+          :total="detailTotal"
+          :page.sync="detailQuery.pageNum"
+          :limit.sync="detailQuery.pageSize"
+          @pagination="loadDetail"
+        />
       </el-tab-pane>
       <el-tab-pane label="审核记录" name="audit">
         <el-table :data="auditList" border>
@@ -100,6 +138,8 @@ export default {
     /** 用于控制详情底部按钮可见性的状态字段，默认 approvalStatus */
     statusField: { type: String, default: 'approvalStatus' },
     showDistributionResult: { type: Boolean, default: false },
+    /** 仅批次管理开启：明细姓名/身份证筛选 + 分页 */
+    enableDetailFilter: { type: Boolean, default: false },
     fetchSummary: { type: Function, required: true },
     fetchDetail: { type: Function, required: true },
     fetchAudit: { type: Function, required: true }
@@ -111,7 +151,14 @@ export default {
       summaryList: [],
       detailList: [],
       auditList: [],
-      detailLoading: false
+      detailLoading: false,
+      detailTotal: 0,
+      detailQuery: {
+        pageNum: 1,
+        pageSize: 10,
+        personName: null,
+        idCardNo: null
+      }
     }
   },
   computed: {
@@ -133,6 +180,7 @@ export default {
         this.visibleInner = v
         if (v) {
           this.activeTab = 'summary'
+          this.resetDetailQueryState()
           this.loadSummary()
         }
       }
@@ -166,11 +214,38 @@ export default {
     loadDetail() {
       if (!this.currentPlan) return
       this.detailLoading = true
-      this.fetchDetail(this.currentPlan.id).then(list => {
-        this.detailList = list || []
+      const req = this.enableDetailFilter
+        ? this.fetchDetail(this.currentPlan.id, { ...this.detailQuery })
+        : this.fetchDetail(this.currentPlan.id)
+      Promise.resolve(req).then(result => {
+        if (this.enableDetailFilter && result && !Array.isArray(result)) {
+          this.detailList = result.rows || []
+          this.detailTotal = result.total || 0
+        } else {
+          this.detailList = result || []
+          this.detailTotal = (result && result.length) || 0
+        }
       }).finally(() => {
         this.detailLoading = false
       })
+    },
+    handleDetailQuery() {
+      this.detailQuery.pageNum = 1
+      this.loadDetail()
+    },
+    resetDetailQueryState() {
+      this.detailQuery = {
+        pageNum: 1,
+        pageSize: 10,
+        personName: null,
+        idCardNo: null
+      }
+      this.detailTotal = 0
+      this.detailList = []
+    },
+    resetDetailQuery() {
+      this.resetDetailQueryState()
+      this.loadDetail()
     },
     loadAudit() {
       if (!this.currentPlan) return
@@ -190,5 +265,8 @@ export default {
   margin-bottom: 12px;
   font-size: 13px;
   color: #606266;
+}
+.detail-query-form {
+  margin-bottom: 8px;
 }
 </style>
