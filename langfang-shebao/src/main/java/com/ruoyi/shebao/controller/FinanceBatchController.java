@@ -6,18 +6,26 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.shebao.domain.PaymentPlan;
 import com.ruoyi.shebao.dto.PaymentPlanDetailExportResp;
 import com.ruoyi.shebao.dto.PaymentPlanFinanceStatusChangeReq;
 import com.ruoyi.shebao.dto.PaymentPlanListReq;
 import com.ruoyi.shebao.dto.PaymentPlanListResp;
+import com.ruoyi.shebao.dto.PaymentPlanSummaryResp;
 import com.ruoyi.shebao.service.PaymentPlanService;
+import com.ruoyi.shebao.util.PaymentPlanApprovalFormExporter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -27,6 +35,8 @@ import java.util.List;
 @RequestMapping("/shebao/finance/batch")
 public class FinanceBatchController extends BaseController
 {
+    private static final String FINANCE_APPROVED = "finance_approved";
+
     @Autowired
     private PaymentPlanService paymentPlanService;
 
@@ -69,6 +79,30 @@ public class FinanceBatchController extends BaseController
             sheetName = "支付计划明细_" + plan.getBatchNo();
         }
         util.exportExcel(response, list, sheetName);
+    }
+
+    /**
+     * 下载审批单（财务审批通过后，按村委会汇总）
+     */
+    @PreAuthorize("@ss.hasPermi('shebao:finance:batch:approvalForm')")
+    @Log(title = "财务批次-审批单下载", businessType = BusinessType.EXPORT)
+    @PostMapping("/{id}/approval-form")
+    public ResponseEntity<byte[]> exportApprovalForm(@PathVariable("id") Long id) throws Exception
+    {
+        PaymentPlan plan = paymentPlanService.getBankPlan(id);
+        if (!FINANCE_APPROVED.equals(plan.getFinanceStatus()))
+        {
+            throw new ServiceException("仅财务审批通过的批次可下载审批单");
+        }
+        List<PaymentPlanSummaryResp> summaryList = paymentPlanService.selectSummaryByPlanId(id);
+        byte[] content = PaymentPlanApprovalFormExporter.build(plan, summaryList);
+        String batchNo = plan.getBatchNo() == null ? String.valueOf(id) : plan.getBatchNo().trim();
+        String fileName = "审批单_" + batchNo + ".xlsx";
+        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(content);
     }
 
     @PreAuthorize("@ss.hasPermi('shebao:finance:batch:financePass')")

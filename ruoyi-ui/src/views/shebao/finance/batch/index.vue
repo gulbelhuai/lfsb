@@ -52,7 +52,7 @@
       <el-table-column label="财务状态" prop="financeStatus" width="100">
         <template slot-scope="scope">{{ financeStatusLabel(scope.row) }}</template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="260" fixed="right">
+      <el-table-column label="操作" align="center" width="340" fixed="right">
         <template slot-scope="scope">
           <el-button type="text" size="mini" @click="openDetail(scope.row)">详情</el-button>
           <el-button
@@ -102,7 +102,14 @@
             type="text"
             size="mini"
             @click="handleExportDetail(scope.row)"
-          >导出</el-button>
+          >导出明细</el-button>
+          <el-button
+            v-if="scope.row.financeStatus === 'finance_approved'"
+            v-hasPermi="['shebao:finance:batch:approvalForm']"
+            type="text"
+            size="mini"
+            @click="handleDownloadApprovalForm(scope.row)"
+          >审批单下载</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -264,6 +271,15 @@ export default {
         `shebao/finance/batch/${row.id}/detail/export`,
         {},
         `支付计划明细_${batchNo}.xlsx`
+      )
+    },
+    handleDownloadApprovalForm(row) {
+      if (!row || !row.id) return
+      const batchNo = row.batchNo || row.batch_no || row.id
+      this.download(
+        `shebao/finance/batch/${row.id}/approval-form`,
+        {},
+        `审批单_${batchNo}.xlsx`
       )
     },
     fetchSummary(planId) {
