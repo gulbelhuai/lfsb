@@ -50,7 +50,7 @@ public final class PaymentPlanApprovalFormExporter
             sheet.setColumnWidth(2, (int) (17.93 * 256));
             sheet.setColumnWidth(3, (int) (25.88 * 256));
 
-            CellStyle titleStyle = createStyle(wb, 18, true, HorizontalAlignment.CENTER, VerticalAlignment.CENTER, true);
+            CellStyle titleStyle = createStyle(wb, 18, true, HorizontalAlignment.CENTER, VerticalAlignment.CENTER, false);
             CellStyle headerStyle = createStyle(wb, 12, false, HorizontalAlignment.CENTER, VerticalAlignment.CENTER, true);
             CellStyle dataStyle = createStyle(wb, 12, false, HorizontalAlignment.CENTER, VerticalAlignment.CENTER, true);
             CellStyle totalStyle = createStyle(wb, 12, false, HorizontalAlignment.CENTER, VerticalAlignment.CENTER, true);
