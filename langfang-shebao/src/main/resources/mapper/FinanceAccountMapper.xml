@@ -8,6 +8,7 @@
                account_no as accountCode,
                subsidy_type as accountType,
                bank_name as bankName,
+               bank_unit_account as bankUnitAccount,
                balance,
                status,
                del_flag as delFlag,

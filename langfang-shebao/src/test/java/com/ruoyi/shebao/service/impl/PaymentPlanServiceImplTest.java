@@ -100,7 +100,7 @@ class PaymentPlanServiceImplTest {
     }
 
     @Test
-    @DisplayName("正常发放预览应按补贴类型与机构汇总")
+    @DisplayName("正常发放预览应按补贴类型与村委会汇总")
     void preview_normal_groupsSummary() {
         PaymentPlanPreviewReq req = new PaymentPlanPreviewReq();
         req.setDeterminationType("normal");
@@ -109,13 +109,15 @@ class PaymentPlanServiceImplTest {
 
         PaymentPlanDetailResp d1 = new PaymentPlanDetailResp();
         d1.setSubsidyType("land_loss");
+        d1.setVillageName("小长亭村");
         d1.setGrantOrg("A");
         d1.setMonthlyAmount(new BigDecimal("100"));
         d1.setDistributionAmount(new BigDecimal("100"));
 
         PaymentPlanDetailResp d2 = new PaymentPlanDetailResp();
         d2.setSubsidyType("land_loss");
-        d2.setGrantOrg("A");
+        d2.setVillageName("小长亭村");
+        d2.setGrantOrg("B");
         d2.setMonthlyAmount(new BigDecimal("50"));
         d2.setDistributionAmount(new BigDecimal("50"));
 
@@ -127,6 +129,7 @@ class PaymentPlanServiceImplTest {
         assertEquals(2, resp.getTotalCount());
         assertEquals(new BigDecimal("150"), resp.getTotalAmount());
         assertEquals(1, resp.getSummaryList().size());
+        assertEquals("小长亭村", resp.getSummaryList().get(0).getVillageName());
         assertEquals(2, resp.getSummaryList().get(0).getTotalCount());
         assertEquals(new BigDecimal("150"), resp.getSummaryList().get(0).getTotalAmount());
     }
@@ -147,6 +150,7 @@ class PaymentPlanServiceImplTest {
     void generate_normal_persists() {
         PaymentPlanDetailResp d = new PaymentPlanDetailResp();
         d.setSubsidyType("demolition");
+        d.setVillageName("测试村");
         d.setGrantOrg("X");
         d.setMonthlyAmount(new BigDecimal("200"));
         d.setDistributionAmount(new BigDecimal("200"));

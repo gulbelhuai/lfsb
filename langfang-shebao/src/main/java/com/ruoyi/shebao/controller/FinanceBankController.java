@@ -8,15 +8,18 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.utils.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ruoyi.shebao.domain.FinanceAccount;
 import com.ruoyi.shebao.domain.PaymentPlan;
 import com.ruoyi.shebao.domain.PaymentPlanDetail;
 import com.ruoyi.shebao.dto.PaymentPlanBankFailureRow;
 import com.ruoyi.shebao.dto.PaymentPlanListReq;
 import com.ruoyi.shebao.dto.PaymentPlanListResp;
+import com.ruoyi.shebao.mapper.FinanceAccountMapper;
 import com.ruoyi.shebao.service.PaymentPlanService;
 import com.ruoyi.shebao.util.OpeningBankUtils;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -42,13 +45,14 @@ public class FinanceBankController extends BaseController
     @Autowired
     private PaymentPlanService paymentPlanService;
 
-    /** 统一廊坊银行代发模板表头 */
+    @Autowired
+    private FinanceAccountMapper financeAccountMapper;
+
+    /** 统一银行代发模板表头（12列） */
     private static final String[] LF_HEADERS = {
-            "报盘日期", "本行单位账号", "报盘批号", "收款协议号", "付款协议号", "发生额方向",
-            "单位名称", "单位地址", "业务类型号", "业务种类", "金额", "接收行行号",
-            "对方开户行行号", "对方账号", "证件号码", "对方户名", "对方地址", "附言", "回执期限"
+            "本行单位账号", "收款协议号", "付款协议号", "单位名称", "金额", "接收行行号",
+            "对方开户行行号", "对方账号", "证件号码", "对方户名", "对方地址", "附言"
     };
-    private static final String LF_UNIT_ACCOUNT = "31307060000120111000648";
     private static final String LF_UNIT_NAME = "廊坊经济技术开发区社会保险事业管理所";
 
     /** 银行发放列表：财务已通过的支付计划 */
@@ -84,8 +88,9 @@ public class FinanceBankController extends BaseController
         {
             throw new ServiceException("该批次没有可导出的明细数据");
         }
-        byte[] content = buildLangfangXls(details);
-        String fileName = "银行代发_" + safe(plan.getBatchNo()) + ".xls";
+        String unitAccount = resolveBankUnitAccount(plan.getSubsidyType());
+        byte[] content = buildLangfangXlsx(details, unitAccount);
+        String fileName = "银行代发_" + safe(plan.getBatchNo()) + ".xlsx";
         String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded)
@@ -142,43 +147,51 @@ public class FinanceBankController extends BaseController
     // 导出文件构建
     // ------------------------------------------------------------------
 
-    private byte[] buildLangfangXls(List<PaymentPlanDetail> details) throws Exception
+    private String resolveBankUnitAccount(String subsidyType)
     {
-        try (HSSFWorkbook wb = new HSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream())
+        if (StringUtils.isEmpty(subsidyType))
         {
-            Sheet sheet = wb.createSheet("发放明细");
-            String subsidyShort = subsidyShort(details.get(0).getSubsidyType());
-            Row titleRow = sheet.createRow(0);
-            titleRow.createCell(0).setCellValue("廊坊开发区" + subsidyShort + "补贴发放明细表");
-            sheet.createRow(1);
-            Row header = sheet.createRow(2);
+            throw new ServiceException("支付计划缺少补贴类型，无法导出银行代发文件");
+        }
+        FinanceAccount account = financeAccountMapper.selectBySubsidyType(subsidyType);
+        if (account == null)
+        {
+            throw new ServiceException("未找到对应补贴类型的财务账户，无法导出");
+        }
+        if (StringUtils.isEmpty(account.getBankUnitAccount()))
+        {
+            throw new ServiceException("财务账户未配置本行单位账号，请先执行初始化SQL");
+        }
+        return account.getBankUnitAccount().trim();
+    }
+
+    private byte[] buildLangfangXlsx(List<PaymentPlanDetail> details, String unitAccount) throws Exception
+    {
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream())
+        {
+            Sheet sheet = wb.createSheet("sheet1");
+            Row header = sheet.createRow(0);
             for (int i = 0; i < LF_HEADERS.length; i++)
             {
                 header.createCell(i).setCellValue(LF_HEADERS[i]);
             }
-            int rowIdx = 3;
+            int rowIdx = 1;
             for (PaymentPlanDetail d : details)
             {
+                String bankNo = safe(OpeningBankUtils.getBankNo(d.getGrantOrg()));
                 Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue("");                                  // 报盘日期
-                row.createCell(1).setCellValue(LF_UNIT_ACCOUNT);                     // 本行单位账号
-                row.createCell(2).setCellValue("");                                  // 报盘批号
-                row.createCell(3).setCellValue("");                                  // 收款协议号
-                row.createCell(4).setCellValue("");                                  // 付款协议号
-                row.createCell(5).setCellValue("C");                                 // 发生额方向
-                row.createCell(6).setCellValue(LF_UNIT_NAME);                        // 单位名称
-                row.createCell(7).setCellValue("");                                  // 单位地址
-                row.createCell(8).setCellValue("E101");                              // 业务类型号
-                row.createCell(9).setCellValue("09001");                             // 业务种类
-                row.createCell(10).setCellValue(amountText(d.getDistributionAmount())); // 金额
-                row.createCell(11).setCellValue("");                                 // 接收行行号
-                row.createCell(12).setCellValue(safe(OpeningBankUtils.getBankNo(d.getGrantOrg()))); // 对方开户行行号
-                row.createCell(13).setCellValue(safe(d.getBankAccount()));           // 对方账号
-                row.createCell(14).setCellValue(safe(d.getIdCardNo()));              // 证件号码
-                row.createCell(15).setCellValue(safe(d.getAccountName()));           // 对方户名
-                row.createCell(16).setCellValue(safe(OpeningBankUtils.getFullName(d.getGrantOrg()))); // 对方地址←开户行全称
-                row.createCell(17).setCellValue(langfangNote(d));                    // 附言
-                row.createCell(18).setCellValue("");                                 // 回执期限
+                row.createCell(0).setCellValue(unitAccount);                          // 本行单位账号
+                row.createCell(1).setCellValue("");                                   // 收款协议号
+                row.createCell(2).setCellValue("");                                   // 付款协议号
+                row.createCell(3).setCellValue(LF_UNIT_NAME);                         // 单位名称
+                row.createCell(4).setCellValue(amountText(d.getDistributionAmount())); // 金额
+                row.createCell(5).setCellValue(bankNo);                               // 接收行行号
+                row.createCell(6).setCellValue(bankNo);                               // 对方开户行行号
+                row.createCell(7).setCellValue(safe(d.getBankAccount()));             // 对方账号
+                row.createCell(8).setCellValue(safe(d.getIdCardNo()));                // 证件号码
+                row.createCell(9).setCellValue(safe(d.getAccountName()));             // 对方户名
+                row.createCell(10).setCellValue(safe(OpeningBankUtils.getFullName(d.getGrantOrg()))); // 对方地址←全称
+                row.createCell(11).setCellValue(langfangNote(d));                     // 附言
             }
             wb.write(out);
             return out.toByteArray();

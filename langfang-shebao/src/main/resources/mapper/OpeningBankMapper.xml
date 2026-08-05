@@ -8,7 +8,5 @@
              where del_flag = '0' and grant_org = #{code})
           + (select count(1) from shebao_payment_plan_detail
              where del_flag = '0' and grant_org = #{code})
-          + (select count(1) from shebao_payment_plan_summary
-             where del_flag = '0' and grant_org = #{code})
     </select>
 </mapper>

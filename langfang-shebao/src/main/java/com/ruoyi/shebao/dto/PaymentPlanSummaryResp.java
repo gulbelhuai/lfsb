@@ -11,7 +11,7 @@ public class PaymentPlanSummaryResp
     private Long planId;
     private String businessPeriod;
     private String subsidyType;
-    private String grantOrg;
+    private String villageName;
     private Integer totalCount;
     private BigDecimal totalAmount;
 }

@@ -248,7 +248,8 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setPlanId(persistedPlanId);
             row.setBusinessPeriod(period);
             row.setSubsidyType(item.getSubsidyType());
-            row.setGrantOrg(item.getGrantOrg());
+            row.setVillageName(item.getVillageName());
+            row.setGrantOrg(null);
             row.setTotalCount(item.getTotalCount());
             row.setTotalAmount(item.getTotalAmount());
             row.setDelFlag("0");
@@ -677,7 +678,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
     private void fillSummaryAndTotal(PaymentPlanPreviewResp resp, List<PaymentPlanDetailResp> details)
     {
         Map<String, List<PaymentPlanDetailResp>> grouped = details.stream()
-                .collect(Collectors.groupingBy(item -> defaultValue(item.getSubsidyType()) + "||" + defaultValue(item.getGrantOrg())));
+                .collect(Collectors.groupingBy(item -> defaultValue(item.getSubsidyType()) + "||" + defaultValue(item.getVillageName())));
         List<PaymentPlanSummaryResp> summaryList = new ArrayList<>();
         for (Map.Entry<String, List<PaymentPlanDetailResp>> entry : grouped.entrySet())
         {
@@ -685,7 +686,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             PaymentPlanSummaryResp summary = new PaymentPlanSummaryResp();
             summary.setBusinessPeriod(resp.getBusinessPeriod());
             summary.setSubsidyType(groupRows.get(0).getSubsidyType());
-            summary.setGrantOrg(groupRows.get(0).getGrantOrg());
+            summary.setVillageName(groupRows.get(0).getVillageName());
             summary.setTotalCount(groupRows.size());
             summary.setTotalAmount(groupRows.stream()
                     .map(PaymentPlanDetailResp::getDistributionAmount)
@@ -695,7 +696,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         }
         summaryList.sort(Comparator
                 .comparing((PaymentPlanSummaryResp o) -> defaultValue(o.getSubsidyType()))
-                .thenComparing(o -> defaultValue(o.getGrantOrg())));
+                .thenComparing(o -> defaultValue(o.getVillageName())));
         resp.setSummaryList(summaryList);
         resp.setTotalCount(details.size());
         resp.setTotalAmount(summaryList.stream()
@@ -1178,7 +1179,7 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
 
         paymentPlanSummaryMapper.deleteByPlanId(planId);
         Map<String, List<PaymentPlanDetail>> grouped = details.stream()
-                .collect(Collectors.groupingBy(d -> defaultValue(d.getSubsidyType()) + "||" + defaultValue(d.getGrantOrg())));
+                .collect(Collectors.groupingBy(d -> defaultValue(d.getSubsidyType()) + "||" + defaultValue(d.getVillageName())));
         List<PaymentPlanSummary> summaryRows = new ArrayList<>();
         for (List<PaymentPlanDetail> group : grouped.values())
         {
@@ -1187,7 +1188,8 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setPlanId(planId);
             row.setBusinessPeriod(first.getBusinessPeriod());
             row.setSubsidyType(first.getSubsidyType());
-            row.setGrantOrg(first.getGrantOrg());
+            row.setVillageName(first.getVillageName());
+            row.setGrantOrg(null);
             row.setTotalCount(group.size());
             row.setTotalAmount(group.stream()
                     .map(d -> nz(d.getDistributionAmount()))

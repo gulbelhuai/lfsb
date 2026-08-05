@@ -29,6 +29,10 @@ public class PaymentPlanSummary extends BaseEntity
 
     private String subsidyType;
 
+    /** 村委会 */
+    private String villageName;
+
+    /** @deprecated 汇总已改为按村委会，保留列兼容历史库结构 */
     private String grantOrg;
 
     private Integer totalCount;

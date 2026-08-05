@@ -8,9 +8,7 @@
           <el-table-column label="补贴类型" prop="subsidyType">
             <template slot-scope="scope">{{ subsidyTypeFormatter(scope.row.subsidyType) }}</template>
           </el-table-column>
-          <el-table-column label="发放机构" prop="grantOrg">
-            <template slot-scope="scope"><dict-tag :options="grantOrgOptions" :value="scope.row.grantOrg" /></template>
-          </el-table-column>
+          <el-table-column label="村委会" prop="villageName" />
           <el-table-column label="发放人次" prop="totalCount" width="100" />
           <el-table-column label="总金额" prop="totalAmount" width="120" />
         </el-table>

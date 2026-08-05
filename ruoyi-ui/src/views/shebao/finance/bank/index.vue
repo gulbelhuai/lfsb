@@ -232,11 +232,11 @@ export default {
     },
     handleExport(row) {
       exportBankFile(row.id).then(data => {
-        const blob = new Blob([data], { type: 'application/vnd.ms-excel' })
+        const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `银行代发_${row.batchNo || row.id}.xls`
+        link.download = `银行代发_${row.batchNo || row.id}.xlsx`
         link.click()
         window.URL.revokeObjectURL(url)
       })

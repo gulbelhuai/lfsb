@@ -41,6 +41,9 @@ public class FinanceAccount implements Serializable
     /** 银行名称 */
     private String bankName;
 
+    /** 本行单位账号(银行代发导出) */
+    private String bankUnitAccount;
+
     /** 银行账号(表中无此列，仅用于扩展) */
     @TableField(exist = false)
     private String bankAccount;
