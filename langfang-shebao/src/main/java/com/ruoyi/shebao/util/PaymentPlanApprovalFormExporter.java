@@ -61,19 +61,19 @@ public final class PaymentPlanApprovalFormExporter
 
             // 标题
             Row titleRow = sheet.createRow(0);
-            titleRow.setHeightInPoints(28);
+            titleRow.setHeightInPoints(60);
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("廊坊开发区" + shortType + "补贴发放汇总表");
             titleCell.setCellStyle(titleStyle);
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 3));
 
-            // 空行（与模板一致）
+            // 空行（与模板一致，保持默认行高）
             Row blankRow = sheet.createRow(1);
-            blankRow.setHeightInPoints(18);
             sheet.addMergedRegion(new CellRangeAddress(1, 1, 1, 2));
 
             // 表头
             Row header = sheet.createRow(2);
+            header.setHeightInPoints(26);
             String[] headers = {"序号", "村（居）委会", "发放人数", "应发金额汇总"};
             for (int i = 0; i < headers.length; i++)
             {
@@ -92,6 +92,7 @@ public final class PaymentPlanApprovalFormExporter
                 }
                 String villageCol = buildVillageLabel(s.getVillageName(), s.getBusinessPeriod(), s.getSubsidyType());
                 Row row = sheet.createRow(dataStart + i);
+                row.setHeightInPoints(26);
                 Cell c0 = row.createCell(0);
                 c0.setCellValue(i + 1);
                 c0.setCellStyle(dataStyle);
@@ -109,6 +110,7 @@ public final class PaymentPlanApprovalFormExporter
             int totalRowIdx = dataStart + summaryList.size();
             int dataEnd = totalRowIdx - 1;
             Row totalRow = sheet.createRow(totalRowIdx);
+            totalRow.setHeightInPoints(26);
             Cell totalLabel = totalRow.createCell(0);
             totalLabel.setCellValue("合计");
             totalLabel.setCellStyle(totalStyle);
@@ -123,7 +125,7 @@ public final class PaymentPlanApprovalFormExporter
 
             int signRowIdx = totalRowIdx + 1;
             Row signRow = sheet.createRow(signRowIdx);
-            signRow.setHeightInPoints(22);
+            signRow.setHeightInPoints(26);
             Cell signCell = signRow.createCell(0);
             signCell.setCellValue("经办人：                 复核人：                    负责人：                     ");
             signCell.setCellStyle(signStyle);
@@ -131,6 +133,7 @@ public final class PaymentPlanApprovalFormExporter
 
             int dateRowIdx = signRowIdx + 1;
             Row dateRow = sheet.createRow(dateRowIdx);
+            dateRow.setHeightInPoints(26);
             Cell dateCell = dateRow.createCell(0);
             dateCell.setCellValue(java.sql.Date.valueOf(LocalDate.now()));
             dateCell.setCellStyle(dateStyle);
