@@ -50,6 +50,7 @@
         <el-select v-model="queryParams.payStatus" placeholder="全部" clearable style="width: 120px">
           <el-option label="发放中" value="distributing" />
           <el-option label="已发放" value="paid" />
+          <el-option label="重发成功" value="retry_success" />
           <el-option label="发放失败" value="failed" />
         </el-select>
       </el-form-item>
@@ -86,27 +87,31 @@
       <el-table-column label="村委会" prop="villageName" width="100" show-overflow-tooltip />
       <el-table-column label="姓名" prop="personName" width="90" />
       <el-table-column label="身份证号" prop="idCardNo" width="170" />
-      <el-table-column label="业务期" prop="businessPeriod" width="90" align="center" />
-      <el-table-column label="补发起始" prop="supplementStartMonth" width="90" align="center">
-        <template slot-scope="scope">{{ scope.row.supplementStartMonth || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="补发终止" prop="supplementEndMonth" width="90" align="center">
-        <template slot-scope="scope">{{ scope.row.supplementEndMonth || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="发放金额" prop="distributionAmount" width="100" align="center">
-        <template slot-scope="scope">{{ formatAmount(scope.row.distributionAmount) }}</template>
-      </el-table-column>
-      <el-table-column label="发放日期" prop="distributionDate" width="110" align="center">
-        <template slot-scope="scope">{{ scope.row.distributionDate || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="发放状态" prop="payStatus" width="100" align="center">
-        <template slot-scope="scope">
-          <el-tag v-if="scope.row.payStatus === 'distributing'" type="warning" size="small">发放中</el-tag>
-          <el-tag v-else-if="scope.row.payStatus === 'paid'" type="success" size="small">已发放</el-tag>
-          <el-tag v-else-if="scope.row.payStatus === 'failed'" type="danger" size="small">发放失败</el-tag>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
+          <el-table-column label="业务期" prop="businessPeriod" width="90" align="center" />
+          <el-table-column label="原始业务期" prop="originalBusinessPeriod" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.originalBusinessPeriod || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="补发起始" prop="supplementStartMonth" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.supplementStartMonth || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="补发终止" prop="supplementEndMonth" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.supplementEndMonth || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="发放金额" prop="distributionAmount" width="100" align="center">
+            <template slot-scope="scope">{{ formatAmount(scope.row.distributionAmount) }}</template>
+          </el-table-column>
+          <el-table-column label="发放日期" prop="distributionDate" width="110" align="center">
+            <template slot-scope="scope">{{ scope.row.distributionDate || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="发放状态" prop="payStatus" width="100" align="center">
+            <template slot-scope="scope">
+              <el-tag v-if="scope.row.payStatus === 'distributing'" type="warning" size="small">发放中</el-tag>
+              <el-tag v-else-if="scope.row.payStatus === 'paid'" type="success" size="small">已发放</el-tag>
+              <el-tag v-else-if="scope.row.payStatus === 'retry_success'" type="success" size="small">重发成功</el-tag>
+              <el-tag v-else-if="scope.row.payStatus === 'failed'" type="danger" size="small">发放失败</el-tag>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
       <el-table-column label="失败原因" prop="failReason" min-width="120" show-overflow-tooltip>
         <template slot-scope="scope">{{ scope.row.failReason || '-' }}</template>
       </el-table-column>

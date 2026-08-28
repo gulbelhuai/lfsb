@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <el-alert title="失败处理说明" type="info" :closable="false" class="mb20">
-      <div>展示「银行发放」中导入失败的数据（支付计划明细标记为发放失败）。后续信息更正、重新发放、人工处理功能待实现。</div>
+      <div>展示「银行发放」中导入失败的数据（支付计划明细标记为发放失败）。重发请在「支付结算 → 支付计划生成」选择核定方式「二次发放」（见需求定稿）。信息更正请在人员/核定侧维护后纳入二次计划。</div>
     </el-alert>
 
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true">

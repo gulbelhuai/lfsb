@@ -54,6 +54,9 @@
           <el-table-column label="姓名" prop="personName" width="100" />
           <el-table-column label="身份证号" prop="idCardNo" width="180" />
           <el-table-column label="业务期" prop="businessPeriod" width="100" />
+          <el-table-column label="原始业务期" prop="originalBusinessPeriod" width="100">
+            <template slot-scope="scope">{{ scope.row.originalBusinessPeriod || '-' }}</template>
+          </el-table-column>
           <el-table-column label="补发起始" prop="supplementStartMonth" width="100">
             <template slot-scope="scope">{{ scope.row.supplementStartMonth || '-' }}</template>
           </el-table-column>

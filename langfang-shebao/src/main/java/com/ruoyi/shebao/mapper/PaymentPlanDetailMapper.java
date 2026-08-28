@@ -50,6 +50,22 @@ public interface PaymentPlanDetailMapper extends BaseMapper<PaymentPlanDetail>
                                                      @Param("subsidyType") String subsidyType,
                                                      @Param("excludePlanId") Long excludePlanId);
 
+    /**
+     * 二次发放预览：normal 历史失败且未重发成功的合格明细，组装为可插入预览行
+     */
+    List<PaymentPlanDetailResp> selectSecondPreviewDetails(@Param("businessPeriod") LocalDate businessPeriod,
+                                                           @Param("subsidyType") String subsidyType,
+                                                           @Param("excludePlanId") Long excludePlanId);
+
+    /** 源行纳入二次计划：retry_count + 1 */
+    int incrementRetryCount(@Param("ids") List<Long> ids);
+
+    /** 撤销/重算二次计划：retry_count = GREATEST(0, retry_count - 1) */
+    int decrementRetryCount(@Param("ids") List<Long> ids);
+
+    /** 二次计划银行成功后：源行标记 retry_success */
+    int markRetrySuccessBySourceDetailIds(@Param("ids") List<Long> ids);
+
     /** 按身份证号将明细标记为发放失败并记录原因 */
     int markFailedByIdCard(@Param("planId") Long planId,
                            @Param("idCardNo") String idCardNo,

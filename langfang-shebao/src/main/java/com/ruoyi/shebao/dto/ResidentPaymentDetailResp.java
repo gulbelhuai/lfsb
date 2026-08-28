@@ -38,7 +38,7 @@ public class ResidentPaymentDetailResp
     private String bankAccount;
     private String relationToInsured;
     /**
-     * 发放状态（仅发放记录使用）：distributing=发放中 / paid=已发放 / failed=发放失败
+     * 发放状态（仅发放记录使用）：distributing=发放中 / paid=已发放 / failed=发放失败 / retry_success=重发成功
      */
     private String payStatus;
     /** 失败原因 */
@@ -47,4 +47,12 @@ public class ResidentPaymentDetailResp
     private String planDistributionStatus;
     /** 明细银行结果 success/failed */
     private String distributionResult;
+    /** 二次计划源失败明细ID */
+    private Long sourceDetailId;
+    /** 源行被纳入二次计划次数 */
+    private Integer retryCount;
+    /** 源行重发状态，retry_success=重发成功 */
+    private String retryStatus;
+    /** 源明细业务期 yyyy-MM（二次计划行，查询 join，不落库） */
+    private String originalBusinessPeriod;
 }

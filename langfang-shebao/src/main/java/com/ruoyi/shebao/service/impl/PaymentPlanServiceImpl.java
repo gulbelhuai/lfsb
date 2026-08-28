@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 public class PaymentPlanServiceImpl implements PaymentPlanService
 {
     private static final String TYPE_NORMAL = "normal";
+    private static final String TYPE_SECOND = "second";
+    private static final String DIST_RESULT_SUCCESS = "success";
     private static final String STATUS_DRAFT = "draft";
     private static final String STATUS_PENDING_REVIEW = "pending_review";
     private static final String STATUS_PENDING_APPROVE = "pending_approve";
@@ -114,14 +116,24 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         validateReq(req.getDeterminationType(), req.getBusinessPeriod(), req.getSubsidyType());
         PaymentPlanPreviewResp resp = buildBasePreview(req.getDeterminationType(), req.getBusinessPeriod());
         resp.setSubsidyType(req.getSubsidyType());
-        if (!TYPE_NORMAL.equals(req.getDeterminationType()))
-        {
-            return resp;
-        }
         LocalDate businessPeriod = parseBusinessPeriod(req.getBusinessPeriod());
-        List<PaymentPlanDetailResp> details = paymentPlanDetailMapper.selectPreviewDetails(
-                businessPeriod, req.getSubsidyType(), req.getExcludePlanId());
-        attachSupplementCandidates(details);
+        List<PaymentPlanDetailResp> details;
+        if (TYPE_NORMAL.equals(req.getDeterminationType()))
+        {
+            details = paymentPlanDetailMapper.selectPreviewDetails(
+                    businessPeriod, req.getSubsidyType(), req.getExcludePlanId());
+            attachSupplementCandidates(details);
+        }
+        else if (TYPE_SECOND.equals(req.getDeterminationType()))
+        {
+            details = paymentPlanDetailMapper.selectSecondPreviewDetails(
+                    businessPeriod, req.getSubsidyType(), req.getExcludePlanId());
+            // 二次发放不挂补发
+        }
+        else
+        {
+            throw new ServiceException("不支持的核定方式");
+        }
         resp.setDetailList(details);
         fillSummaryAndTotal(resp, details);
         return resp;
@@ -169,9 +181,9 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         String username = SecurityUtils.getUsername();
         String targetStatus = normalizeTargetStatus(req.getTargetStatus());
 
-        if (!TYPE_NORMAL.equals(req.getDeterminationType()))
+        if (!TYPE_NORMAL.equals(req.getDeterminationType()) && !TYPE_SECOND.equals(req.getDeterminationType()))
         {
-            throw new ServiceException("二次发放暂未实现");
+            throw new ServiceException("不支持的核定方式");
         }
 
         PaymentPlan plan = req.getPlanId() == null ? null : paymentPlanMapper.selectById(req.getPlanId());
@@ -206,8 +218,12 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
                 throw new ServiceException("仅支持在原业务期、补贴类型和核定方式下重算保存");
             }
             assertNoDuplicateActivePlan(req.getDeterminationType(), period, req.getSubsidyType(), plan.getId());
-            // 重算换绑：先释放本计划已纳入的补发
+            // 重算换绑：先释放本计划已纳入的补发；二次计划同步回退源行 retry_count
             releaseIncludedSupplements(plan.getId());
+            if (TYPE_SECOND.equals(plan.getDeterminationType()))
+            {
+                adjustSourceRetryCount(plan.getId(), false);
+            }
         }
 
         PaymentPlanPreviewReq previewReq = new PaymentPlanPreviewReq();
@@ -288,6 +304,9 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             row.setAccountName(item.getAccountName());
             row.setBankAccount(item.getBankAccount());
             row.setRelationToInsured(item.getRelationToInsured());
+            row.setSourceDetailId(item.getSourceDetailId());
+            row.setRetryCount(0);
+            row.setRetryStatus(null);
             row.setDelFlag("0");
             row.setCreateBy(username);
             row.setCreateTime(now);
@@ -299,7 +318,14 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         {
             paymentPlanDetailMapper.batchInsert(detailRows);
         }
-        claimSupplementsAfterInsert(persistedPlanId);
+        if (TYPE_SECOND.equals(req.getDeterminationType()))
+        {
+            adjustSourceRetryCount(persistedPlanId, true);
+        }
+        else
+        {
+            claimSupplementsAfterInsert(persistedPlanId);
+        }
 
         if (!Objects.equals(previousStatus, targetStatus))
         {
@@ -354,6 +380,10 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         if (!canRevoke)
         {
             throw new ServiceException("当前状态不可撤销，仅草稿/驳回/待复核(未进财务)可撤销");
+        }
+        if (TYPE_SECOND.equals(plan.getDeterminationType()))
+        {
+            adjustSourceRetryCount(planId, false);
         }
         releaseIncludedSupplements(planId);
         paymentPlanDetailMapper.deleteByPlanId(planId);
@@ -563,6 +593,10 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
             throw new ServiceException("仅已提交银行的批次可标记已完成");
         }
         paymentPlanDetailMapper.markRemainingSuccess(planId);
+        if (TYPE_SECOND.equals(plan.getDeterminationType()))
+        {
+            markSourceRetrySuccess(planId);
+        }
         BigDecimal totalAmount = paymentPlanDetailMapper.sumAllAmountByPlanId(planId);
         BigDecimal failedAmount = paymentPlanDetailMapper.sumFailedAmountByPlanId(planId);
         if (totalAmount == null)
@@ -839,6 +873,60 @@ public class PaymentPlanServiceImpl implements PaymentPlanService
         if (count > 0)
         {
             throw new ServiceException("该业务期下该补贴类型已存在支付计划，不可重复生成");
+        }
+    }
+
+    /**
+     * 二次计划保存/撤销时，对源失败明细加减 retry_count。
+     * @param increment true=保存后+1；false=撤销/重算前-1
+     */
+    private void adjustSourceRetryCount(Long planId, boolean increment)
+    {
+        if (planId == null)
+        {
+            return;
+        }
+        List<PaymentPlanDetail> details = paymentPlanDetailMapper.selectList(
+                new LambdaQueryWrapper<PaymentPlanDetail>()
+                        .eq(PaymentPlanDetail::getPlanId, planId)
+                        .eq(PaymentPlanDetail::getDelFlag, "0")
+                        .isNotNull(PaymentPlanDetail::getSourceDetailId));
+        List<Long> sourceIds = details.stream()
+                .map(PaymentPlanDetail::getSourceDetailId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (sourceIds.isEmpty())
+        {
+            return;
+        }
+        if (increment)
+        {
+            paymentPlanDetailMapper.incrementRetryCount(sourceIds);
+        }
+        else
+        {
+            paymentPlanDetailMapper.decrementRetryCount(sourceIds);
+        }
+    }
+
+    /** 二次计划批次完成后：成功明细对应源行标记 retry_success */
+    private void markSourceRetrySuccess(Long planId)
+    {
+        List<PaymentPlanDetail> details = paymentPlanDetailMapper.selectList(
+                new LambdaQueryWrapper<PaymentPlanDetail>()
+                        .eq(PaymentPlanDetail::getPlanId, planId)
+                        .eq(PaymentPlanDetail::getDelFlag, "0")
+                        .eq(PaymentPlanDetail::getDistributionResult, DIST_RESULT_SUCCESS)
+                        .isNotNull(PaymentPlanDetail::getSourceDetailId));
+        List<Long> sourceIds = details.stream()
+                .map(PaymentPlanDetail::getSourceDetailId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (!sourceIds.isEmpty())
+        {
+            paymentPlanDetailMapper.markRetrySuccessBySourceDetailIds(sourceIds);
         }
     }
 

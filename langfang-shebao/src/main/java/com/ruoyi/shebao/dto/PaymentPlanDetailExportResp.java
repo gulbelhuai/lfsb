@@ -29,24 +29,27 @@ public class PaymentPlanDetailExportResp
     @Excel(name = "业务期", sort = 6)
     private String businessPeriod;
 
-    @Excel(name = "补发起始", sort = 7)
+    @Excel(name = "原始业务期", sort = 7)
+    private String originalBusinessPeriod;
+
+    @Excel(name = "补发起始", sort = 8)
     private String supplementStartMonth;
 
-    @Excel(name = "补发终止", sort = 8)
+    @Excel(name = "补发终止", sort = 9)
     private String supplementEndMonth;
 
-    @Excel(name = "发放金额", sort = 9, scale = 2)
+    @Excel(name = "发放金额", sort = 10, scale = 2)
     private BigDecimal distributionAmount;
 
-    @Excel(name = "发放机构", sort = 10, handler = com.ruoyi.shebao.util.OpeningBankExcelHandler.class)
+    @Excel(name = "发放机构", sort = 11, handler = com.ruoyi.shebao.util.OpeningBankExcelHandler.class)
     private String grantOrg;
 
-    @Excel(name = "开户名", sort = 11)
+    @Excel(name = "开户名", sort = 12)
     private String accountName;
 
-    @Excel(name = "银行账号", sort = 12)
+    @Excel(name = "银行账号", sort = 13)
     private String bankAccount;
 
-    @Excel(name = "与参保人关系", sort = 13)
+    @Excel(name = "与参保人关系", sort = 14)
     private String relationToInsured;
 }

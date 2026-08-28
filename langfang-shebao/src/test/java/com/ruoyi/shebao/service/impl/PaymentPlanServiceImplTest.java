@@ -32,7 +32,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
@@ -85,17 +84,27 @@ class PaymentPlanServiceImplTest {
     }
 
     @Test
-    @DisplayName("二次发放预览应无明细")
-    void preview_secondType_returnsEmptyDetails() {
+    @DisplayName("二次发放预览应查询重发候选")
+    void preview_secondType_loadsRetryCandidates() {
         PaymentPlanPreviewReq req = new PaymentPlanPreviewReq();
         req.setDeterminationType("second");
         req.setBusinessPeriod("2026-04");
         req.setSubsidyType("land_loss");
 
+        PaymentPlanDetailResp d = new PaymentPlanDetailResp();
+        d.setSubsidyType("land_loss");
+        d.setVillageName("测试村");
+        d.setDistributionAmount(new BigDecimal("100"));
+        d.setSourceDetailId(9L);
+        d.setOriginalBusinessPeriod("2026-02");
+        when(paymentPlanDetailMapper.selectSecondPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss", null))
+                .thenReturn(List.of(d));
+
         PaymentPlanPreviewResp resp = paymentPlanService.preview(req);
 
-        assertTrue(resp.getDetailList().isEmpty());
-        assertEquals(0, resp.getTotalCount());
+        assertEquals(1, resp.getTotalCount());
+        assertEquals(new BigDecimal("100"), resp.getTotalAmount());
+        verify(paymentPlanDetailMapper).selectSecondPreviewDetails(LocalDate.of(2026, 4, 1), "land_loss", null);
         verify(paymentPlanDetailMapper, never()).selectPreviewDetails(any(LocalDate.class), any(), any());
     }
 
@@ -135,14 +144,43 @@ class PaymentPlanServiceImplTest {
     }
 
     @Test
-    @DisplayName("二次发放保存应拒绝")
-    void generate_secondType_throws() {
+    @DisplayName("二次发放保存应写入明细并回写源行 retry_count")
+    void generate_secondType_persistsAndIncrementsRetry() {
+        PaymentPlanDetailResp d = new PaymentPlanDetailResp();
+        d.setSubsidyType("demolition");
+        d.setVillageName("测试村");
+        d.setGrantOrg("X");
+        d.setMonthlyAmount(BigDecimal.ZERO);
+        d.setDistributionAmount(new BigDecimal("200"));
+        d.setDeterminationId(1L);
+        d.setDeterminationItemId(2L);
+        d.setSourceDetailId(88L);
+
+        when(paymentPlanDetailMapper.selectSecondPreviewDetails(LocalDate.of(2026, 4, 1), "demolition", null))
+                .thenReturn(List.of(d));
+        when(paymentPlanMapper.selectMaxBatchSeqSuffix("20260402")).thenReturn(0);
+        when(paymentPlanDetailMapper.selectList(any())).thenAnswer(invocation -> {
+            com.ruoyi.shebao.domain.PaymentPlanDetail row = new com.ruoyi.shebao.domain.PaymentPlanDetail();
+            row.setId(501L);
+            row.setPlanId(100L);
+            row.setSourceDetailId(88L);
+            row.setDelFlag("0");
+            return List.of(row);
+        });
+
         PaymentPlanGenerateReq req = new PaymentPlanGenerateReq();
         req.setDeterminationType("second");
         req.setBusinessPeriod("2026-04");
-        req.setSubsidyType("land_loss");
+        req.setSubsidyType("demolition");
 
-        assertThrows(ServiceException.class, () -> paymentPlanService.generate(req));
+        Long id = paymentPlanService.generate(req);
+
+        assertEquals(100L, id);
+        ArgumentCaptor<PaymentPlan> planCaptor = ArgumentCaptor.forClass(PaymentPlan.class);
+        verify(paymentPlanMapper).insert(planCaptor.capture());
+        assertEquals("20260402001", planCaptor.getValue().getBatchNo());
+        verify(paymentPlanDetailMapper).batchInsert(anyList());
+        verify(paymentPlanDetailMapper).incrementRetryCount(List.of(88L));
     }
 
     @Test

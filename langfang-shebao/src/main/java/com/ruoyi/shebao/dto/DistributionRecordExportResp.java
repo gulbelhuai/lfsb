@@ -35,6 +35,12 @@ public class DistributionRecordExportResp
     @Excel(name = "业务期", sort = 8)
     private String businessPeriod;
 
+    /** 原始业务期（二次明细关联源行，查询 join） */
+    private String originalBusinessPeriod;
+
+    /** 源行重发状态 */
+    private String retryStatus;
+
     @Excel(name = "补发起始", sort = 9)
     private String supplementStartMonth;
 
@@ -47,7 +53,7 @@ public class DistributionRecordExportResp
     @Excel(name = "发放日期", sort = 12)
     private String distributionDate;
 
-    @Excel(name = "发放状态", sort = 13, readConverterExp = "distributing=发放中,paid=已发放,failed=发放失败")
+    @Excel(name = "发放状态", sort = 13, readConverterExp = "distributing=发放中,paid=已发放,failed=发放失败,retry_success=重发成功")
     private String payStatus;
 
     @Excel(name = "失败原因", sort = 14)

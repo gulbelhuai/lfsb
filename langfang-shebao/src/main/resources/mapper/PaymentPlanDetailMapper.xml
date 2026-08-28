@@ -8,14 +8,17 @@
          person_name, id_card_no, business_period, payment_month, monthly_amount, supplement_amount,
          supplement_start_month, supplement_end_month, supplement_source, supplement_source_id,
          distribution_amount, distribution_date, grant_org,
-         account_name, bank_account, relation_to_insured, del_flag, create_by, create_time, update_by, update_time, remark)
+         account_name, bank_account, relation_to_insured, source_detail_id, retry_count, retry_status,
+         del_flag, create_by, create_time, update_by, update_time, remark)
         values
         <foreach collection="list" item="item" separator=",">
             (#{item.planId}, #{item.determinationId}, #{item.determinationItemId}, #{item.subsidyPersonId}, #{item.subsidyType}, #{item.streetName}, #{item.villageName},
              #{item.personName}, #{item.idCardNo}, #{item.businessPeriod}, #{item.paymentMonth}, #{item.monthlyAmount}, #{item.supplementAmount},
              #{item.supplementStartMonth}, #{item.supplementEndMonth}, #{item.supplementSource}, #{item.supplementSourceId},
              #{item.distributionAmount}, #{item.distributionDate}, #{item.grantOrg},
-             #{item.accountName}, #{item.bankAccount}, #{item.relationToInsured}, #{item.delFlag}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.remark})
+             #{item.accountName}, #{item.bankAccount}, #{item.relationToInsured},
+             #{item.sourceDetailId}, ifnull(#{item.retryCount}, 0), #{item.retryStatus},
+             #{item.delFlag}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.remark})
         </foreach>
     </insert>
 
@@ -26,6 +29,7 @@
     <select id="selectByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
         <include refid="selectDetailColumns"/>
         from shebao_payment_plan_detail d
+                 left join shebao_payment_plan_detail src on src.id = d.source_detail_id
         where d.plan_id = #{planId}
           and d.del_flag = '0'
         <if test="personName != null and personName != ''">
@@ -40,6 +44,7 @@
     <select id="selectListByPlanId" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
         <include refid="selectDetailColumns"/>
         from shebao_payment_plan_detail d
+                 left join shebao_payment_plan_detail src on src.id = d.source_detail_id
         where d.plan_id = #{planId}
           and d.del_flag = '0'
         order by d.id asc
@@ -71,7 +76,11 @@
                d.bank_account,
                d.relation_to_insured,
                d.distribution_result,
-               d.fail_reason
+               d.fail_reason,
+               d.source_detail_id as sourceDetailId,
+               d.retry_count as retryCount,
+               d.retry_status as retryStatus,
+               date_format(src.business_period, '%Y-%m') as originalBusinessPeriod
     </sql>
 
     <update id="markFailedByIdCard">
@@ -163,6 +172,119 @@
         order by bdi.id asc
     </select>
 
+    <!-- 二次发放预览：normal 历史失败且未重发成功；静默排除不合格人员 -->
+    <select id="selectSecondPreviewDetails" resultType="com.ruoyi.shebao.dto.PaymentPlanDetailResp">
+        select null as id,
+               null as plan_id,
+               bd.id as determination_id,
+               bdi.id as determination_item_id,
+               sp.id as subsidy_person_id,
+               src.subsidy_type,
+               sso.street_name,
+               svc.village_name,
+               sp.name as person_name,
+               coalesce(sp.id_card_no, src.id_card_no) as id_card_no,
+               date_format(#{businessPeriod}, '%Y-%m') as business_period,
+               date_format(#{businessPeriod}, '%Y-%m') as payment_month,
+               0 as monthly_amount,
+               0 as supplement_amount,
+               null as supplement_start_month,
+               null as supplement_end_month,
+               null as supplement_source,
+               null as supplement_source_id,
+               ifnull(src.distribution_amount, 0) as distribution_amount,
+               null as distribution_date,
+               bd.grant_org,
+               bd.account_name,
+               bd.bank_account,
+               bd.relation_to_insured,
+               null as distribution_result,
+               null as fail_reason,
+               src.id as sourceDetailId,
+               null as retryCount,
+               null as retryStatus,
+               date_format(src.business_period, '%Y-%m') as originalBusinessPeriod
+        from shebao_payment_plan_detail src
+                 inner join shebao_payment_plan src_plan on src_plan.id = src.plan_id and src_plan.del_flag = '0'
+                 inner join shebao_subsidy_person sp
+                            on ifnull(sp.del_flag, '0') = '0'
+                           and (
+                                 (src.subsidy_person_id is not null and sp.id = src.subsidy_person_id)
+                                 or (src.subsidy_person_id is null and sp.id_card_no = src.id_card_no)
+                               )
+                 inner join benefit_determination bd
+                            on bd.subsidy_person_id = sp.id
+                           and bd.del_flag = '0'
+                           and bd.approval_status = 'approved'
+                 inner join benefit_determination_item bdi
+                            on bdi.determination_id = bd.id
+                           and bdi.del_flag = '0'
+                           and bdi.subsidy_type = #{subsidyType}
+                           and ifnull(bdi.benefit_status, '0') = '0'
+                 left join shebao_street_office sso on sp.street_office_id = sso.id
+                 left join shebao_village_committee svc on sp.village_committee_id = svc.id
+        where src.del_flag = '0'
+          and src_plan.determination_type = 'normal'
+          and src.distribution_result = 'failed'
+          and src.business_period &lt; #{businessPeriod}
+          and src.subsidy_type = #{subsidyType}
+          and (src.retry_status is null or src.retry_status = '' or src.retry_status &lt;&gt; 'retry_success')
+          and bd.grant_org is not null and bd.grant_org &lt;&gt; ''
+          and bd.account_name is not null and bd.account_name &lt;&gt; ''
+          and bd.bank_account is not null and bd.bank_account &lt;&gt; ''
+          and bdi.id = (
+                select max(bdi2.id)
+                from benefit_determination_item bdi2
+                         inner join benefit_determination bd2
+                                    on bd2.id = bdi2.determination_id
+                                   and bd2.del_flag = '0'
+                                   and bd2.approval_status = 'approved'
+                where bd2.subsidy_person_id = sp.id
+                  and bdi2.del_flag = '0'
+                  and bdi2.subsidy_type = #{subsidyType}
+                  and ifnull(bdi2.benefit_status, '0') = '0'
+          )
+          and not exists (
+                select 1
+                from shebao_payment_plan_detail pd
+                         inner join shebao_payment_plan pp on pd.plan_id = pp.id and pp.del_flag = '0'
+                where pd.source_detail_id = src.id
+                  and pd.del_flag = '0'
+                  and pp.determination_type = 'second'
+                  <if test="excludePlanId != null">
+                    and pd.plan_id &lt;&gt; #{excludePlanId}
+                  </if>
+          )
+        order by src.business_period asc, src.id asc
+    </select>
+
+    <update id="incrementRetryCount">
+        update shebao_payment_plan_detail
+        set retry_count = ifnull(retry_count, 0) + 1
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="decrementRetryCount">
+        update shebao_payment_plan_detail
+        set retry_count = greatest(0, ifnull(retry_count, 0) - 1)
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="markRetrySuccessBySourceDetailIds">
+        update shebao_payment_plan_detail
+        set retry_status = 'retry_success'
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
     <select id="selectFailureList" resultType="com.ruoyi.shebao.dto.PaymentPlanFailureListResp">
         select d.id as id,
                d.plan_id as planId,
@@ -183,6 +305,7 @@
                  inner join shebao_payment_plan p on p.id = d.plan_id and p.del_flag = '0'
         where d.del_flag = '0'
           and d.distribution_result = 'failed'
+          and (d.retry_status is null or d.retry_status = '' or d.retry_status &lt;&gt; 'retry_success')
           and p.finance_status = 'finance_approved'
         <if test="req.batchNo != null and req.batchNo != ''">
             and p.batch_no = #{req.batchNo}
@@ -277,14 +400,21 @@
                d.fail_reason as failReason,
                p.distribution_status as planDistributionStatus,
                d.distribution_result as distributionResult,
+               d.source_detail_id as sourceDetailId,
+               d.retry_count as retryCount,
+               d.retry_status as retryStatus,
+               date_format(src.business_period, '%Y-%m') as originalBusinessPeriod,
                case
                    when #{mode} = 'pre' then null
                    when ifnull(p.distribution_status, '') &lt;&gt; 'completed' then 'distributing'
+                   when d.distribution_result = 'failed'
+                        and ifnull(d.retry_status, '') = 'retry_success' then 'retry_success'
                    when d.distribution_result = 'failed' then 'failed'
                    else 'paid'
                end as payStatus
         from shebao_payment_plan_detail d
                  inner join shebao_payment_plan p on p.id = d.plan_id and p.del_flag = '0'
+                 left join shebao_payment_plan_detail src on src.id = d.source_detail_id
         where d.del_flag = '0'
           and d.subsidy_person_id = #{subsidyPersonId}
           <choose>
@@ -324,13 +454,20 @@
                d.fail_reason as failReason,
                p.distribution_status as planDistributionStatus,
                d.distribution_result as distributionResult,
+               d.source_detail_id as sourceDetailId,
+               d.retry_count as retryCount,
+               d.retry_status as retryStatus,
+               date_format(src.business_period, '%Y-%m') as originalBusinessPeriod,
                case
                    when ifnull(p.distribution_status, '') &lt;&gt; 'completed' then 'distributing'
+                   when d.distribution_result = 'failed'
+                        and ifnull(d.retry_status, '') = 'retry_success' then 'retry_success'
                    when d.distribution_result = 'failed' then 'failed'
                    else 'paid'
                end as payStatus
         from shebao_payment_plan_detail d
                  inner join shebao_payment_plan p on p.id = d.plan_id and p.del_flag = '0'
+                 left join shebao_payment_plan_detail src on src.id = d.source_detail_id
         where d.del_flag = '0'
           and p.finance_status = 'finance_approved'
           <if test="req.businessPeriod != null and req.businessPeriod != ''">
@@ -358,6 +495,8 @@
               and (
                   case
                       when ifnull(p.distribution_status, '') &lt;&gt; 'completed' then 'distributing'
+                      when d.distribution_result = 'failed'
+                           and ifnull(d.retry_status, '') = 'retry_success' then 'retry_success'
                       when d.distribution_result = 'failed' then 'failed'
                       else 'paid'
                   end

@@ -223,6 +223,9 @@
           <el-table-column label="姓名" prop="personName" width="90" />
           <el-table-column label="身份证号" prop="idCardNo" width="170" />
           <el-table-column label="业务期" prop="businessPeriod" width="90" align="center" />
+          <el-table-column label="原始业务期" prop="originalBusinessPeriod" width="90" align="center">
+            <template slot-scope="scope">{{ scope.row.originalBusinessPeriod || '-' }}</template>
+          </el-table-column>
           <el-table-column label="补发起始" prop="supplementStartMonth" width="90" align="center">
             <template slot-scope="scope">{{ scope.row.supplementStartMonth || '-' }}</template>
           </el-table-column>
@@ -239,6 +242,7 @@
             <template slot-scope="scope">
               <el-tag v-if="scope.row.payStatus === 'distributing'" type="warning" size="small">发放中</el-tag>
               <el-tag v-else-if="scope.row.payStatus === 'paid'" type="success" size="small">已发放</el-tag>
+              <el-tag v-else-if="scope.row.payStatus === 'retry_success'" type="success" size="small">重发成功</el-tag>
               <el-tag v-else-if="scope.row.payStatus === 'failed'" type="danger" size="small">发放失败</el-tag>
               <span v-else>-</span>
             </template>

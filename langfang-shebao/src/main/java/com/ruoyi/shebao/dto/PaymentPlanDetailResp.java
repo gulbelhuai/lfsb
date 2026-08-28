@@ -43,4 +43,12 @@ public class PaymentPlanDetailResp
     private String distributionResult;
     /** 发放失败原因 */
     private String failReason;
+    /** 二次计划源失败明细ID */
+    private Long sourceDetailId;
+    /** 源行被纳入二次计划次数 */
+    private Integer retryCount;
+    /** 源行重发状态，retry_success=重发成功 */
+    private String retryStatus;
+    /** 源明细业务期 yyyy-MM（查询 join，不落库） */
+    private String originalBusinessPeriod;
 }

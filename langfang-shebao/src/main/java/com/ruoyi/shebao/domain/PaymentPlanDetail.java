@@ -86,5 +86,14 @@ public class PaymentPlanDetail extends BaseEntity
     /** 发放失败原因 */
     private String failReason;
 
+    /** 二次计划源失败明细ID；正常计划为 null */
+    private Long sourceDetailId;
+
+    /** 源行被纳入二次计划的次数 */
+    private Integer retryCount;
+
+    /** 源行重发状态，retry_success=重发成功 */
+    private String retryStatus;
+
     private String delFlag;
 }
